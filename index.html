@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlaySpec — Find Games That Run on YOUR PC (Steam Powered)</title>
+  <meta name="description" content="PlaySpec detects your PC hardware and recommends games you can actually run using official Steam APIs. Get deals, free games, and price alerts — all personalized for your rig." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎮</text></svg>" />
+</head>
+<body>
+
+  <!-- ═══════════════════════ NAVBAR ═══════════════════════ -->
+  <nav class="navbar" id="navbar">
+    <div class="navbar-inner">
+      <a href="#" class="navbar-brand">
+        <span class="logo-icon">🎮</span>
+        PlaySpec
+      </a>
+
+      <ul class="navbar-nav">
+        <li><a href="#dashboard" class="nav-link active" data-nav="dashboard">Discover</a></li>
+        <li><a href="#deals" class="nav-link" data-nav="deals">Deals</a></li>
+        <li><a href="#free-games" class="nav-link" data-nav="free-games">Free Games</a></li>
+        <li><a href="#events" class="nav-link" data-nav="events">Events</a></li>
+      </ul>
+
+      <div class="navbar-actions">
+        <select class="currency-select" id="currencySelect" aria-label="Select Currency">
+          <option value="INR" selected>INR (₹)</option>
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="GBP">GBP (£)</option>
+          <option value="JPY">JPY (¥)</option>
+          <option value="CAD">CAD ($)</option>
+          <option value="AUD">AUD ($)</option>
+        </select>
+        <button class="nav-action-btn" id="searchBtn" aria-label="Search">
+          🔍
+        </button>
+        <div style="position:relative">
+          <button class="nav-action-btn" id="notifBtn" aria-label="Notifications">
+            🔔
+            <span class="badge"></span>
+          </button>
+          <!-- Notifications Dropdown -->
+          <div class="notifications-dropdown" id="notifDropdown">
+            <div class="notifications-header">Notifications</div>
+            <div class="notification-item">
+              <div class="notification-icon deal">🔥</div>
+              <div>
+                <div class="notification-text">Cyberpunk 2077 dropped to <strong>₹1,299</strong> — near lowest price!</div>
+                <div class="notification-time">2 hours ago</div>
+              </div>
+            </div>
+            <div class="notification-item">
+              <div class="notification-icon free">🎁</div>
+              <div>
+                <div class="notification-text">New free game on Epic: <strong>Hitman World of Assassination</strong></div>
+                <div class="notification-time">5 hours ago</div>
+              </div>
+            </div>
+            <div class="notification-item">
+              <div class="notification-icon alert">⚡</div>
+              <div>
+                <div class="notification-text">Ghost of Tsushima is now below your <strong>₹1,500</strong> alert!</div>
+                <div class="notification-time">1 day ago</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="position:relative">
+          <div class="nav-avatar" id="profileBtn">SK</div>
+          <!-- Profile Dropdown -->
+          <div class="profile-dropdown" id="profileDropdown">
+            <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">🎮 My Library</div>
+            <div class="profile-dropdown-item" onclick="document.getElementById('wishlist').scrollIntoView({behavior:'smooth'})">❤️ Wishlist</div>
+            <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">🖥️ My PC</div>
+            <div class="profile-dropdown-item">📊 Gaming Stats</div>
+            <div class="profile-dropdown-divider"></div>
+            <div class="profile-dropdown-item">⚙️ Settings</div>
+            <div class="profile-dropdown-item" style="color: var(--accent-danger);">🚪 Logout</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════ SEARCH OVERLAY ═══════════════════════ -->
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="searchInput" placeholder="Search Steam catalog, games, deals..." autocomplete="off" />
+      </div>
+      <div class="search-results" id="searchResults">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ HERO SECTION ═══════════════════════ -->
+  <section class="hero" id="hero">
+    <div class="hero-bg">
+      <img src="images/cyberpunk.png" alt="Hero background" />
+      <div class="hero-gradient"></div>
+    </div>
+    <div class="hero-particles" id="heroParticles"></div>
+    <div class="hero-content">
+      <div class="hero-tag">
+        <span>🔵</span> Official Steam API Connected
+      </div>
+      <h1 class="hero-title">
+        Find Your<br/>
+        <span class="gradient-text">Next Game</span>
+      </h1>
+      <p class="hero-subtitle">
+        Games that actually run on <strong>YOUR</strong> PC. Powered by live Steam Web APIs & Store data. Detect your specs, get recommendations, and track prices.
+      </p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" id="detectPcBtn" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">
+          🖥️ Detect My PC
+        </button>
+        <button class="btn btn-secondary btn-lg" onclick="document.getElementById('dashboard').scrollIntoView({behavior:'smooth'})">
+          🎮 Explore Games
+        </button>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-value" data-count="42580">0</div>
+          <div class="hero-stat-label">Games tracked</div>
+        </div>
+        <div>
+          <div class="hero-stat-value" data-count="1284">0</div>
+          <div class="hero-stat-label">Compatible with your PC</div>
+        </div>
+        <div>
+          <div class="hero-stat-value" data-count="127">0</div>
+          <div class="hero-stat-label">Live Steam deals</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ MAIN CONTENT ═══════════════════════ -->
+  <main>
+
+    <!-- ── PC Specs Bar ── -->
+    <section class="section" id="dashboard">
+      <div class="container">
+        <div class="pc-specs-bar reveal">
+          <div class="pc-specs-list">
+            <div class="pc-spec-chip"><span class="spec-icon">🎮</span> RTX 3050 6GB</div>
+            <div class="pc-spec-chip"><span class="spec-icon">⚙️</span> i5-12450HX</div>
+            <div class="pc-spec-chip"><span class="spec-icon">💾</span> 16GB RAM</div>
+            <div class="pc-spec-chip"><span class="spec-icon">🖥️</span> 1080p 144Hz</div>
+          </div>
+          <div class="pc-status">
+            <div class="pc-status-badge">
+              <span class="pulse"></span>
+              PC Profile Ready
+            </div>
+            <a href="#pc-profile" class="btn btn-sm btn-ghost">View Specs →</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Recommended For You ── -->
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2 class="section-title">🎮 Recommended For You</h2>
+          <a href="#" class="section-link">See All <span>→</span></a>
+        </div>
+        <div class="games-row reveal" id="recommendedRow">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Games You Can Play Now ── -->
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2 class="section-title">🟢 Games You Can Play Now</h2>
+          <a href="#" class="section-link">See All <span>→</span></a>
+        </div>
+        <div class="games-row reveal" id="compatibleRow">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Best Deals ── -->
+    <section class="section" id="deals">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2 class="section-title">🔥 Live Steam Deals</h2>
+          <a href="#" class="section-link">See All <span>→</span></a>
+        </div>
+        <div class="tab-filters reveal">
+          <button class="tab-filter active" data-filter="all">All</button>
+          <button class="tab-filter" data-filter="great">🟢 Great Price</button>
+          <button class="tab-filter" data-filter="normal">🟡 Normal Sale</button>
+          <button class="tab-filter" data-filter="steam">Steam Live</button>
+        </div>
+        <div class="deals-grid reveal" id="dealsGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Free Games ── -->
+    <section class="section" id="free-games">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2 class="section-title">🎁 Free Games & Weekend Trials</h2>
+          <a href="#" class="section-link">See All <span>→</span></a>
+        </div>
+        <p class="reveal" style="color:var(--text-muted);margin-bottom:var(--space-xl);margin-top:-12px;font-size:0.9rem;">Claim before they disappear</p>
+        <div class="tab-filters reveal">
+          <button class="tab-filter active">All</button>
+          <button class="tab-filter">Steam</button>
+          <button class="tab-filter">Epic</button>
+          <button class="tab-filter">GOG</button>
+        </div>
+        <div class="free-games-grid reveal" id="freeGamesGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Steam Account Connector Section ── -->
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <div class="steam-connect-box reveal">
+          <div style="display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap">
+            <div style="font-size:2.2rem">🔵</div>
+            <div style="flex:1">
+              <h3 style="font-family:var(--font-heading);font-weight:700;font-size:1.2rem">Connect Steam Profile</h3>
+              <p style="color:var(--text-muted);font-size:0.85rem">Enter your Steam ID or Vanity Username (e.g. <code>gaben</code> or <code>76561197968052866</code>) to fetch your avatar and owned library.</p>
+            </div>
+            <div style="display:flex;gap:var(--space-sm);align-items:center;width:100%;max-width:380px;">
+              <input type="text" id="steamIdInput" class="steam-input" placeholder="Steam ID or vanity username (e.g. gaben)..." value="gaben" />
+              <button class="btn btn-primary" id="steamConnectBtn" onclick="connectSteamUser()">🔗 Connect</button>
+            </div>
+          </div>
+          <div id="steamProfileCard" style="display:none"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Compare ── -->
+    <section class="section" id="compare">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2 class="section-title">⚔️ Compare Games</h2>
+        </div>
+        <div class="compare-grid reveal" id="compareGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Events ── -->
+    <section class="section" id="events">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2 class="section-title">📅 Upcoming Events</h2>
+        </div>
+        <div class="events-list reveal" id="eventsList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Wishlist ── -->
+    <section class="section" id="wishlist">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2 class="section-title">❤️ Your Wishlist</h2>
+          <span style="font-size:0.85rem;color:var(--text-muted)">3 games</span>
+        </div>
+        <div class="wishlist-grid reveal" id="wishlistGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PC Profile ── -->
+    <section class="section" id="pc-profile">
+      <div class="container">
+        <div class="section-header reveal">
+          <h2 class="section-title">🖥️ Your Gaming Rig</h2>
+          <button class="btn btn-sm btn-secondary" onclick="location.reload()">🔄 Re-Scan PC</button>
+        </div>
+
+        <div class="pc-profile-grid reveal">
+          <!-- Hardware Cards -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-lg)">
+            <div class="hardware-card">
+              <div class="hardware-card-icon">🎮</div>
+              <div class="hardware-card-label">GPU</div>
+              <div class="hardware-card-value">RTX 3050</div>
+              <div class="hardware-card-detail">Laptop GPU • 6 GB VRAM</div>
+            </div>
+            <div class="hardware-card">
+              <div class="hardware-card-icon">⚙️</div>
+              <div class="hardware-card-label">CPU</div>
+              <div class="hardware-card-value">i5-12450HX</div>
+              <div class="hardware-card-detail">8 Cores • 12 Threads • 4.4 GHz</div>
+            </div>
+            <div class="hardware-card">
+              <div class="hardware-card-icon">💾</div>
+              <div class="hardware-card-label">RAM</div>
+              <div class="hardware-card-value">16 GB DDR5</div>
+              <div class="hardware-card-detail">4800 MHz</div>
+            </div>
+            <div class="hardware-card">
+              <div class="hardware-card-icon">💿</div>
+              <div class="hardware-card-label">Storage</div>
+              <div class="hardware-card-value">512 GB NVMe</div>
+              <div class="hardware-card-detail">240 GB Free</div>
+            </div>
+            <div class="hardware-card">
+              <div class="hardware-card-icon">🖥️</div>
+              <div class="hardware-card-label">Display</div>
+              <div class="hardware-card-value">1920 × 1080</div>
+              <div class="hardware-card-detail">144 Hz</div>
+            </div>
+            <div class="hardware-card">
+              <div class="hardware-card-icon">🪟</div>
+              <div class="hardware-card-label">OS</div>
+              <div class="hardware-card-value">Windows 11</div>
+              <div class="hardware-card-detail">DirectX 12 • 64-bit</div>
+            </div>
+          </div>
+
+          <!-- Compatibility Stats -->
+          <div class="compat-stats">
+            <div class="compat-stats-total">
+              <div class="compat-stats-number" data-count="1284">0</div>
+              <div class="compat-stats-label">Games you can play</div>
+            </div>
+
+            <div class="compat-bar">
+              <div class="compat-bar-header">
+                <span style="color:var(--accent-success)">⭐ Excellent</span>
+                <span>723</span>
+              </div>
+              <div class="compat-bar-track">
+                <div class="compat-bar-fill excellent" style="width:0" data-width="56%"></div>
+              </div>
+            </div>
+
+            <div class="compat-bar">
+              <div class="compat-bar-header">
+                <span style="color:var(--accent-warning)">✅ Playable</span>
+                <span>431</span>
+              </div>
+              <div class="compat-bar-track">
+                <div class="compat-bar-fill playable" style="width:0" data-width="34%"></div>
+              </div>
+            </div>
+
+            <div class="compat-bar">
+              <div class="compat-bar-header">
+                <span style="color:var(--accent-danger)">⚠️ Low</span>
+                <span>130</span>
+              </div>
+              <div class="compat-bar-track">
+                <div class="compat-bar-fill low-perf" style="width:0" data-width="10%"></div>
+              </div>
+            </div>
+
+            <div style="text-align:center;margin-top:var(--space-xl)">
+              <button class="btn btn-primary" onclick="location.reload()">🔄 Re-Scan PC</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════════════════════ GAME DETAIL MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="gameModal">
+    <div class="modal">
+      <div class="modal-hero">
+        <img id="modalHeroImg" src="images/cyberpunk.png" alt="Game hero" />
+        <div class="modal-hero-overlay"></div>
+        <button class="modal-close" id="modalClose">✕</button>
+        <div class="modal-hero-info">
+          <h2 class="modal-hero-title" id="modalTitle">Cyberpunk 2077</h2>
+          <div class="modal-hero-genre" id="modalGenre">RPG • Open World • Sci-fi</div>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-grid">
+          <div>
+            <!-- Compatibility -->
+            <div class="modal-section">
+              <div class="modal-section-title">Your PC Compatibility</div>
+              <div class="compat-result">
+                <div class="compat-level" id="modalCompat">🟢 EXCELLENT</div>
+                <div class="compat-detail" id="modalCompatDetail">1080p High • Estimated 60–80 FPS</div>
+              </div>
+            </div>
+
+            <!-- System Requirements -->
+            <div class="modal-section">
+              <div class="modal-section-title">Steam System Requirements</div>
+              <table class="spec-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th>Minimum</th>
+                    <th>Recommended</th>
+                    <th>Your PC</th>
+                  </tr>
+                </thead>
+                <tbody id="modalSpecsBody">
+                  <tr>
+                    <td>CPU</td>
+                    <td>i5-7500</td>
+                    <td>i7-8700</td>
+                    <td>i5-12450HX <span class="spec-status">🟢</span></td>
+                  </tr>
+                  <tr>
+                    <td>GPU</td>
+                    <td>GTX 1050 Ti</td>
+                    <td>RTX 2070</td>
+                    <td>RTX 3050 <span class="spec-status">🟢</span></td>
+                  </tr>
+                  <tr>
+                    <td>RAM</td>
+                    <td>8 GB</td>
+                    <td>16 GB</td>
+                    <td>16 GB <span class="spec-status">🟢</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Why We Recommend -->
+            <div class="modal-section">
+              <div class="modal-section-title">Why We Recommend This</div>
+              <div class="recommend-reasons" id="modalReasons">
+                <div class="recommend-reason"><span class="check">✓</span> Runs well on your PC</div>
+                <div class="recommend-reason"><span class="check">✓</span> Matches your preferred genre</div>
+                <div class="recommend-reason"><span class="check">✓</span> Within your usual price range</div>
+                <div class="recommend-reason"><span class="check">✓</span> Similar to games you've played</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <!-- Price -->
+            <div class="modal-section">
+              <div class="modal-section-title">Steam Price</div>
+              <div class="price-info">
+                <div class="price-row">
+                  <span class="price-label">Current Price</span>
+                  <span class="price-value current" id="modalCurrentPrice">₹1,299</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Historical Low</span>
+                  <span class="price-value lowest" id="modalLowestPrice">₹999</span>
+                </div>
+                <div class="price-row">
+                  <span class="price-label">Difference</span>
+                  <span class="price-value" id="modalPriceDiff" style="color:var(--accent-warning)">+₹300</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Price History Chart -->
+            <div class="modal-section">
+              <div class="modal-section-title">📈 Price History</div>
+              <div class="price-chart-container">
+                <canvas class="price-chart" id="priceChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Rating & Info -->
+            <div class="modal-section">
+              <div class="modal-section-title">Details</div>
+              <div style="display:flex;flex-direction:column;gap:var(--space-sm)">
+                <div style="display:flex;justify-content:space-between;font-size:0.85rem">
+                  <span style="color:var(--text-muted)">Source</span>
+                  <span>🔵 Steam Store API</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.85rem">
+                  <span style="color:var(--text-muted)">Rating</span>
+                  <span>⭐ 4.8</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:0.85rem">
+                  <span style="color:var(--text-muted)">Match</span>
+                  <span style="color:var(--accent-match)">94%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary btn-lg" style="flex:1">💰 Buy on Steam</button>
+          <button class="btn btn-secondary btn-lg" onclick="toggleWishlist(this)">♡ Wishlist</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">
+            <span class="logo-icon" style="width:28px;height:28px;font-size:0.9rem;background:linear-gradient(135deg,var(--accent-primary),#8B5CF6);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;">🎮</span>
+            PlaySpec
+          </div>
+          <p class="footer-desc">
+            Your personal gaming intelligence dashboard powered by Steam. Find games that actually run on your PC, track live deals, and connect your Steam account.
+          </p>
+        </div>
+        <div>
+          <div class="footer-heading">Platform</div>
+          <a href="#" class="footer-link">Discover</a>
+          <a href="#" class="footer-link">Deals</a>
+          <a href="#" class="footer-link">Free Games</a>
+          <a href="#" class="footer-link">Events</a>
+          <a href="#" class="footer-link">Compare</a>
+        </div>
+        <div>
+          <div class="footer-heading">Account</div>
+          <a href="#" class="footer-link">My Library</a>
+          <a href="#" class="footer-link">Wishlist</a>
+          <a href="#" class="footer-link">My PC</a>
+          <a href="#" class="footer-link">Settings</a>
+        </div>
+        <div>
+          <div class="footer-heading">Company</div>
+          <a href="#" class="footer-link">About</a>
+          <a href="#" class="footer-link">Privacy Policy</a>
+          <a href="#" class="footer-link">Terms of Service</a>
+          <a href="#" class="footer-link">Contact</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 PlaySpec. Powered by Valve Steam API.</span>
+        <span>Made with 🎮 for gamers</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════ MOBILE BOTTOM NAV ═══════════════════════ -->
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <a href="#dashboard" class="mobile-nav-item active">
+        <span class="mobile-nav-icon">🏠</span>
+        Home
+      </a>
+      <a href="#deals" class="mobile-nav-item">
+        <span class="mobile-nav-icon">🎮</span>
+        Discover
+      </a>
+      <a href="#deals" class="mobile-nav-item">
+        <span class="mobile-nav-icon">🔥</span>
+        Deals
+      </a>
+      <a href="#wishlist" class="mobile-nav-item">
+        <span class="mobile-nav-icon">❤️</span>
+        Wishlist
+      </a>
+    </div>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
