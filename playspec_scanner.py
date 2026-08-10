@@ -135,12 +135,13 @@ def main():
     payload_json = json.dumps(specs)
     encoded_token = base64.urlsafe_b64encode(payload_json.encode('utf-8')).decode('utf-8')
 
-    target_base = "http://localhost:8000"
+    target_base = "https://playspec.vercel.app"
     try:
         import urllib.request
         urllib.request.urlopen("http://localhost:8000/api/health", timeout=1)
-    except Exception:
         target_base = "http://localhost:8000"
+    except Exception:
+        target_base = "https://playspec.vercel.app"
 
     target_url = f"{target_base}/?specs={encoded_token}"
     copy_to_clipboard(encoded_token)
