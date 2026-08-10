@@ -121,6 +121,9 @@
         <button class="btn btn-primary btn-lg" id="detectPcBtn" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">
           🖥️ Detect My PC
         </button>
+        <a href="downloads/PlaySpec-Scanner.exe" download class="btn btn-secondary btn-lg" style="border:1px solid var(--accent-primary)">
+          ⚡ Download Windows Scanner (.exe)
+        </a>
         <button class="btn btn-secondary btn-lg" onclick="document.getElementById('dashboard').scrollIntoView({behavior:'smooth'})">
           🎮 Explore Games
         </button>
@@ -293,7 +296,8 @@
       <div class="container">
         <div class="section-header reveal">
           <h2 class="section-title">🖥️ Your Gaming Rig</h2>
-          <div style="display:flex;gap:var(--space-sm)">
+          <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap">
+            <a href="downloads/PlaySpec-Scanner.exe" download class="btn btn-sm btn-primary" style="display:inline-flex;align-items:center;gap:4px">⚡ Download Scanner (.exe)</a>
             <button class="btn btn-sm btn-secondary" onclick="openEditRigModal()">⚙️ Edit Rig</button>
             <button class="btn btn-sm btn-secondary" onclick="runHardwareScan()">🔄 Re-Scan PC</button>
           </div>
@@ -581,8 +585,11 @@
             </div>
           </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-2xl);padding-top:var(--space-lg);border-top:1px solid var(--border-subtle)">
-            <button type="button" class="btn btn-ghost" onclick="resetToAutoDetect()">🔍 Re-Detect Browser Specs</button>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-2xl);padding-top:var(--space-lg);border-top:1px solid var(--border-subtle);flex-wrap:wrap;gap:var(--space-md)">
+            <div style="display:flex;gap:var(--space-sm)">
+              <button type="button" class="btn btn-ghost" onclick="resetToAutoDetect()">🔍 Browser Auto-Detect</button>
+              <button type="button" class="btn btn-ghost" onclick="importSpecTokenPrompt()">📋 Paste Token</button>
+            </div>
             <div style="display:flex;gap:var(--space-md)">
               <button type="button" class="btn btn-secondary" onclick="closeEditRigModal()">Cancel</button>
               <button type="submit" class="btn btn-primary">💾 Save PC Profile</button>

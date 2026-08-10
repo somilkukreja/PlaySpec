@@ -1547,11 +1547,66 @@ function resetToAutoDetect() {
 }
 
 
+function checkUrlSpecsParam() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const specToken = params.get('specs');
+    if (specToken) {
+      const decodedJson = atob(specToken.replace(/-/g, '+').replace(/_/g, '/'));
+      const parsedSpecs = JSON.parse(decodedJson);
+      if (parsedSpecs && parsedSpecs.gpu) {
+        saveActiveRig(parsedSpecs);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showToastNotification("⚡ Windows PC Specs Synced from Scanner!");
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to parse URL spec token:", e);
+  }
+}
+
+function importSpecTokenPrompt() {
+  const token = prompt("Paste your PlaySpec Spec Token or Base64 Code:");
+  if (!token) return;
+  try {
+    const decodedJson = atob(token.trim().replace(/-/g, '+').replace(/_/g, '/'));
+    const parsedSpecs = JSON.parse(decodedJson);
+    if (parsedSpecs && parsedSpecs.gpu) {
+      saveActiveRig(parsedSpecs);
+      closeEditRigModal();
+      renderActiveRig();
+      showToastNotification("⚡ Windows PC Specs Synced!");
+    } else {
+      alert("Invalid spec token format.");
+    }
+  } catch (e) {
+    alert("Invalid spec token encoding.");
+  }
+}
+
+function showToastNotification(msg) {
+  const toast = document.createElement('div');
+  toast.style.cssText = "position:fixed;bottom:24px;right:24px;background:var(--accent-primary);color:#fff;padding:14px 20px;border-radius:10px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,0.5);z-index:9999;transition:all 0.3s ease;transform:translateY(20px);opacity:0;";
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.style.transform = "translateY(0)";
+    toast.style.opacity = "1";
+  });
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(20px)";
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+
 // ── INIT ──
 
 document.addEventListener('DOMContentLoaded', async () => {
   fetchExchangeRates(); // Fetch live exchange rates
   initCurrencySelector();
+  checkUrlSpecsParam(); // Check if launched from Windows scanner with ?specs=
   renderActiveRig(); // Render active hardware rig dynamically
   syncWithServerHardware().then(renderActiveRig); // Sync with local backend hardware if available
   populateAll();
@@ -1569,4 +1624,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   initFilters();
   initMobileNav();
 });
+
 
