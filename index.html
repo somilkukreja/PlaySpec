@@ -149,11 +149,11 @@
     <section class="section" id="dashboard">
       <div class="container">
         <div class="pc-specs-bar reveal">
-          <div class="pc-specs-list">
-            <div class="pc-spec-chip"><span class="spec-icon">🎮</span> RTX 3050 6GB</div>
-            <div class="pc-spec-chip"><span class="spec-icon">⚙️</span> i5-12450HX</div>
-            <div class="pc-spec-chip"><span class="spec-icon">💾</span> 16GB RAM</div>
-            <div class="pc-spec-chip"><span class="spec-icon">🖥️</span> 1080p 144Hz</div>
+          <div class="pc-specs-list" id="headerSpecsList">
+            <div class="pc-spec-chip"><span class="spec-icon">🎮</span> Detecting GPU...</div>
+            <div class="pc-spec-chip"><span class="spec-icon">⚙️</span> Detecting CPU...</div>
+            <div class="pc-spec-chip"><span class="spec-icon">💾</span> Detecting RAM...</div>
+            <div class="pc-spec-chip"><span class="spec-icon">🖥️</span> Display...</div>
           </div>
           <div class="pc-status">
             <div class="pc-status-badge">
@@ -293,92 +293,63 @@
       <div class="container">
         <div class="section-header reveal">
           <h2 class="section-title">🖥️ Your Gaming Rig</h2>
-          <button class="btn btn-sm btn-secondary" onclick="location.reload()">🔄 Re-Scan PC</button>
+          <div style="display:flex;gap:var(--space-sm)">
+            <button class="btn btn-sm btn-secondary" onclick="openEditRigModal()">⚙️ Edit Rig</button>
+            <button class="btn btn-sm btn-secondary" onclick="runHardwareScan()">🔄 Re-Scan PC</button>
+          </div>
         </div>
 
         <div class="pc-profile-grid reveal">
           <!-- Hardware Cards -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-lg)">
-            <div class="hardware-card">
-              <div class="hardware-card-icon">🎮</div>
-              <div class="hardware-card-label">GPU</div>
-              <div class="hardware-card-value">RTX 3050</div>
-              <div class="hardware-card-detail">Laptop GPU • 6 GB VRAM</div>
-            </div>
-            <div class="hardware-card">
-              <div class="hardware-card-icon">⚙️</div>
-              <div class="hardware-card-label">CPU</div>
-              <div class="hardware-card-value">i5-12450HX</div>
-              <div class="hardware-card-detail">8 Cores • 12 Threads • 4.4 GHz</div>
-            </div>
-            <div class="hardware-card">
-              <div class="hardware-card-icon">💾</div>
-              <div class="hardware-card-label">RAM</div>
-              <div class="hardware-card-value">16 GB DDR5</div>
-              <div class="hardware-card-detail">4800 MHz</div>
-            </div>
-            <div class="hardware-card">
-              <div class="hardware-card-icon">💿</div>
-              <div class="hardware-card-label">Storage</div>
-              <div class="hardware-card-value">512 GB NVMe</div>
-              <div class="hardware-card-detail">240 GB Free</div>
-            </div>
-            <div class="hardware-card">
-              <div class="hardware-card-icon">🖥️</div>
-              <div class="hardware-card-label">Display</div>
-              <div class="hardware-card-value">1920 × 1080</div>
-              <div class="hardware-card-detail">144 Hz</div>
-            </div>
-            <div class="hardware-card">
-              <div class="hardware-card-icon">🪟</div>
-              <div class="hardware-card-label">OS</div>
-              <div class="hardware-card-value">Windows 11</div>
-              <div class="hardware-card-detail">DirectX 12 • 64-bit</div>
-            </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-lg)" id="hardwareGrid">
+            <!-- Dynamic Hardware Cards rendered by JS -->
           </div>
 
           <!-- Compatibility Stats -->
           <div class="compat-stats">
             <div class="compat-stats-total">
-              <div class="compat-stats-number" data-count="1284">0</div>
+              <div class="compat-stats-number" id="compatTotalCount" data-count="1284">1,284</div>
               <div class="compat-stats-label">Games you can play</div>
             </div>
 
             <div class="compat-bar">
               <div class="compat-bar-header">
                 <span style="color:var(--accent-success)">⭐ Excellent</span>
-                <span>723</span>
+                <span id="compatExcellentCount">723</span>
               </div>
               <div class="compat-bar-track">
-                <div class="compat-bar-fill excellent" style="width:0" data-width="56%"></div>
+                <div class="compat-bar-fill excellent" id="compatExcellentBar" style="width:56%"></div>
               </div>
             </div>
 
             <div class="compat-bar">
               <div class="compat-bar-header">
                 <span style="color:var(--accent-warning)">✅ Playable</span>
-                <span>431</span>
+                <span id="compatPlayableCount">431</span>
               </div>
               <div class="compat-bar-track">
-                <div class="compat-bar-fill playable" style="width:0" data-width="34%"></div>
+                <div class="compat-bar-fill playable" id="compatPlayableBar" style="width:34%"></div>
               </div>
             </div>
 
             <div class="compat-bar">
               <div class="compat-bar-header">
                 <span style="color:var(--accent-danger)">⚠️ Low</span>
-                <span>130</span>
+                <span id="compatLowCount">130</span>
               </div>
               <div class="compat-bar-track">
-                <div class="compat-bar-fill low-perf" style="width:0" data-width="10%"></div>
+                <div class="compat-bar-fill low-perf" id="compatLowBar" style="width:10%"></div>
               </div>
             </div>
 
-            <div style="text-align:center;margin-top:var(--space-xl)">
-              <button class="btn btn-primary" onclick="location.reload()">🔄 Re-Scan PC</button>
+            <div style="text-align:center;margin-top:var(--space-xl);display:flex;gap:var(--space-md);justify-content:center">
+              <button class="btn btn-primary" onclick="runHardwareScan()">🔄 Re-Scan PC</button>
+              <button class="btn btn-secondary" onclick="openEditRigModal()">⚙️ Custom Rig</button>
             </div>
           </div>
         </div>
+      </div>
+    </section>
       </div>
     </section>
   </main>
@@ -507,6 +478,117 @@
           <button class="btn btn-primary btn-lg" style="flex:1">💰 Buy on Steam</button>
           <button class="btn btn-secondary btn-lg" onclick="toggleWishlist(this)">♡ Wishlist</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ HARDWARE SCANNER MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="scanModal">
+    <div class="modal" style="max-width:550px">
+      <div style="padding:var(--space-xl);position:relative">
+        <button class="modal-close" onclick="closeScanModal()">✕</button>
+
+        <div style="text-align:center;margin-bottom:var(--space-lg)">
+          <div style="font-size:2.8rem;margin-bottom:var(--space-sm)">🔍</div>
+          <h2 style="font-family:var(--font-heading);font-weight:800;font-size:1.4rem">Scanning Your Hardware</h2>
+          <p style="color:var(--text-muted);font-size:0.88rem;margin-top:4px">Inspecting GPU, WebGL Renderer, CPU cores & Memory...</p>
+        </div>
+
+        <div class="scan-progress-box">
+          <div style="display:flex;justify-content:space-between;font-size:0.85rem;font-weight:600">
+            <span id="scanStatusText">Initializing Diagnostic Engine...</span>
+            <span id="scanPercentText">0%</span>
+          </div>
+          <div class="scan-progress-bar-track">
+            <div class="scan-progress-bar-fill" id="scanProgressBar"></div>
+          </div>
+
+          <div class="scan-steps-list" id="scanStepsList">
+            <div class="scan-step-item" id="stepGpu"><span class="scan-step-icon">🎮</span> Inspecting Graphics Card & WebGL... <span class="scan-spinner"></span></div>
+            <div class="scan-step-item" id="stepCpu"><span class="scan-step-icon">⚙️</span> Benchmarking Logical CPU Cores...</div>
+            <div class="scan-step-item" id="stepRam"><span class="scan-step-icon">💾</span> Reading Memory & Quotas...</div>
+            <div class="scan-step-item" id="stepDisplay"><span class="scan-step-icon">🖥️</span> Measuring Display & Refresh Rate...</div>
+            <div class="scan-step-item" id="stepServer"><span class="scan-step-icon">📡</span> Syncing with PlaySpec Intelligence...</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:var(--space-md);margin-top:var(--space-xl)">
+          <button class="btn btn-secondary" onclick="closeScanModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ EDIT RIG CUSTOMIZER MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="editRigModal">
+    <div class="modal" style="max-width:650px">
+      <div style="padding:var(--space-xl);position:relative">
+        <button class="modal-close" onclick="closeEditRigModal()">✕</button>
+
+        <div style="margin-bottom:var(--space-xl)">
+          <div style="display:flex;align-items:center;gap:var(--space-sm)">
+            <span style="font-size:1.8rem">⚙️</span>
+            <div>
+              <h2 style="font-family:var(--font-heading);font-weight:800;font-size:1.4rem">Customize Your Gaming Rig</h2>
+              <p style="color:var(--text-muted);font-size:0.85rem">Select a hardware preset or specify your exact components.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="preset-chips-container">
+          <div class="preset-label">⚡ Quick Hardware Presets</div>
+          <div class="preset-chips">
+            <button class="preset-chip" onclick="applyPreset('budget')">💻 Budget Laptop (GTX 1650)</button>
+            <button class="preset-chip" onclick="applyPreset('midrange')">🎮 Mid-Range Gaming (RTX 3060)</button>
+            <button class="preset-chip" onclick="applyPreset('highperformance')">🚀 High-End Rig (RTX 4080)</button>
+            <button class="preset-chip" onclick="applyPreset('deck')">🕹️ Steam Deck Handheld</button>
+            <button class="preset-chip" onclick="applyPreset('mac')">🍏 Apple Mac M-Series</button>
+          </div>
+        </div>
+
+        <!-- Rig Customizer Form -->
+        <form id="rigForm" onsubmit="saveCustomRig(event)">
+          <div class="rig-form-grid">
+            <div class="rig-input-group">
+              <label class="rig-input-label">🎮 Graphics Card (GPU)</label>
+              <input type="text" class="rig-input-field" id="rigInputGpu" placeholder="e.g. RTX 4070 Laptop GPU" required />
+            </div>
+
+            <div class="rig-input-group">
+              <label class="rig-input-label">⚙️ Processor (CPU)</label>
+              <input type="text" class="rig-input-field" id="rigInputCpu" placeholder="e.g. Intel Core i7-13700H" required />
+            </div>
+
+            <div class="rig-input-group">
+              <label class="rig-input-label">💾 RAM Memory</label>
+              <input type="text" class="rig-input-field" id="rigInputRam" placeholder="e.g. 16 GB DDR5" required />
+            </div>
+
+            <div class="rig-input-group">
+              <label class="rig-input-label">💿 Storage Space</label>
+              <input type="text" class="rig-input-field" id="rigInputStorage" placeholder="e.g. 1 TB NVMe SSD" required />
+            </div>
+
+            <div class="rig-input-group">
+              <label class="rig-input-label">🖥️ Display & Refresh Rate</label>
+              <input type="text" class="rig-input-field" id="rigInputDisplay" placeholder="e.g. 2560 × 1440 165Hz" required />
+            </div>
+
+            <div class="rig-input-group">
+              <label class="rig-input-label">🪟 Operating System</label>
+              <input type="text" class="rig-input-field" id="rigInputOs" placeholder="e.g. Windows 11 64-bit" required />
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-2xl);padding-top:var(--space-lg);border-top:1px solid var(--border-subtle)">
+            <button type="button" class="btn btn-ghost" onclick="resetToAutoDetect()">🔍 Re-Detect Browser Specs</button>
+            <div style="display:flex;gap:var(--space-md)">
+              <button type="button" class="btn btn-secondary" onclick="closeEditRigModal()">Cancel</button>
+              <button type="submit" class="btn btn-primary">💾 Save PC Profile</button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   </div>

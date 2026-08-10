@@ -3,9 +3,105 @@ import re
 import json
 import time
 import requests
+import sys
+import subprocess
+import platform
 from flask import Flask, send_from_directory, jsonify, request
 
 app = Flask(__name__, static_folder=None)
+
+def detect_system_hardware():
+    specs = {
+        "gpu": "Generic Graphics",
+        "gpu_detail": "Standard Display Adapter",
+        "cpu": "Generic Processor",
+        "cpu_detail": f"{os.cpu_count() or 4} Logical Cores",
+        "ram": "8 GB DDR4",
+        "ram_detail": "8 GB Total Memory",
+        "storage": "512 GB SSD",
+        "storage_detail": "256 GB Free",
+        "display": "1920 × 1080",
+        "display_detail": "60 Hz",
+        "os": f"{platform.system()} {platform.release()}",
+        "os_detail": f"{platform.architecture()[0]} • {platform.machine()}"
+    }
+
+    if sys.platform == "win32":
+        try:
+            cmd_gpu = "Get-CimInstance Win32_VideoController | Select-Object Name, AdapterRAM | ConvertTo-Json"
+            out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_gpu], text=True, timeout=5)
+            data = json.loads(out)
+            if isinstance(data, dict):
+                data = [data]
+            
+            best_gpu = None
+            for item in data:
+                name = item.get('Name', '')
+                if not name:
+                    continue
+                if any(k in name for k in ['NVIDIA', 'GeForce', 'Radeon', 'RTX', 'GTX', 'RX']):
+                    best_gpu = item
+                    break
+                elif not best_gpu:
+                    best_gpu = item
+
+            if best_gpu and best_gpu.get('Name'):
+                full_name = best_gpu['Name']
+                clean_name = full_name.replace('NVIDIA GeForce ', '').replace('AMD Radeon ', '').replace('(R)', '').replace('(TM)', '').strip()
+                specs['gpu'] = clean_name
+                vram_bytes = best_gpu.get('AdapterRAM')
+                vram_str = ""
+                if vram_bytes and isinstance(vram_bytes, (int, float)) and vram_bytes > 0:
+                    vram_gb = round(vram_bytes / (1024**3), 1)
+                    if vram_gb > 0:
+                        vram_str = f" • {vram_gb} GB VRAM"
+                specs['gpu_detail'] = f"{full_name}{vram_str}"
+        except Exception:
+            pass
+
+        try:
+            cmd_cpu = "Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed | ConvertTo-Json"
+            out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_cpu], text=True, timeout=5)
+            data = json.loads(out)
+            if isinstance(data, list):
+                data = data[0]
+            if data and data.get('Name'):
+                full_cpu = data['Name']
+                clean_cpu = full_cpu.replace('Intel(R) Core(TM) ', '').replace('AMD Ryzen ', '').replace('Processor', '').strip()
+                specs['cpu'] = clean_cpu
+                cores = data.get('NumberOfCores', '')
+                threads = data.get('NumberOfLogicalProcessors', '')
+                clock = round(data.get('MaxClockSpeed', 0) / 1000, 1)
+                specs['cpu_detail'] = f"{cores} Cores • {threads} Threads • {clock} GHz"
+        except Exception:
+            pass
+
+        try:
+            cmd_ram = "(Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1GB"
+            out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_ram], text=True, timeout=5).strip()
+            ram_gb = round(float(out))
+            specs['ram'] = f"{ram_gb} GB RAM"
+            specs['ram_detail'] = f"{ram_gb} GB Physical Memory"
+        except Exception:
+            pass
+
+        try:
+            cmd_disk = "Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace | ConvertTo-Json"
+            out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_disk], text=True, timeout=5)
+            data = json.loads(out)
+            if isinstance(data, dict):
+                data = [data]
+            c_drive = next((d for d in data if d.get('DeviceID') == 'C:'), data[0] if data else None)
+            if c_drive:
+                total_gb = round(c_drive.get('Size', 0) / (1024**3))
+                free_gb = round(c_drive.get('FreeSpace', 0) / (1024**3))
+                specs['storage'] = f"{total_gb} GB NVMe"
+                specs['storage_detail'] = f"{free_gb} GB Free"
+        except Exception:
+            pass
+
+    return specs
+
 
 STEAM_API_KEY = os.environ.get("STEAM_API_KEY", "607A835C0480E95E51A32C4EC5952F29")
 STEAM_API_BASE = "https://api.steampowered.com"
@@ -384,29 +480,71 @@ def get_steam_user(steam_id_or_vanity):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/pc/detect', methods=['GET'])
+def get_detected_specs():
+    try:
+        specs = detect_system_hardware()
+        return jsonify({
+            "status": "success",
+            "specs": specs
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route('/api/pc/analyze', methods=['POST'])
 def analyze_pc():
     data = request.json or {}
-    gpu = data.get('gpu', 'RTX 3050')
-    cpu = data.get('cpu', 'i5-12450HX')
-    ram = data.get('ram', '16GB')
+    gpu = str(data.get('gpu', 'RTX 3050')).lower()
+    cpu = str(data.get('cpu', 'i5-12450HX')).lower()
+    ram_str = str(data.get('ram', '16GB')).lower()
     
-    # Calculate score based on user hardware
-    score = 92
-    if '4090' in gpu or '4080' in gpu or '7900' in gpu:
+    ram_gb = 16
+    match_ram = re.search(r'\d+', ram_str)
+    if match_ram:
+        ram_gb = int(match_ram.group(0))
+
+    score = 75
+    if any(k in gpu for k in ['4090', '4080', '7900 xt', '7900 xtx', '4070 ti']):
         score = 99
-    elif '3060' in gpu or '3070' in gpu or '6700' in gpu:
+    elif any(k in gpu for k in ['4070', '3080', '3090', '6800', '6900']):
         score = 95
-    elif '1050' in gpu or '1650' in gpu or 'rx 570' in gpu.lower():
-        score = 75
-        
+    elif any(k in gpu for k in ['3060', '3070', '4060', '6700', '6600', '2080', '2070']):
+        score = 90
+    elif any(k in gpu for k in ['3050', '2060', '1660', '5600', 'rx 580', 'gtx 1070']):
+        score = 84
+    elif any(k in gpu for k in ['1050', '1650', 'rx 570', 'gtx 970', 'intel iris', 'uhd', 'm1', 'm2']):
+        score = 68
+    else:
+        score = 78
+
+    if ram_gb >= 32:
+        score += 3
+    elif ram_gb <= 8:
+        score -= 10
+
+    score = min(99, max(40, score))
+    
+    total_games = 1284
+    excellent_cnt = round(total_games * (score / 130.0))
+    playable_cnt = round(total_games * 0.35)
+    low_cnt = max(0, total_games - excellent_cnt - playable_cnt)
+
+    rating_text = "⭐ ULTRA GAMING RIG" if score >= 95 else ("⭐ EXCELLENT GAMING RIG" if score >= 85 else "✅ PLAYABLE GAMING RIG")
+
     return jsonify({
         "status": "success",
-        "hardware": {"gpu": gpu, "cpu": cpu, "ram": ram},
+        "hardware": {"gpu": data.get('gpu'), "cpu": data.get('cpu'), "ram": data.get('ram')},
         "score": score,
-        "playable_games_est": 1284,
-        "rating": "⭐ EXCELLENT GAMING RIG" if score >= 90 else "✅ PLAYABLE GAMING RIG"
+        "playable_games_est": total_games,
+        "breakdown": {
+            "excellent": excellent_cnt,
+            "playable": playable_cnt,
+            "low": low_cnt
+        },
+        "rating": rating_text
     })
+
 
 
 @app.route('/<path:filename>')

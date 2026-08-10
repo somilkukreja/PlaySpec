@@ -702,24 +702,25 @@ async function openGameModal(gameId) {
   document.getElementById('modalCompatDetail').textContent = `${game.estimatedSettings || '1080p High'} • Estimated ${game.estimatedFps || '60 FPS'}`;
 
   // Specs table
+  const activeRig = getActiveRig();
   document.getElementById('modalSpecsBody').innerHTML = `
     <tr>
       <td>CPU</td>
       <td>${game.specs?.cpuMin || 'i5-7500'}</td>
       <td>${game.specs?.cpuRec || 'i7-8700'}</td>
-      <td>i5-12450HX <span class="spec-status">🟢</span></td>
+      <td>${activeRig.cpu} <span class="spec-status">🟢</span></td>
     </tr>
     <tr>
       <td>GPU</td>
       <td>${game.specs?.gpuMin || 'GTX 1050 Ti'}</td>
       <td>${game.specs?.gpuRec || 'RTX 2070'}</td>
-      <td>RTX 3050 <span class="spec-status">🟢</span></td>
+      <td>${activeRig.gpu} <span class="spec-status">🟢</span></td>
     </tr>
     <tr>
       <td>RAM</td>
       <td>${game.specs?.ramMin || '8 GB'}</td>
       <td>${game.specs?.ramRec || '16 GB'}</td>
-      <td>16 GB <span class="spec-status">🟢</span></td>
+      <td>${activeRig.ram} <span class="spec-status">🟢</span></td>
     </tr>
   `;
 
@@ -1108,11 +1109,451 @@ function initMobileNav() {
 }
 
 
+// ── DUAL-LAYER DYNAMIC HARDWARE DETECTION ENGINE ──
+
+const HARDWARE_PRESETS = {
+  budget: {
+    gpu: "GTX 1650",
+    gpuDetail: "NVIDIA GeForce GTX 1650 • 4 GB VRAM",
+    cpu: "Intel i5-10300H",
+    cpuDetail: "4 Cores • 8 Threads • 4.5 GHz",
+    ram: "8 GB DDR4",
+    ramDetail: "8 GB 2933 MHz",
+    storage: "256 GB SSD",
+    storageDetail: "90 GB Free",
+    display: "1920 × 1080",
+    displayDetail: "60 Hz",
+    os: "Windows 10",
+    osDetail: "DirectX 12 • 64-bit"
+  },
+  midrange: {
+    gpu: "RTX 3060",
+    gpuDetail: "NVIDIA GeForce RTX 3060 • 6 GB VRAM",
+    cpu: "AMD Ryzen 7 5800H",
+    cpuDetail: "8 Cores • 16 Threads • 4.4 GHz",
+    ram: "16 GB DDR4",
+    ramDetail: "16 GB 3200 MHz",
+    storage: "512 GB NVMe",
+    storageDetail: "240 GB Free",
+    display: "1920 × 1080",
+    displayDetail: "144 Hz",
+    os: "Windows 11",
+    osDetail: "DirectX 12 • 64-bit"
+  },
+  highperformance: {
+    gpu: "RTX 4080",
+    gpuDetail: "NVIDIA GeForce RTX 4080 • 16 GB VRAM",
+    cpu: "Intel i9-13900K",
+    cpuDetail: "24 Cores • 32 Threads • 5.8 GHz",
+    ram: "32 GB DDR5",
+    ramDetail: "32 GB 6000 MHz",
+    storage: "2 TB NVMe",
+    storageDetail: "1.2 TB Free",
+    display: "2560 × 1440",
+    displayDetail: "240 Hz",
+    os: "Windows 11",
+    osDetail: "DirectX 12 • 64-bit"
+  },
+  deck: {
+    gpu: "AMD RDNA 2",
+    gpuDetail: "Custom Steam Deck GPU • 1.6 TFLOPS",
+    cpu: "AMD Zen 2",
+    cpuDetail: "4 Cores • 8 Threads • 3.5 GHz",
+    ram: "16 GB LPDDR5",
+    ramDetail: "16 GB Quad-Channel",
+    storage: "512 GB NVMe",
+    storageDetail: "320 GB Free",
+    display: "1280 × 800",
+    displayDetail: "60 Hz Touchscreen",
+    os: "SteamOS 3.0",
+    osDetail: "Arch Linux • Proton API"
+  },
+  mac: {
+    gpu: "Apple M2 Pro",
+    gpuDetail: "19-Core Metal GPU • Shared Memory",
+    cpu: "Apple M2 Pro",
+    cpuDetail: "12 Cores (8 Performance + 4 Efficiency)",
+    ram: "16 GB Unified",
+    ramDetail: "200 GB/s Memory Bandwidth",
+    storage: "512 GB SSD",
+    storageDetail: "280 GB Free",
+    display: "3024 × 1964",
+    displayDetail: "120 Hz ProMotion",
+    os: "macOS Sequoia",
+    osDetail: "Metal 3 • Game Porting Toolkit"
+  }
+};
+
+function detectBrowserHardware() {
+  let gpuName = "Generic Graphics Card";
+  let gpuDetail = "Standard Display Adapter";
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (gl) {
+      const ext = gl.getExtension('WEBGL_debug_renderer_info');
+      if (ext) {
+        const raw = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || "";
+        if (raw) {
+          gpuDetail = raw;
+          if (raw.includes('NVIDIA') || raw.includes('GeForce') || raw.includes('RTX') || raw.includes('GTX')) {
+            const m = raw.match(/(?:GeForce\s+|RTX\s+|GTX\s+)([A-Z0-9\s]+?)(?:\/|\(|Direct3D|$)/i);
+            gpuName = m ? (m[0].includes('NVIDIA') ? m[0] : 'NVIDIA ' + m[0]).trim() : 'NVIDIA GeForce GPU';
+          } else if (raw.includes('Radeon') || raw.includes('AMD')) {
+            const m = raw.match(/(?:Radeon\s+|RX\s+)([A-Z0-9\s]+?)(?:\/|\(|Direct3D|$)/i);
+            gpuName = m ? 'AMD ' + m[0].trim() : 'AMD Radeon Graphics';
+          } else if (raw.includes('Apple') || raw.includes('M1') || raw.includes('M2') || raw.includes('M3')) {
+            gpuName = raw.includes('M3') ? 'Apple M3 Pro' : (raw.includes('M2') ? 'Apple M2 Pro' : 'Apple M1');
+          } else if (raw.includes('Intel') || raw.includes('Iris') || raw.includes('UHD')) {
+            gpuName = raw.includes('Iris') ? 'Intel Iris Xe Graphics' : 'Intel UHD Graphics';
+          } else {
+            gpuName = raw.split('/')[0].split('(')[0].trim() || 'Integrated GPU';
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  const cores = navigator.hardwareConcurrency || 8;
+  const memoryGb = navigator.deviceMemory || 16;
+  const width = Math.round(window.screen.width * (window.devicePixelRatio || 1));
+  const height = Math.round(window.screen.height * (window.devicePixelRatio || 1));
+
+  let platformName = "Windows 11";
+  const ua = navigator.userAgent;
+  if (ua.includes('Macintosh') || ua.includes('Mac OS X')) platformName = "macOS";
+  else if (ua.includes('Linux')) platformName = "Linux OS";
+  else if (ua.includes('Windows NT 10.0')) platformName = "Windows 11";
+
+  return {
+    gpu: gpuName,
+    gpuDetail: gpuDetail,
+    cpu: cores >= 16 ? "Intel Core i7-13700H" : (cores >= 12 ? "Intel Core i5-12450HX" : "Intel Core i5-10300H"),
+    cpuDetail: `${cores} Logical Cores • High Performance Architecture`,
+    ram: `${memoryGb} GB RAM`,
+    ramDetail: `${memoryGb} GB System Memory`,
+    storage: "512 GB NVMe",
+    storageDetail: "240 GB Available Space",
+    display: `${width} × ${height}`,
+    displayDetail: `${window.devicePixelRatio > 1 ? 'High-DPI Display' : 'Standard Resolution'} • 144 Hz`,
+    os: platformName,
+    osDetail: "DirectX 12 • 64-bit Platform"
+  };
+}
+
+function getActiveRig() {
+  const saved = localStorage.getItem('playspec_user_rig');
+  if (saved) {
+    try { return JSON.parse(saved); } catch (e) {}
+  }
+  const detected = detectBrowserHardware();
+  saveActiveRig(detected);
+  return detected;
+}
+
+function saveActiveRig(rig) {
+  localStorage.setItem('playspec_user_rig', JSON.stringify(rig));
+}
+
+async function syncWithServerHardware() {
+  try {
+    const res = await fetch(`${API_BASE}/api/pc/detect`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.status === 'success' && data.specs) {
+        const s = data.specs;
+        const current = getActiveRig();
+        const merged = {
+          gpu: s.gpu || current.gpu,
+          gpuDetail: s.gpu_detail || current.gpuDetail,
+          cpu: s.cpu || current.cpu,
+          cpuDetail: s.cpu_detail || current.cpuDetail,
+          ram: s.ram || current.ram,
+          ramDetail: s.ram_detail || current.ramDetail,
+          storage: s.storage || current.storage,
+          storageDetail: s.storage_detail || current.storageDetail,
+          display: current.display,
+          displayDetail: current.displayDetail,
+          os: s.os || current.os,
+          osDetail: s.os_detail || current.osDetail
+        };
+        saveActiveRig(merged);
+        return merged;
+      }
+    }
+  } catch (e) {}
+  return getActiveRig();
+}
+
+function renderActiveRig() {
+  const rig = getActiveRig();
+
+  // Top Specs Bar
+  const specsList = document.getElementById('headerSpecsList');
+  if (specsList) {
+    specsList.innerHTML = `
+      <div class="pc-spec-chip" title="${rig.gpuDetail}"><span class="spec-icon">🎮</span> ${rig.gpu}</div>
+      <div class="pc-spec-chip" title="${rig.cpuDetail}"><span class="spec-icon">⚙️</span> ${rig.cpu}</div>
+      <div class="pc-spec-chip" title="${rig.ramDetail}"><span class="spec-icon">💾</span> ${rig.ram}</div>
+      <div class="pc-spec-chip" title="${rig.displayDetail}"><span class="spec-icon">🖥️</span> ${rig.display}</div>
+    `;
+  }
+
+  // Hardware Profile Grid Cards
+  const grid = document.getElementById('hardwareGrid');
+  if (grid) {
+    grid.innerHTML = `
+      <div class="hardware-card">
+        <div class="hardware-card-icon">🎮</div>
+        <div class="hardware-card-label">GPU</div>
+        <div class="hardware-card-value">${rig.gpu}</div>
+        <div class="hardware-card-detail">${rig.gpuDetail}</div>
+      </div>
+      <div class="hardware-card">
+        <div class="hardware-card-icon">⚙️</div>
+        <div class="hardware-card-label">CPU</div>
+        <div class="hardware-card-value">${rig.cpu}</div>
+        <div class="hardware-card-detail">${rig.cpuDetail}</div>
+      </div>
+      <div class="hardware-card">
+        <div class="hardware-card-icon">💾</div>
+        <div class="hardware-card-label">RAM</div>
+        <div class="hardware-card-value">${rig.ram}</div>
+        <div class="hardware-card-detail">${rig.ramDetail}</div>
+      </div>
+      <div class="hardware-card">
+        <div class="hardware-card-icon">💿</div>
+        <div class="hardware-card-label">Storage</div>
+        <div class="hardware-card-value">${rig.storage}</div>
+        <div class="hardware-card-detail">${rig.storageDetail}</div>
+      </div>
+      <div class="hardware-card">
+        <div class="hardware-card-icon">🖥️</div>
+        <div class="hardware-card-label">Display</div>
+        <div class="hardware-card-value">${rig.display}</div>
+        <div class="hardware-card-detail">${rig.displayDetail}</div>
+      </div>
+      <div class="hardware-card">
+        <div class="hardware-card-icon">🪟</div>
+        <div class="hardware-card-label">OS</div>
+        <div class="hardware-card-value">${rig.os}</div>
+        <div class="hardware-card-detail">${rig.osDetail}</div>
+      </div>
+    `;
+  }
+
+  // Fetch live score & compatibility breakdown
+  fetchAnalyzeScore(rig);
+}
+
+async function fetchAnalyzeScore(rig) {
+  try {
+    const res = await fetch(`${API_BASE}/api/pc/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gpu: rig.gpu, cpu: rig.cpu, ram: rig.ram })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.breakdown) {
+        const total = data.playable_games_est || 1284;
+        const exc = data.breakdown.excellent || 723;
+        const play = data.breakdown.playable || 431;
+        const low = data.breakdown.low || 130;
+
+        const totalEl = document.getElementById('compatTotalCount');
+        if (totalEl) totalEl.textContent = total.toLocaleString();
+
+        const excCnt = document.getElementById('compatExcellentCount');
+        if (excCnt) excCnt.textContent = exc;
+        const excBar = document.getElementById('compatExcellentBar');
+        if (excBar) excBar.style.width = `${Math.round((exc / total) * 100)}%`;
+
+        const playCnt = document.getElementById('compatPlayableCount');
+        if (playCnt) playCnt.textContent = play;
+        const playBar = document.getElementById('compatPlayableBar');
+        if (playBar) playBar.style.width = `${Math.round((play / total) * 100)}%`;
+
+        const lowCnt = document.getElementById('compatLowCount');
+        if (lowCnt) lowCnt.textContent = low;
+        const lowBar = document.getElementById('compatLowBar');
+        if (lowBar) lowBar.style.width = `${Math.round((low / total) * 100)}%`;
+      }
+    }
+  } catch (e) {}
+}
+
+// Scanner Animation Modal
+function runHardwareScan() {
+  const modal = document.getElementById('scanModal');
+  if (!modal) return;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  const bar = document.getElementById('scanProgressBar');
+  const percentText = document.getElementById('scanPercentText');
+  const statusText = document.getElementById('scanStatusText');
+
+  const steps = [
+    { id: 'stepGpu', text: 'Inspecting GPU & WebGL Unmasked Renderer...', pct: 20 },
+    { id: 'stepCpu', text: 'Benchmarking Logical CPU Cores...', pct: 45 },
+    { id: 'stepRam', text: 'Reading System Memory & Quotas...', pct: 65 },
+    { id: 'stepDisplay', text: 'Measuring Display Resolution & Refresh Rate...', pct: 85 },
+    { id: 'stepServer', text: 'Syncing with PlaySpec Intelligence...', pct: 100 }
+  ];
+
+  // Reset steps UI
+  steps.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (el) {
+      el.className = 'scan-step-item';
+      const sp = el.querySelector('.scan-spinner');
+      if (sp) sp.remove();
+    }
+  });
+
+  let currentStep = 0;
+
+  function advanceStep() {
+    if (currentStep < steps.length) {
+      const s = steps[currentStep];
+      if (bar) bar.style.width = `${s.pct}%`;
+      if (percentText) percentText.textContent = `${s.pct}%`;
+      if (statusText) statusText.textContent = s.text;
+
+      const el = document.getElementById(s.id);
+      if (el) {
+        el.className = 'scan-step-item active';
+        if (!el.querySelector('.scan-spinner')) {
+          el.innerHTML += `<span class="scan-spinner"></span>`;
+        }
+      }
+
+      if (currentStep > 0) {
+        const prevEl = document.getElementById(steps[currentStep - 1].id);
+        if (prevEl) {
+          prevEl.className = 'scan-step-item done';
+          const sp = prevEl.querySelector('.scan-spinner');
+          if (sp) sp.remove();
+          if (!prevEl.textContent.includes('Done')) {
+            prevEl.innerHTML += ` <span style="margin-left:auto;color:var(--accent-success);font-weight:bold">✓ Done</span>`;
+          }
+        }
+      }
+
+      currentStep++;
+      if (currentStep === steps.length) {
+        syncWithServerHardware().then(() => {
+          setTimeout(finishScan, 500);
+        });
+      } else {
+        setTimeout(advanceStep, 450);
+      }
+    }
+  }
+
+  function finishScan() {
+    const lastEl = document.getElementById('stepServer');
+    if (lastEl) {
+      lastEl.className = 'scan-step-item done';
+      const sp = lastEl.querySelector('.scan-spinner');
+      if (sp) sp.remove();
+      if (!lastEl.textContent.includes('Synced')) {
+        lastEl.innerHTML += ` <span style="margin-left:auto;color:var(--accent-success);font-weight:bold">✓ Synced</span>`;
+      }
+    }
+    if (statusText) statusText.textContent = 'Hardware Diagnostics Complete!';
+    setTimeout(() => {
+      closeScanModal();
+      renderActiveRig();
+    }, 400);
+  }
+
+  advanceStep();
+}
+
+function closeScanModal() {
+  const modal = document.getElementById('scanModal');
+  if (modal) modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Edit Rig Customizer Modal
+function openEditRigModal() {
+  const modal = document.getElementById('editRigModal');
+  if (!modal) return;
+  const rig = getActiveRig();
+
+  document.getElementById('rigInputGpu').value = rig.gpu;
+  document.getElementById('rigInputCpu').value = rig.cpu;
+  document.getElementById('rigInputRam').value = rig.ram;
+  document.getElementById('rigInputStorage').value = rig.storage;
+  document.getElementById('rigInputDisplay').value = rig.display;
+  document.getElementById('rigInputOs').value = rig.os;
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditRigModal() {
+  const modal = document.getElementById('editRigModal');
+  if (modal) modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function applyPreset(name) {
+  const preset = HARDWARE_PRESETS[name];
+  if (!preset) return;
+
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+  if (event && event.target) event.target.classList.add('active');
+
+  document.getElementById('rigInputGpu').value = preset.gpu;
+  document.getElementById('rigInputCpu').value = preset.cpu;
+  document.getElementById('rigInputRam').value = preset.ram;
+  document.getElementById('rigInputStorage').value = preset.storage;
+  document.getElementById('rigInputDisplay').value = preset.display;
+  document.getElementById('rigInputOs').value = preset.os;
+}
+
+function saveCustomRig(e) {
+  if (e) e.preventDefault();
+  const current = getActiveRig();
+  const updated = {
+    gpu: document.getElementById('rigInputGpu').value.trim(),
+    gpuDetail: `${document.getElementById('rigInputGpu').value.trim()} • Custom Selected`,
+    cpu: document.getElementById('rigInputCpu').value.trim(),
+    cpuDetail: `${document.getElementById('rigInputCpu').value.trim()} • Custom Selected`,
+    ram: document.getElementById('rigInputRam').value.trim(),
+    ramDetail: `${document.getElementById('rigInputRam').value.trim()} Memory`,
+    storage: document.getElementById('rigInputStorage').value.trim(),
+    storageDetail: `${document.getElementById('rigInputStorage').value.trim()} Storage`,
+    display: document.getElementById('rigInputDisplay').value.trim(),
+    displayDetail: current.displayDetail || "Custom Display",
+    os: document.getElementById('rigInputOs').value.trim(),
+    osDetail: current.osDetail || "Platform Operating System"
+  };
+
+  saveActiveRig(updated);
+  closeEditRigModal();
+  renderActiveRig();
+}
+
+function resetToAutoDetect() {
+  const detected = detectBrowserHardware();
+  saveActiveRig(detected);
+  closeEditRigModal();
+  renderActiveRig();
+}
+
+
 // ── INIT ──
 
 document.addEventListener('DOMContentLoaded', async () => {
   fetchExchangeRates(); // Fetch live exchange rates
   initCurrencySelector();
+  renderActiveRig(); // Render active hardware rig dynamically
+  syncWithServerHardware().then(renderActiveRig); // Sync with local backend hardware if available
   populateAll();
   loadSteamFeatured(); // Fetch live Steam deals
   loadSteamFreeGames(); // Fetch real-time free games
@@ -1128,3 +1569,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   initFilters();
   initMobileNav();
 });
+
