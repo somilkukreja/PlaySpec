@@ -2216,3 +2216,51 @@ input { font-family: inherit; }
   box-shadow: 0 0 0 3px var(--accent-primary-glow);
 }
 
+
+/* ── AUTH MODALS ── */
+#loginModal .modal,
+#registerModal .modal,
+#wishlistModal .modal {
+  max-width: 420px;
+}
+
+#loginModal .modal-body,
+#registerModal .modal-body,
+#wishlistModal .modal-body {
+  padding: 0;
+}
+
+#loginModal .rig-input-group,
+#registerModal .rig-input-group,
+#wishlistModal .rig-input-group {
+  margin-bottom: var(--space-lg);
+}
+
+#loginModal .rig-input-field,
+#registerModal .rig-input-field,
+#wishlistModal .rig-input-field {
+  width: 100%;
+}
+
+#wishlistModal .wishlist-alert {
+  margin-bottom: var(--space-md);
+}
+
+.price-alert-triggered {
+  color: var(--accent-success) !important;
+  font-weight: 700;
+}
+
+/* Unread notification */
+.notification-item.unread {
+  background: var(--accent-primary-glow);
+}
+.notification-item.unread .notification-text {
+  font-weight: 600;
+}
+
+/* Wishlist empty state */
+#wishlist:not([style*="display: none"]) .wishlist-grid:empty::after {
+  content: '';
+}
+

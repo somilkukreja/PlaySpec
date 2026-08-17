@@ -643,6 +643,97 @@
     </div>
   </footer>
 
+  <!-- ═══════════════════════ AUTH MODALS ═══════════════════════ -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal" style="max-width:420px">
+      <div style="padding:var(--space-xl);position:relative">
+        <button class="modal-close" onclick="closeAuthModal()">✕</button>
+        <div style="text-align:center;margin-bottom:var(--space-xl)">
+          <div style="font-size:2.5rem;margin-bottom:var(--space-sm)">🎮</div>
+          <h2 style="font-family:var(--font-heading);font-weight:800;font-size:1.4rem">Welcome Back</h2>
+          <p style="color:var(--text-muted);font-size:0.88rem">Sign in to track prices & get alerts</p>
+        </div>
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="rig-input-group">
+            <label class="rig-input-label">📧 Email</label>
+            <input type="email" class="rig-input-field" id="loginEmail" placeholder="you@example.com" required />
+          </div>
+          <div class="rig-input-group">
+            <label class="rig-input-label">🔒 Password</label>
+            <input type="password" class="rig-input-field" id="loginPassword" placeholder="••••••••" required />
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin:var(--space-md) 0">
+            <label style="font-size:0.85rem;display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" /> Remember me</label>
+            <a href="#" onclick="switchAuthMode('forgot')" style="font-size:0.85rem;color:var(--accent-primary)">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:var(--space-md)">Sign In</button>
+        </form>
+        <div style="text-align:center;margin-top:var(--space-lg);color:var(--text-muted);font-size:0.85rem">
+          Don't have an account? <button class="btn btn-ghost btn-sm" onclick="switchAuthMode('register')">Create one</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="registerModal">
+    <div class="modal" style="max-width:420px">
+      <div style="padding:var(--space-xl);position:relative">
+        <button class="modal-close" onclick="closeAuthModal()">✕</button>
+        <div style="text-align:center;margin-bottom:var(--space-xl)">
+          <div style="font-size:2.5rem;margin-bottom:var(--space-sm)">🎮</div>
+          <h2 style="font-family:var(--font-heading);font-weight:800;font-size:1.4rem">Create Account</h2>
+          <p style="color:var(--text-muted);font-size:0.88rem">Start tracking game prices for free</p>
+        </div>
+        <form id="registerForm" onsubmit="handleRegister(event)">
+          <div class="rig-input-group">
+            <label class="rig-input-label">👤 Username</label>
+            <input type="text" class="rig-input-field" id="registerUsername" placeholder="gamer123" required minlength="3" />
+          </div>
+          <div class="rig-input-group">
+            <label class="rig-input-label">📧 Email</label>
+            <input type="email" class="rig-input-field" id="registerEmail" placeholder="you@example.com" required />
+          </div>
+          <div class="rig-input-group">
+            <label class="rig-input-label">🔒 Password</label>
+            <input type="password" class="rig-input-field" id="registerPassword" placeholder="Min 6 characters" required minlength="6" />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:var(--space-md)">Create Account</button>
+        </form>
+        <div style="text-align:center;margin-top:var(--space-lg);color:var(--text-muted);font-size:0.85rem">
+          Already have an account? <button class="btn btn-ghost btn-sm" onclick="switchAuthMode('login')">Sign in</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ ADD TO WISHLIST MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="wishlistModal">
+    <div class="modal" style="max-width:450px">
+      <div style="padding:var(--space-xl);position:relative">
+        <button class="modal-close" onclick="closeWishlistModal()">✕</button>
+        <div style="text-align:center;margin-bottom:var(--space-xl)">
+          <div style="font-size:2.5rem;margin-bottom:var(--space-sm)">❤️</div>
+          <h2 style="font-family:var(--font-heading);font-weight:800;font-size:1.4rem" id="wishlistModalTitle">Add to Wishlist</h2>
+          <p style="color:var(--text-muted);font-size:0.88rem" id="wishlistModalSubtitle">Set price alerts & get notified</p>
+        </div>
+        <form id="wishlistForm" onsubmit="handleAddToWishlist(event)">
+          <input type="hidden" id="wishlistAppId" />
+          <div class="rig-input-group">
+            <label class="rig-input-label">🔔 Alert Price</label>
+            <input type="number" class="rig-input-field" id="wishlistAlertPrice" placeholder="e.g. 500" step="0.01" min="0" />
+            <small style="color:var(--text-muted)">Notify me when price drops below this</small>
+          </div>
+          <div class="rig-input-group">
+            <label class="rig-input-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="wishlistNotifySale" checked /> Notify on any sale
+            </label>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:var(--space-md)">Add to Wishlist</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════════════════ MOBILE BOTTOM NAV ═══════════════════════ -->
   <nav class="mobile-nav">
     <div class="mobile-nav-inner">

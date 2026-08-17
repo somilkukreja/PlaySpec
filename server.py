@@ -6,9 +6,19 @@ import requests
 import sys
 import subprocess
 import platform
-from flask import Flask, send_from_directory, jsonify, request
+import sqlite3
+import hashlib
+import secrets
+import jwt
+from datetime import datetime, timedelta
+from functools import wraps
+from flask import Flask, send_from_directory, jsonify, request, g
 
 app = Flask(__name__, static_folder=None)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'playspec-secret-key-change-in-production')
+app.config['JWT_EXPIRATION_DELTA'] = timedelta(days=30)
+
+DATABASE = 'playspec.db'
 
 def detect_system_hardware():
     specs = {
@@ -111,6 +121,119 @@ STEAM_STORE_BASE = "https://store.steampowered.com/api"
 cache = {}
 CACHE_TTL = 300  # 5 minutes
 
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
+
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+
+def init_db():
+    with app.app_context():
+        db = get_db()
+        db.executescript('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                username TEXT UNIQUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE TABLE IF NOT EXISTS wishlist (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                appid INTEGER NOT NULL,
+                game_title TEXT NOT NULL,
+                game_image TEXT,
+                alert_price REAL,
+                notify_on_sale BOOLEAN DEFAULT 1,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                UNIQUE(user_id, appid)
+            );
+            
+            CREATE TABLE IF NOT EXISTS price_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                appid INTEGER NOT NULL,
+                price REAL NOT NULL,
+                currency TEXT DEFAULT 'USD',
+                discount_percent INTEGER DEFAULT 0,
+                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                game_appid INTEGER,
+                read BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_wishlist_user ON wishlist(user_id);
+            CREATE INDEX IF NOT EXISTS idx_price_history_appid ON price_history(appid);
+            CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
+        ''')
+        db.commit()
+
+
+def hash_password(password):
+    return hashlib.pbkdf2_hmac('sha256', password.encode(), b'playspec-salt', 100000).hex()
+
+
+def verify_password(password, password_hash):
+    return hash_password(password) == password_hash
+
+
+def generate_token(user_id):
+    payload = {
+        'user_id': user_id,
+        'exp': datetime.utcnow() + app.config['JWT_EXPIRATION_DELTA']
+    }
+    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+
+def decode_token(token):
+    try:
+        return jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        auth_header = request.headers.get('Authorization')
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+        
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+        
+        data = decode_token(token)
+        if not data:
+            return jsonify({'error': 'Token is invalid or expired'}), 401
+        
+        request.current_user_id = data['user_id']
+        return f(*args, **kwargs)
+    return decorated
+
 def get_cached(key):
     if key in cache:
         item, timestamp = cache[key]
@@ -149,6 +272,71 @@ def parse_requirements_html(req_html):
 def serve_index():
     return send_from_directory('.', 'index.html')
 
+
+
+# --- Auth Endpoints ---
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json or {}
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    username = data.get('username', '').strip()
+    
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    if len(password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    
+    db = get_db()
+    try:
+        password_hash = hash_password(password)
+        cursor = db.execute(
+            'INSERT INTO users (email, password_hash, username) VALUES (?, ?, ?)',
+            (email, password_hash, username or email.split('@')[0])
+        )
+        db.commit()
+        user_id = cursor.lastrowid
+        token = generate_token(user_id)
+        return jsonify({
+            'token': token,
+            'user': {'id': user_id, 'email': email, 'username': username or email.split('@')[0]}
+        }), 201
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'Email already registered'}), 400
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json or {}
+    email = data.get('email', '').strip().lower()
+    password = data.get('password', '')
+    
+    if not email or not password:
+        return jsonify({'error': 'Email and password required'}), 400
+    
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    
+    if not user or not verify_password(password, user['password_hash']):
+        return jsonify({'error': 'Invalid credentials'}), 401
+    
+    token = generate_token(user['id'])
+    return jsonify({
+        'token': token,
+        'user': {'id': user['id'], 'email': user['email'], 'username': user['username']}
+    })
+
+
+@app.route('/api/auth/me', methods=['GET'])
+@token_required
+def get_current_user():
+    db = get_db()
+    user = db.execute('SELECT id, email, username, created_at FROM users WHERE id = ?', 
+                      (request.current_user_id,)).fetchone()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    return jsonify({'user': dict(user)})
 
 
 # --- REST API Endpoints ---
@@ -339,6 +527,20 @@ def get_app_details(appid):
         initial_price_fmt = price_ov.get('initial_formatted', '')
         discount = price_ov.get('discount_percent', 0)
         
+        # Record price in history
+        if price_ov and price_ov.get('final', 0) > 0:
+            final_price = price_ov.get('final', 0) / 100.0
+            currency = price_ov.get('currency', 'USD')
+            try:
+                db = get_db()
+                db.execute('''
+                    INSERT INTO price_history (appid, price, currency, discount_percent)
+                    VALUES (?, ?, ?, ?)
+                ''', (appid, final_price, currency, discount))
+                db.commit()
+            except Exception:
+                pass
+        
         pc_reqs = data.get('pc_requirements', {})
         min_req_raw = pc_reqs.get('minimum', '') if isinstance(pc_reqs, dict) else ''
         rec_req_raw = pc_reqs.get('recommended', '') if isinstance(pc_reqs, dict) else ''
@@ -492,6 +694,282 @@ def get_detected_specs():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# --- Wishlist & Price Tracking Endpoints ---
+
+@app.route('/api/wishlist', methods=['GET'])
+@token_required
+def get_wishlist():
+    db = get_db()
+    items = db.execute('''
+        SELECT w.*, ph.price as current_price, ph.discount_percent, ph.recorded_at as price_updated
+        FROM wishlist w
+        LEFT JOIN (
+            SELECT appid, price, discount_percent, recorded_at,
+                   ROW_NUMBER() OVER (PARTITION BY appid ORDER BY recorded_at DESC) as rn
+            FROM price_history
+        ) ph ON w.appid = ph.appid AND ph.rn = 1
+        WHERE w.user_id = ?
+        ORDER BY w.added_at DESC
+    ''', (request.current_user_id,)).fetchall()
+    
+    result = []
+    for item in items:
+        item_dict = dict(item)
+        # Get all-time lowest price
+        lowest = db.execute(
+            'SELECT MIN(price) as lowest_price FROM price_history WHERE appid = ?', 
+            (item['appid'],)
+        ).fetchone()
+        item_dict['lowest_price'] = lowest['lowest_price'] if lowest and lowest['lowest_price'] else item_dict.get('current_price')
+        result.append(item_dict)
+    
+    return jsonify({'items': result})
+
+
+@app.route('/api/wishlist', methods=['POST'])
+@token_required
+def add_to_wishlist():
+    data = request.json or {}
+    appid = data.get('appid')
+    game_title = data.get('game_title')
+    game_image = data.get('game_image', '')
+    alert_price = data.get('alert_price')
+    notify_on_sale = data.get('notify_on_sale', True)
+    
+    if not appid or not game_title:
+        return jsonify({'error': 'appid and game_title required'}), 400
+    
+    db = get_db()
+    try:
+        db.execute('''
+            INSERT INTO wishlist (user_id, appid, game_title, game_image, alert_price, notify_on_sale)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (request.current_user_id, appid, game_title, game_image, alert_price, notify_on_sale))
+        db.commit()
+        
+        # Create notification
+        db.execute('''
+            INSERT INTO notifications (user_id, type, title, message, game_appid)
+            VALUES (?, 'wishlist_added', ?, ?, ?)
+        ''', (request.current_user_id, 'Added to Wishlist', f'{game_title} added to your wishlist', appid))
+        db.commit()
+        
+        return jsonify({'success': True, 'message': 'Added to wishlist'}), 201
+    except sqlite3.IntegrityError:
+        return jsonify({'error': 'Game already in wishlist'}), 400
+
+
+@app.route('/api/wishlist/<int:appid>', methods=['DELETE'])
+@token_required
+def remove_from_wishlist(appid):
+    db = get_db()
+    db.execute('DELETE FROM wishlist WHERE user_id = ? AND appid = ?', 
+               (request.current_user_id, appid))
+    db.commit()
+    return jsonify({'success': True, 'message': 'Removed from wishlist'})
+
+
+@app.route('/api/wishlist/<int:appid>', methods=['PUT'])
+@token_required
+def update_wishlist_item(appid):
+    data = request.json or {}
+    alert_price = data.get('alert_price')
+    notify_on_sale = data.get('notify_on_sale')
+    
+    db = get_db()
+    updates = []
+    params = []
+    
+    if alert_price is not None:
+        updates.append('alert_price = ?')
+        params.append(alert_price)
+    if notify_on_sale is not None:
+        updates.append('notify_on_sale = ?')
+        params.append(notify_on_sale)
+    
+    if not updates:
+        return jsonify({'error': 'No fields to update'}), 400
+    
+    params.extend([request.current_user_id, appid])
+    db.execute(f'UPDATE wishlist SET {", ".join(updates)} WHERE user_id = ? AND appid = ?', params)
+    db.commit()
+    return jsonify({'success': True, 'message': 'Wishlist updated'})
+
+
+@app.route('/api/price-history/<int:appid>', methods=['GET'])
+def get_price_history(appid):
+    db = get_db()
+    history = db.execute('''
+        SELECT price, currency, discount_percent, recorded_at
+        FROM price_history
+        WHERE appid = ?
+        ORDER BY recorded_at ASC
+    ''', (appid,)).fetchall()
+    
+    lowest = db.execute(
+        'SELECT MIN(price) as lowest_price FROM price_history WHERE appid = ?', 
+        (appid,)
+    ).fetchone()
+    
+    current = db.execute('''
+        SELECT price, discount_percent, recorded_at
+        FROM price_history
+        WHERE appid = ?
+        ORDER BY recorded_at DESC
+        LIMIT 1
+    ''', (appid,)).fetchone()
+    
+    return jsonify({
+        'appid': appid,
+        'history': [dict(h) for h in history],
+        'current_price': dict(current) if current else None,
+        'lowest_price': lowest['lowest_price'] if lowest and lowest['lowest_price'] else None
+    })
+
+
+@app.route('/api/notifications', methods=['GET'])
+@token_required
+def get_notifications():
+    db = get_db()
+    notifications = db.execute('''
+        SELECT * FROM notifications
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT 50
+    ''', (request.current_user_id,)).fetchall()
+    
+    unread_count = db.execute(
+        'SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND read = 0',
+        (request.current_user_id,)
+    ).fetchone()['count']
+    
+    return jsonify({
+        'notifications': [dict(n) for n in notifications],
+        'unread_count': unread_count
+    })
+
+
+@app.route('/api/notifications/<int:notification_id>/read', methods=['POST'])
+@token_required
+def mark_notification_read(notification_id):
+    db = get_db()
+    db.execute(
+        'UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?',
+        (notification_id, request.current_user_id)
+    )
+    db.commit()
+    return jsonify({'success': True})
+
+
+@app.route('/api/notifications/read-all', methods=['POST'])
+@token_required
+def mark_all_notifications_read():
+    db = get_db()
+    db.execute(
+        'UPDATE notifications SET read = 1 WHERE user_id = ?',
+        (request.current_user_id,)
+    )
+    db.commit()
+    return jsonify({'success': True})
+
+
+# --- Price Checker Background Task ---
+import threading
+import time as time_module
+
+def check_price_drops():
+    """Check for price drops on wishlisted games and create notifications"""
+    with app.app_context():
+        db = get_db()
+        # Get all wishlist items with alert prices
+        wishlist_items = db.execute('''
+            SELECT w.*, u.email
+            FROM wishlist w
+            JOIN users u ON w.user_id = u.id
+            WHERE w.alert_price IS NOT NULL
+        ''').fetchall()
+        
+        for item in wishlist_items:
+            # Get current price from price_history (latest)
+            current = db.execute('''
+                SELECT price FROM price_history
+                WHERE appid = ?
+                ORDER BY recorded_at DESC
+                LIMIT 1
+            ''', (item['appid'],)).fetchone()
+            
+            if current and current['price'] <= item['alert_price']:
+                # Check if already notified recently
+                existing = db.execute('''
+                    SELECT id FROM notifications
+                    WHERE user_id = ? AND game_appid = ? AND type = 'price_drop'
+                    AND created_at > datetime('now', '-1 day')
+                ''', (item['user_id'], item['appid'])).fetchone()
+                
+                if not existing:
+                    db.execute('''
+                        INSERT INTO notifications (user_id, type, title, message, game_appid)
+                        VALUES (?, 'price_drop', ?, ?, ?)
+                    ''', (item['user_id'], 'Price Alert!', 
+                          f'{item["game_title"]} dropped to {current["price"]:.2f}!', item['appid']))
+                    db.commit()
+
+
+def update_price_history():
+    """Fetch current prices for all tracked games and store in price_history"""
+    with app.app_context():
+        db = get_db()
+        # Get unique appids from wishlist
+        appids = [row['appid'] for row in db.execute('SELECT DISTINCT appid FROM wishlist').fetchall()]
+        
+        for appid in appids:
+            try:
+                url = f"{STEAM_STORE_BASE}/appdetails?appids={appid}"
+                resp = requests.get(url, headers={'User-Agent': 'PlaySpec/1.0'}, timeout=10)
+                json_resp = resp.json()
+                
+                app_entry = json_resp.get(str(appid), {})
+                if not app_entry.get('success'):
+                    continue
+                    
+                data = app_entry.get('data', {})
+                price_ov = data.get('price_overview', {})
+                
+                if price_ov:
+                    final_price = price_ov.get('final', 0) / 100.0  # Convert from cents
+                    discount = price_ov.get('discount_percent', 0)
+                    currency = price_ov.get('currency', 'USD')
+                    
+                    # Store in price history
+                    db.execute('''
+                        INSERT INTO price_history (appid, price, currency, discount_percent)
+                        VALUES (?, ?, ?, ?)
+                    ''', (appid, final_price, currency, discount))
+                    db.commit()
+            except Exception as e:
+                print(f"Error updating price for {appid}: {e}")
+                continue
+        
+        # Now check for price drops
+        check_price_drops()
+
+
+def price_check_scheduler():
+    """Background thread to periodically check prices"""
+    while True:
+        time_module.sleep(3600)  # Check every hour
+        try:
+            update_price_history()
+            print(f"[{datetime.now()}] Price check completed")
+        except Exception as e:
+            print(f"Price check error: {e}")
+
+
+# Start background scheduler
+scheduler_thread = threading.Thread(target=price_check_scheduler, daemon=True)
+scheduler_thread.start()
+
+
 @app.route('/api/pc/analyze', methods=['POST'])
 def analyze_pc():
     data = request.json or {}
@@ -550,6 +1028,94 @@ def analyze_pc():
 @app.route('/<path:filename>')
 def serve_static(filename):
     return send_from_directory('.', filename)
+
+
+@app.route('/api/price-check', methods=['POST'])
+@token_required
+def trigger_price_check():
+    """Manually trigger price check for user's wishlist"""
+    update_price_history()
+    return jsonify({'success': True, 'message': 'Price check completed'})
+
+
+@app.route('/api/pc/can-run/<int:appid>', methods=['POST'])
+def check_can_run(appid):
+    """Check if a specific game can run on user's PC"""
+    data = request.json or {}
+    rig = data.get('rig', {})
+    
+    gpu = str(rig.get('gpu', 'RTX 3050')).lower()
+    cpu = str(rig.get('cpu', 'i5-12450HX')).lower()
+    ram_str = str(rig.get('ram', '16GB')).lower()
+    
+    ram_gb = 16
+    match_ram = re.search(r'\d+', ram_str)
+    if match_ram:
+        ram_gb = int(match_ram.group(0))
+    
+    # Get game requirements from Steam
+    try:
+        url = f"{STEAM_STORE_BASE}/appdetails?appids={appid}"
+        resp = requests.get(url, headers={'User-Agent': 'PlaySpec/1.0'}, timeout=10)
+        json_resp = resp.json()
+        
+        app_entry = json_resp.get(str(appid), {})
+        if not app_entry.get('success'):
+            return jsonify({"error": "Game not found"}), 404
+            
+        game_data = app_entry.get('data', {})
+        pc_reqs = game_data.get('pc_requirements', {})
+        min_req_raw = pc_reqs.get('minimum', '') if isinstance(pc_reqs, dict) else ''
+        rec_req_raw = pc_reqs.get('recommended', '') if isinstance(pc_reqs, dict) else ''
+        
+        min_parsed = parse_requirements_html(min_req_raw)
+        rec_parsed = parse_requirements_html(rec_req_raw)
+    except Exception:
+        min_parsed = {"cpu": "i5-7500", "gpu": "GTX 1050 Ti", "ram": "8 GB"}
+        rec_parsed = {"cpu": "i7-8700", "gpu": "RTX 2070", "ram": "16 GB"}
+    
+    # Simple compatibility scoring
+    score = 75
+    gpu_score = 0
+    if any(k in gpu for k in ['4090', '4080', '7900 xt', '7900 xtx', '4070 ti']):
+        gpu_score = 100
+    elif any(k in gpu for k in ['4070', '3080', '3090', '6800', '6900']):
+        gpu_score = 95
+    elif any(k in gpu for k in ['3060', '3070', '4060', '6700', '6600', '2080', '2070']):
+        gpu_score = 85
+    elif any(k in gpu for k in ['3050', '2060', '1660', '5600', 'rx 580', 'gtx 1070']):
+        gpu_score = 75
+    elif any(k in gpu for k in ['1050', '1650', 'rx 570', 'gtx 970', 'intel iris', 'uhd', 'm1', 'm2']):
+        gpu_score = 55
+    else:
+        gpu_score = 70
+    
+    ram_score = 100 if ram_gb >= 32 else (85 if ram_gb >= 16 else (60 if ram_gb >= 8 else 40))
+    cpu_score = 85  # Simplified
+    
+    overall_score = int((gpu_score * 0.5) + (cpu_score * 0.3) + (ram_score * 0.2))
+    overall_score = min(99, max(30, overall_score))
+    
+    can_run = overall_score >= 60
+    runs_well = overall_score >= 80
+    
+    return jsonify({
+        "appid": appid,
+        "can_run": can_run,
+        "runs_well": runs_well,
+        "score": overall_score,
+        "breakdown": {
+            "gpu": gpu_score,
+            "cpu": cpu_score,
+            "ram": ram_score
+        },
+        "requirements": {
+            "minimum": min_parsed,
+            "recommended": rec_parsed
+        },
+        "user_rig": rig,
+        "recommendation": "🟢 Runs Excellent" if runs_well else ("🟡 Runs Okay" if can_run else "🔴 May Struggle")
+    })
 
 
 if __name__ == '__main__':

@@ -1601,17 +1601,415 @@ function showToastNotification(msg) {
 }
 
 
-// ── INIT ──
+// ── AUTH SYSTEM ──
+let authToken = localStorage.getItem('playspec_token') || null;
+let currentUser = null;
 
+function getAuthHeaders() {
+  return authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+}
+
+async function apiRequest(endpoint, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...getAuthHeaders(),
+    ...(options.headers || {})
+  };
+  
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers
+  });
+  
+  if (res.status === 401) {
+    logout();
+    showToastNotification('Session expired. Please sign in again.');
+    return null;
+  }
+  
+  return res.json();
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  
+  const data = await apiRequest('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
+  
+  if (data && data.token) {
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('playspec_token', authToken);
+    localStorage.setItem('playspec_user', JSON.stringify(currentUser));
+    closeAuthModal();
+    updateAuthUI();
+    showToastNotification(`Welcome back, ${currentUser.username}!`);
+    loadWishlist();
+    loadNotifications();
+  } else if (data) {
+    alert(data.error || 'Login failed');
+  }
+}
+
+async function handleRegister(e) {
+  e.preventDefault();
+  const username = document.getElementById('registerUsername').value.trim();
+  const email = document.getElementById('registerEmail').value.trim().toLowerCase();
+  const password = document.getElementById('registerPassword').value;
+  
+  const data = await apiRequest('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ username, email, password })
+  });
+  
+  if (data && data.token) {
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('playspec_token', authToken);
+    localStorage.setItem('playspec_user', JSON.stringify(currentUser));
+    closeAuthModal();
+    updateAuthUI();
+    showToastNotification(`Account created! Welcome, ${currentUser.username}!`);
+    loadWishlist();
+    loadNotifications();
+  } else if (data) {
+    alert(data.error || 'Registration failed');
+  }
+}
+
+function logout() {
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem('playspec_token');
+  localStorage.removeItem('playspec_user');
+  updateAuthUI();
+  showToastNotification('Signed out successfully');
+}
+
+function updateAuthUI() {
+  const profileBtn = document.getElementById('profileBtn');
+  const profileDropdown = document.getElementById('profileDropdown');
+  
+  if (currentUser && profileBtn) {
+    profileBtn.innerHTML = currentUser.username.charAt(0).toUpperCase();
+    profileBtn.title = currentUser.username;
+    
+    if (profileDropdown) {
+      profileDropdown.innerHTML = `
+        <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">🎮 My Library</div>
+        <div class="profile-dropdown-item" onclick="document.getElementById('wishlist').scrollIntoView({behavior:'smooth'})">❤️ Wishlist</div>
+        <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">🖥️ My PC</div>
+        <div class="profile-dropdown-item">📊 Gaming Stats</div>
+        <div class="profile-dropdown-divider"></div>
+        <div class="profile-dropdown-item">⚙️ Settings</div>
+        <div class="profile-dropdown-item" style="color: var(--accent-danger);" onclick="logout()">🚪 Logout</div>
+      `;
+    }
+  } else if (profileBtn) {
+    profileBtn.innerHTML = 'SK';
+    profileBtn.title = 'Sign in';
+    if (profileDropdown) {
+      profileDropdown.innerHTML = `
+        <div class="profile-dropdown-item" onclick="openAuthModal('login')">🔐 Sign In</div>
+        <div class="profile-dropdown-item" onclick="openAuthModal('register')">📝 Create Account</div>
+        <div class="profile-dropdown-divider"></div>
+        <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">🖥️ My PC</div>
+      `;
+    }
+  }
+  
+  // Update wishlist section visibility
+  const wishlistSection = document.getElementById('wishlist');
+  if (wishlistSection) {
+    wishlistSection.style.display = currentUser ? 'block' : 'none';
+  }
+}
+
+function openAuthModal(mode = 'login') {
+  document.getElementById('loginModal').classList.remove('active');
+  document.getElementById('registerModal').classList.remove('active');
+  
+  if (mode === 'login') {
+    document.getElementById('loginModal').classList.add('active');
+    document.getElementById('loginEmail').focus();
+  } else {
+    document.getElementById('registerModal').classList.add('active');
+    document.getElementById('registerUsername').focus();
+  }
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAuthModal() {
+  document.getElementById('loginModal').classList.remove('active');
+  document.getElementById('registerModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function switchAuthMode(mode) {
+  closeAuthModal();
+  setTimeout(() => openAuthModal(mode), 100);
+}
+
+
+// ── WISHLIST SYSTEM ──
+let pendingWishlistAppId = null;
+
+async function loadWishlist() {
+  if (!authToken) return;
+  
+  const data = await apiRequest('/api/wishlist');
+  if (data && data.items) {
+    renderWishlist(data.items);
+  }
+}
+
+function renderWishlist(items) {
+  const grid = document.getElementById('wishlistGrid');
+  if (!grid) return;
+  
+  if (items.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:var(--space-2xl);color:var(--text-muted)">
+        <div style="font-size:3rem;margin-bottom:var(--space-md)">❤️</div>
+        <h3 style="font-family:var(--font-heading);margin-bottom:var(--space-sm)">Your wishlist is empty</h3>
+        <p>Add games to track prices and get sale alerts</p>
+      </div>
+    `;
+    return;
+  }
+  
+  grid.innerHTML = items.map(item => {
+    const currentP = convertPrice(item.current_price ? `$${item.current_price}` : 'N/A');
+    const lowP = convertPrice(item.lowest_price ? `$${item.lowest_price}` : 'N/A');
+    const alertP = item.alert_price ? convertPrice(`$${item.alert_price}`) : 'Not set';
+    const isBelowAlert = item.current_price && item.alert_price && item.current_price <= item.alert_price;
+    
+    return `
+      <div class="wishlist-card">
+        <div class="wishlist-card-header">
+          <img class="wishlist-card-thumb" src="${item.game_image || 'images/cyberpunk.png'}" alt="${item.game_title}" onerror="this.src='images/cyberpunk.png'" />
+          <div class="wishlist-card-info">
+            <div class="wishlist-card-name">${item.game_title}</div>
+            <div class="wishlist-card-genre">AppID: ${item.appid}</div>
+          </div>
+          <button class="wishlist-card-remove" onclick="removeFromWishlist(${item.appid})">✕</button>
+        </div>
+        <div class="wishlist-prices">
+          <div class="wishlist-price-item">
+            <div class="wishlist-price-label">Current</div>
+            <div class="wishlist-price-value">${currentP}</div>
+          </div>
+          <div class="wishlist-price-item">
+            <div class="wishlist-price-label">Lowest Ever</div>
+            <div class="wishlist-price-value" style="color:var(--accent-primary)">${lowP}</div>
+          </div>
+          <div class="wishlist-price-item">
+            <div class="wishlist-price-label">Alert Price</div>
+            <div class="wishlist-price-value ${isBelowAlert ? 'price-alert-triggered' : ''}">${alertP}</div>
+          </div>
+        </div>
+        <div style="margin-bottom:var(--space-md)">
+          <span class="price-badge ${isBelowAlert ? 'great' : 'wait'}">${isBelowAlert ? '🟢 Below Alert!' : '🟡 Waiting for drop'}</span>
+        </div>
+        <div class="wishlist-alert">
+          <button class="btn btn-sm btn-secondary" onclick="openWishlistModal(${item.appid}, '${item.game_title.replace(/'/g, "\\'")}', '${item.game_image || ''}')">⚙️ Edit Alert</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openWishlistModal(appid, title, image) {
+  pendingWishlistAppId = appid;
+  document.getElementById('wishlistAppId').value = appid;
+  document.getElementById('wishlistModalTitle').textContent = title;
+  document.getElementById('wishlistModalSubtitle').textContent = `AppID: ${appid}`;
+  document.getElementById('wishlistModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeWishlistModal() {
+  document.getElementById('wishlistModal').classList.remove('active');
+  document.body.style.overflow = '';
+  pendingWishlistAppId = null;
+}
+
+async function handleAddToWishlist(e) {
+  e.preventDefault();
+  if (!authToken) {
+    openAuthModal('login');
+    closeWishlistModal();
+    return;
+  }
+  
+  const appid = parseInt(document.getElementById('wishlistAppId').value);
+  const alertPrice = document.getElementById('wishlistAlertPrice').value;
+  const notifyOnSale = document.getElementById('wishlistNotifySale').checked;
+  
+  const data = await apiRequest('/api/wishlist', {
+    method: 'POST',
+    body: JSON.stringify({
+      appid,
+      alert_price: alertPrice ? parseFloat(alertPrice) : null,
+      notify_on_sale: notifyOnSale
+    })
+  });
+  
+  if (data && data.success) {
+    showToastNotification('Added to wishlist!');
+    closeWishlistModal();
+    loadWishlist();
+  } else if (data) {
+    alert(data.error || 'Failed to add to wishlist');
+  }
+}
+
+async function removeFromWishlist(appid) {
+  if (!confirm('Remove from wishlist?')) return;
+  
+  const data = await apiRequest(`/api/wishlist/${appid}`, {
+    method: 'DELETE'
+  });
+  
+  if (data && data.success) {
+    showToastNotification('Removed from wishlist');
+    loadWishlist();
+  }
+}
+
+async function addCurrentGameToWishlist() {
+  const modal = document.getElementById('gameModal');
+  if (!modal.classList.contains('active')) return;
+  
+  const buyBtn = modal.querySelector('.modal-actions .btn-primary');
+  const appidMatch = buyBtn.onclick.toString().match(/app\/(\d+)/);
+  if (!appidMatch) return;
+  
+  const appid = parseInt(appidMatch[1]);
+  const title = document.getElementById('modalTitle').textContent;
+  const image = document.getElementById('modalHeroImg').src;
+  
+  if (!authToken) {
+    openAuthModal('login');
+    return;
+  }
+  
+  openWishlistModal(appid, title, image);
+}
+
+
+// ── NOTIFICATIONS ──
+async function loadNotifications() {
+  if (!authToken) return;
+  
+  const data = await apiRequest('/api/notifications');
+  if (data) {
+    updateNotificationUI(data.notifications, data.unread_count);
+  }
+}
+
+function updateNotificationUI(notifications, unreadCount) {
+  const notifBtn = document.getElementById('notifBtn');
+  const notifDropdown = document.getElementById('notifDropdown');
+  
+  if (notifBtn) {
+    const badge = notifBtn.querySelector('.badge');
+    if (badge) {
+      badge.textContent = unreadCount > 0 ? unreadCount : '';
+      badge.style.display = unreadCount > 0 ? 'block' : 'none';
+    }
+  }
+  
+  if (notifDropdown) {
+    if (notifications.length === 0) {
+      notifDropdown.innerHTML = `
+        <div class="notifications-header">Notifications</div>
+        <div style="padding:var(--space-lg);text-align:center;color:var(--text-muted)">No notifications yet</div>
+      `;
+      return;
+    }
+    
+    notifDropdown.innerHTML = `
+      <div class="notifications-header">
+        Notifications ${unreadCount > 0 ? `<span style="font-size:0.75rem;color:var(--accent-primary)">${unreadCount} unread</span>` : ''}
+      </div>
+      ${notifications.slice(0, 10).map(n => `
+        <div class="notification-item ${n.read ? '' : 'unread'}" onclick="markNotificationRead(${n.id})">
+          <div class="notification-icon ${getNotificationIconClass(n.type)}">${getNotificationIcon(n.type)}</div>
+          <div>
+            <div class="notification-text">${n.message}</div>
+            <div class="notification-time">${formatTimeAgo(n.created_at)}</div>
+          </div>
+        </div>
+      `).join('')}
+      ${notifications.length > 10 ? `<div style="padding:var(--space-md);text-align:center"><button class="btn btn-ghost btn-sm" onclick="loadAllNotifications()">View all</button></div>` : ''}
+    `;
+  }
+}
+
+function getNotificationIcon(type) {
+  const icons = { price_drop: '💰', wishlist_added: '❤️', sale: '🔥', free_game: '🎁' };
+  return icons[type] || '🔔';
+}
+
+function getNotificationIconClass(type) {
+  const classes = { price_drop: 'deal', wishlist_added: 'alert', sale: 'deal', free_game: 'free' };
+  return classes[type] || 'alert';
+}
+
+function formatTimeAgo(dateStr) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+  return `${Math.floor(diff/86400)}d ago`;
+}
+
+async function markNotificationRead(id) {
+  await apiRequest(`/api/notifications/${id}/read`, { method: 'POST' });
+  loadNotifications();
+}
+
+
+// ── PRICE CHECK ──
+async function checkGameCanRun(appid) {
+  const rig = getActiveRig();
+  const data = await apiRequest(`/api/pc/can-run/${appid}`, {
+    method: 'POST',
+    body: JSON.stringify({ rig })
+  });
+  return data;
+}
+
+
+// ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
-  fetchExchangeRates(); // Fetch live exchange rates
+  // Check for existing token
+  const savedToken = localStorage.getItem('playspec_token');
+  const savedUser = localStorage.getItem('playspec_user');
+  if (savedToken && savedUser) {
+    authToken = savedToken;
+    currentUser = JSON.parse(savedUser);
+    updateAuthUI();
+    loadWishlist();
+    loadNotifications();
+  }
+  
+  fetchExchangeRates();
   initCurrencySelector();
-  checkUrlSpecsParam(); // Check if launched from Windows scanner with ?specs=
-  renderActiveRig(); // Render active hardware rig dynamically
-  syncWithServerHardware().then(renderActiveRig); // Sync with local backend hardware if available
+  checkUrlSpecsParam();
+  renderActiveRig();
+  syncWithServerHardware().then(renderActiveRig);
   populateAll();
-  loadSteamFeatured(); // Fetch live Steam deals
-  loadSteamFreeGames(); // Fetch real-time free games
+  loadSteamFeatured();
+  loadSteamFreeGames();
   initSearch();
   initNavbarScroll();
   initNavHighlight();
@@ -1623,6 +2021,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   initModal();
   initFilters();
   initMobileNav();
+  
+  // Add wishlist button to modal
+  const wishlistBtn = document.querySelector('.modal-actions .btn-secondary');
+  if (wishlistBtn) {
+    wishlistBtn.onclick = addCurrentGameToWishlist;
+    wishlistBtn.textContent = '❤️ Track Price';
+  }
 });
 
 
