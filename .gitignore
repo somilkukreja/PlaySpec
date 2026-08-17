@@ -12,10 +12,17 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Database & local state
+*.db
+playspec.db
+nul
+
 # Logs
 *.log
 
-# Build artifacts
+# Build & binary artifacts
 build/
 dist/
 *.spec
+
+
