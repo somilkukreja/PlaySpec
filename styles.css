@@ -2324,4 +2324,79 @@ input, select, textarea {
   .hero-actions .btn { width: 100%; }
 }
 
+/* ═══════════════════════ MULTI-STORE & REGIONAL OPTIONS STYLES ═══════════════════════ */
+.store-option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 10px 14px;
+  transition: all var(--transition-fast);
+  gap: 12px;
+}
+.store-option-row:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-default);
+  transform: translateX(2px);
+}
+.store-option-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.store-option-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #ffffff;
+}
+.store-option-drm {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+.store-option-price-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.store-option-price {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+.store-option-btn {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: var(--radius-xs);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+.store-option-btn-steam { background: #171a21; color: #66c0f4; border: 1px solid rgba(102,192,244,0.4); }
+.store-option-btn-steam:hover { background: #2a475e; color: #fff; }
+.store-option-btn-epic { background: #121212; color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+.store-option-btn-epic:hover { background: #252525; }
+.store-option-btn-gog { background: #4a154b; color: #e094f7; border: 1px solid rgba(224,148,247,0.4); }
+.store-option-btn-gog:hover { background: #6b226c; color: #fff; }
+.store-option-btn-indiegala { background: #b45309; color: #fff; border: 1px solid rgba(245,158,11,0.5); }
+.store-option-btn-indiegala:hover { background: #d97706; }
+.store-option-btn-itchio { background: #e11d48; color: #fff; border: 1px solid rgba(244,63,94,0.5); }
+.store-option-btn-itchio:hover { background: #f43f5e; }
+
+.deal-store-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: uppercase;
+}
+
 

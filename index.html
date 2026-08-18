@@ -323,15 +323,38 @@
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
                 <line x1="7" y1="7" x2="7.01" y2="7"></line>
               </svg>
-              Live Steam Deals & Price Cuts
+              Multi-Store Live Deals & Price Cuts
             </h2>
-            <span class="section-subtitle">Live store discounts fetched directly from official Steam Web APIs</span>
+            <span class="section-subtitle">Real-time gaming discounts aggregated across Steam, Epic Games, GOG, IndieGala & Itch.io</span>
           </div>
         </div>
+
+        <!-- Store Filters -->
+        <div class="store-filter-chips" style="margin-bottom:14px">
+          <button class="store-filter-chip active" data-deals-store="all" onclick="filterDealsByStore('all')">
+            <span class="store-chip-icon">🌐</span> All Stores
+          </button>
+          <button class="store-filter-chip" data-deals-store="steam" onclick="filterDealsByStore('steam')">
+            <span class="store-chip-icon">🎮</span> Steam
+          </button>
+          <button class="store-filter-chip" data-deals-store="epic-games-store" onclick="filterDealsByStore('epic-games-store')">
+            <span class="store-chip-icon">⚡</span> Epic Games
+          </button>
+          <button class="store-filter-chip" data-deals-store="gog" onclick="filterDealsByStore('gog')">
+            <span class="store-chip-icon">🕹️</span> GOG (DRM-Free)
+          </button>
+          <button class="store-filter-chip" data-deals-store="indiegala" onclick="filterDealsByStore('indiegala')">
+            <span class="store-chip-icon">🎁</span> IndieGala
+          </button>
+          <button class="store-filter-chip" data-deals-store="itchio" onclick="filterDealsByStore('itchio')">
+            <span class="store-chip-icon">🎨</span> Itch.io
+          </button>
+        </div>
+
         <div class="tab-filters">
           <button class="tab-filter active" data-filter="all">All Discounts</button>
           <button class="tab-filter" data-filter="great">≥ 50% Off</button>
-          <button class="tab-filter" data-filter="normal">Normal Sale</button>
+          <button class="tab-filter" data-filter="normal">Under $20</button>
           <button class="tab-filter" data-filter="steam">Steam Specials</button>
         </div>
         <div class="deals-grid" id="dealsGrid">
@@ -502,6 +525,7 @@
           <div style="display:flex;gap:var(--space-xs);flex-wrap:wrap">
             <button class="btn btn-sm btn-primary" onclick="runHardwareScan()">Re-Scan PC</button>
             <button class="btn btn-sm btn-secondary" onclick="openEditRigModal()">Edit Components</button>
+            <button class="btn btn-sm btn-ghost" onclick="importSpecTokenPrompt()" title="Import Base64 spec token from Windows scanner">Import Scanner Token</button>
           </div>
         </div>
 
@@ -647,6 +671,14 @@
           </div>
         </div>
 
+        <!-- Multi-Store Availability & Regional Options -->
+        <div class="modal-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle)">
+          <div class="modal-section-title">Multi-Store Availability & Regional Options</div>
+          <div id="modalStoreOptionsList" style="display:flex;flex-direction:column;gap:8px">
+            <!-- Dynamic Store Options rendered by JS -->
+          </div>
+        </div>
+
         <div class="modal-actions">
           <button class="btn btn-primary btn-lg" id="modalBuyBtn" style="flex:1">Buy on Steam</button>
           <button class="btn btn-secondary btn-lg" id="modalTrackBtn" onclick="addCurrentGameToWishlist()">Track Price & Set Alert</button>
@@ -767,8 +799,11 @@
             </div>
           </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border-subtle)">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="resetToAutoDetect()">Reset to Auto-Detect</button>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:14px;border-top:1px solid var(--border-subtle);flex-wrap:wrap;gap:10px">
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="resetToAutoDetect()">Reset to Auto-Detect</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="importSpecTokenPrompt()">Import Scanner Code</button>
+            </div>
             <div style="display:flex;gap:8px">
               <button type="button" class="btn btn-secondary" onclick="closeEditRigModal()">Cancel</button>
               <button type="submit" class="btn btn-primary">Save Specs & Re-Calibrate AI</button>

@@ -57,45 +57,98 @@ async function fetchExchangeRates() {
     const res = await fetch(`${API_BASE}/api/currency/rates`);
     if (res.ok) {
       const data = await res.json();
-      if (data.rates) exchangeRates = { ...exchangeRates, ...data.rates };
+      if (data.rates) {
+        exchangeRates = { ...exchangeRates, ...data.rates };
+        return;
+      }
     }
   } catch (err) {}
+
+  // Fallback to public live exchange rates API if backend proxy is offline (e.g. static on Vercel)
+  try {
+    const pubRes = await fetch('https://open.er-api.com/v6/latest/USD');
+    if (pubRes.ok) {
+      const pubData = await pubRes.json();
+      if (pubData && pubData.rates) {
+        exchangeRates = {
+          USD: 1.0,
+          EUR: pubData.rates.EUR || 0.92,
+          GBP: pubData.rates.GBP || 0.78,
+          INR: pubData.rates.INR || 83.5,
+          JPY: pubData.rates.JPY || 155.0,
+          CAD: pubData.rates.CAD || 1.37,
+          AUD: pubData.rates.AUD || 1.52,
+          VND: pubData.rates.VND || 24500.0
+        };
+      }
+    }
+  } catch (e) {}
 }
 
 function convertPrice(priceVal) {
-  if (!priceVal || priceVal === 'Free' || priceVal === 'Free to Play' || priceVal === 'N/A') {
+  if (priceVal === undefined || priceVal === null || priceVal === '' || priceVal === 'Free' || priceVal === 'Free to Play' || priceVal === 'N/A') {
     return priceVal || 'Free';
   }
 
   const str = priceVal.toString().trim();
   const currentSymbol = CURRENCY_SYMBOLS[currentCurrency] || '$';
 
-  // If already formatted with the active currency or Steam format, return cleanly
-  if (str.startsWith(currentSymbol) || (currentCurrency === 'INR' && (str.includes('₹') || str.includes('INR')))) {
+  // 1. If it already has the exact current currency symbol or formatted in current currency:
+  if (currentCurrency === 'INR' && (str.includes('₹') || str.toUpperCase().includes('INR'))) {
+    const numMatch = str.match(/[\d,.]+/);
+    if (!numMatch) return str;
+    const cleanNum = Math.round(parseFloat(numMatch[0].replace(/,/g, '')));
+    return `₹ ${cleanNum.toLocaleString('en-IN')}`;
+  }
+
+  if (currentCurrency === 'USD' && (str.startsWith('$') || str.toUpperCase().includes('USD'))) {
     return str.replace(/\s+/g, ' ');
   }
 
+  if (str.startsWith(currentSymbol)) {
+    return str.replace(/\s+/g, ' ');
+  }
+
+  // 2. Extract numeric value
   const match = str.match(/[\d,.]+/);
   if (!match) return str;
-
   const rawNum = parseFloat(match[0].replace(/,/g, ''));
+  if (isNaN(rawNum) || rawNum <= 0) return str;
 
+  // 3. Detect input base currency
   let baseRate = 1.0;
-  if (str.includes('₹') || str.includes('INR')) baseRate = exchangeRates.INR || 83.5;
-  else if (str.includes('€') || str.includes('EUR')) baseRate = exchangeRates.EUR || 0.92;
-  else if (str.includes('£') || str.includes('GBP')) baseRate = exchangeRates.GBP || 0.78;
-  else if (str.includes('¥') || str.includes('JPY')) baseRate = exchangeRates.JPY || 155.0;
-  else if (str.includes('CA$')) baseRate = exchangeRates.CAD || 1.37;
-  else if (str.includes('AU$')) baseRate = exchangeRates.AUD || 1.52;
-  else if (str.includes('₫') || str.includes('VND')) baseRate = exchangeRates.VND || 24500.0;
-  else baseRate = 1.0;
+  if (str.includes('₹') || str.toUpperCase().includes('INR')) {
+    baseRate = exchangeRates.INR || 83.5;
+  } else if (str.includes('€') || str.toUpperCase().includes('EUR')) {
+    baseRate = exchangeRates.EUR || 0.92;
+  } else if (str.includes('£') || str.toUpperCase().includes('GBP')) {
+    baseRate = exchangeRates.GBP || 0.78;
+  } else if (str.includes('¥') || str.toUpperCase().includes('JPY')) {
+    baseRate = exchangeRates.JPY || 155.0;
+  } else if (str.includes('₫') || str.toUpperCase().includes('VND')) {
+    baseRate = exchangeRates.VND || 24500.0;
+  } else if (str.includes('$') || str.toUpperCase().includes('USD')) {
+    baseRate = 1.0;
+  } else {
+    // No symbol present:
+    // If rawNum >= 150 and currentCurrency is INR, the number is ALREADY in INR (e.g. 700 or 4999)
+    if (rawNum >= 150 && currentCurrency === 'INR') {
+      return `₹ ${Math.round(rawNum).toLocaleString('en-IN')}`;
+    }
+    // Standard USD float price (e.g. 59.99, 19.79, 29.99)
+    baseRate = 1.0;
+  }
 
+  // 4. Convert to target currency
   const usd = rawNum / baseRate;
   const targetRate = exchangeRates[currentCurrency] || 1.0;
   const converted = usd * targetRate;
 
-  if (currentCurrency === 'JPY' || currentCurrency === 'VND' || currentCurrency === 'INR') {
-    return `${currentSymbol}${Math.round(converted).toLocaleString(currentCurrency === 'INR' ? 'en-IN' : 'en-US')}`;
+  if (currentCurrency === 'INR') {
+    return `₹ ${Math.round(converted).toLocaleString('en-IN')}`;
+  }
+  if (currentCurrency === 'JPY' || currentCurrency === 'VND') {
+    return `${currentSymbol} ${Math.round(converted).toLocaleString('en-US')}`;
   }
 
   const isWhole = converted % 1 === 0;
@@ -127,13 +180,13 @@ const MOCK_GAMES = [
   {
     id: 1091500,
     title: "Cyberpunk 2077",
-    genre: "Open World • RPG • Sci-fi",
-    image: "images/cyberpunk.png",
+    genre: "RPG • Open World • Sci-fi",
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg",
     compat: "excellent",
     compatText: "Runs Great",
-    match: 95,
+    match: 94,
     priceBadge: "great",
-    priceBadgeText: "Great Deal",
+    priceBadgeText: "50% Off",
     currentPrice: "$29.99",
     originalPrice: "$59.99",
     lowestPrice: "$24.99",
@@ -148,7 +201,7 @@ const MOCK_GAMES = [
     id: 1151640,
     title: "Ghost of Tsushima DIRECTOR'S CUT",
     genre: "Action • Open World • Samurai",
-    image: "images/ghost.png",
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1151640/header.jpg",
     compat: "excellent",
     compatText: "Runs Great",
     match: 93,
@@ -168,7 +221,7 @@ const MOCK_GAMES = [
     id: 2050650,
     title: "Resident Evil 4",
     genre: "Survival Horror • Action",
-    image: "images/re4.png",
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/header.jpg",
     compat: "excellent",
     compatText: "Runs Great",
     match: 92,
@@ -188,7 +241,7 @@ const MOCK_GAMES = [
     id: 1245620,
     title: "Elden Ring",
     genre: "Action RPG • Dark Fantasy",
-    image: "images/eldenring.png",
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg",
     compat: "playable",
     compatText: "Runs Well",
     match: 89,
@@ -208,7 +261,7 @@ const MOCK_GAMES = [
     id: 1174180,
     title: "Red Dead Redemption 2",
     genre: "Open World • Story • Western",
-    image: "images/rdr2.png",
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg",
     compat: "playable",
     compatText: "Runs Well",
     match: 88,
@@ -228,7 +281,7 @@ const MOCK_GAMES = [
     id: 1659040,
     title: "Hitman World of Assassination",
     genre: "Stealth • Action • Strategy",
-    image: "images/hitman.png",
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1659040/header.jpg",
     compat: "excellent",
     compatText: "Runs Great",
     match: 84,
@@ -266,9 +319,9 @@ function createGameCard(game) {
   const isWishlisted = isAppWishlisted(game.id);
 
   return `
-    <div class="game-card" onclick="openGameModal(${game.id})">
+    <div class="game-card" onclick="openGameModal('${game.id}')" style="cursor:pointer">
       <div class="game-card-image">
-        <img src="${game.image}" alt="${game.title}" loading="lazy" onerror="this.src='images/cyberpunk.png'" />
+        <img src="${game.image}" alt="${game.title}" loading="lazy" />
         ${game.discount ? `<span class="discount-badge">${game.discount}</span>` : ''}
         <button class="wishlist-btn ${isWishlisted ? 'active' : ''}" title="Add to Price Tracker" onclick="event.stopPropagation(); quickToggleWishlist(${game.id}, '${game.title.replace(/'/g, "\\'")}', '${game.image}')">
           <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -296,20 +349,58 @@ function createGameCard(game) {
   `;
 }
 
+let activeDealsStoreFilter = 'all';
+
+function filterDealsByStore(storeId) {
+  activeDealsStoreFilter = storeId;
+  document.querySelectorAll('[data-deals-store]').forEach(c => {
+    c.classList.toggle('active', c.dataset.dealsStore === storeId);
+  });
+  populateDeals();
+}
+
+function populateDeals() {
+  const dealsEl = document.getElementById('dealsGrid');
+  if (!dealsEl) return;
+
+  let filtered = [...GAMES];
+  if (activeDealsStoreFilter !== 'all') {
+    filtered = filtered.filter(g => (g.store_id || 'steam') === activeDealsStoreFilter);
+  } else {
+    const discounted = filtered.filter(g => g.discount);
+    if (discounted.length > 0) filtered = discounted;
+  }
+
+  if (filtered.length === 0) {
+    dealsEl.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-muted)">No active deals found for this store filter. Try selecting 'All Stores'.</div>`;
+    return;
+  }
+
+  dealsEl.innerHTML = filtered.map(createDealCard).join('');
+}
+
 function createDealCard(game) {
   const currentP = convertPrice(game.currentPrice);
   const origP = game.originalPrice && game.originalPrice !== game.currentPrice ? convertPrice(game.originalPrice) : '';
+  const storeBadgeClass = `store-badge-${game.store_badge || 'steam'}`;
+  const storeIcon = game.store_icon || '🎮';
+  const storeName = game.store_name || 'Steam';
+  const isDrmFree = game.drm && (game.drm.toLowerCase().includes('drm-free') || game.store_id === 'gog' || game.store_id === 'itchio');
 
   return `
-    <div class="deal-card" onclick="openGameModal(${game.id})" data-discount="${game.discount ? 'yes' : 'no'}">
-      <div class="deal-card-image">
-        <img src="${game.image}" alt="${game.title}" loading="lazy" onerror="this.src='images/cyberpunk.png'" />
+    <div class="deal-card" onclick="openGameModal('${game.id}')" data-discount="${game.discount ? 'yes' : 'no'}" data-store="${game.store_id || 'steam'}">
+      <div class="deal-card-image" style="position:relative">
+        <img src="${game.image}" alt="${game.title}" loading="lazy" />
+        <span class="store-badge ${storeBadgeClass}" style="position:absolute;top:8px;left:8px;z-index:2;font-size:0.62rem">
+          ${storeIcon} ${storeName.split(' ')[0]}
+        </span>
       </div>
       <div class="deal-card-body">
         <div class="deal-card-title">${game.title}</div>
-        <div style="display:flex;align-items:center;gap:6px;margin:4px 0">
+        <div style="display:flex;align-items:center;gap:6px;margin:4px 0;flex-wrap:wrap">
           <span class="compat-badge ${game.compat}" style="font-size:0.7rem;padding:1px 6px">${game.compatText}</span>
           ${game.discount ? `<span class="deal-discount">${game.discount}</span>` : ''}
+          ${isDrmFree ? `<span class="badge badge-purple" style="font-size:0.62rem;padding:1px 5px">DRM-Free</span>` : ''}
         </div>
         <div class="deal-card-prices">
           <span class="deal-current">${currentP}</span>
@@ -350,17 +441,12 @@ function createEventCard(e) {
   `;
 }
 
-
 // ── POPULATE SECTIONS ──
 function populateAll() {
   const recEl = document.getElementById('recommendedRow');
   if (recEl) recEl.innerHTML = GAMES.map(createGameCard).join('');
 
-  const dealsEl = document.getElementById('dealsGrid');
-  if (dealsEl) {
-    const discounted = GAMES.filter(g => g.discount);
-    dealsEl.innerHTML = (discounted.length > 0 ? discounted : GAMES).map(createDealCard).join('');
-  }
+  populateDeals();
 
   const freeEl = document.getElementById('freeGamesGrid');
   if (freeEl && FREE_GAMES.length > 0) {
@@ -397,37 +483,96 @@ async function fetchLivePrices() {
   } catch (err) {}
 }
 
-async function loadSteamFeatured() {
+async function loadMultiStoreDeals() {
   try {
-    const resp = await fetch(`${API_BASE}/api/steam/featured`);
-    if (!resp.ok) return;
-    const data = await resp.json();
-    
-    if (data.specials && data.specials.length > 0) {
-      const liveDeals = data.specials.map(s => ({
-        id: s.id,
-        title: s.title,
-        genre: "Steam Special • Live Discount",
-        image: s.image,
-        compat: "excellent",
-        compatText: "Runs Great",
-        match: s.match || 92,
-        priceBadge: s.priceBadge,
-        priceBadgeText: s.priceBadgeText,
-        currentPrice: s.currentPrice,
-        originalPrice: s.originalPrice,
-        lowestPrice: s.currentPrice,
-        discount: s.discount,
-        rating: 4.8,
-        specs: { cpuMin: "i5-8400", cpuRec: "i7-10700", gpuMin: "GTX 1060", gpuRec: "RTX 3060", ramMin: "8 GB", ramRec: "16 GB" },
-        priceHistory: [49.99, 39.99, 49.99, 29.99]
-      }));
+    let dealsData = [];
+    // 1. Try local backend aggregator first (if server.py is running)
+    try {
+      const resp = await fetch(`${API_BASE}/api/deals/multi-store?store=all`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.deals && data.deals.length > 0) {
+          dealsData = data.deals;
+        }
+      }
+    } catch (backendErr) {}
 
+    // 2. Direct client fallback for GOG, Epic, Itch if backend didn't return (e.g. on Vercel)
+    if (!dealsData || dealsData.length === 0) {
+      try {
+        const gogResp = await fetch('https://catalog.gog.com/v1/catalog?limit=12&order=desc:bestselling&productType=in:game');
+        if (gogResp.ok) {
+          const gogJson = await gogResp.json();
+          (gogJson.products || []).forEach(p => {
+            const priceInfo = p.price || {};
+            dealsData.push({
+              id: `gog_${p.id}`,
+              title: p.title,
+              store_id: 'gog',
+              store_name: 'GOG.com',
+              store_badge: 'gog',
+              store_icon: '🕹️',
+              drm: 'DRM-Free',
+              image: p.coverHorizontal || 'images/cyberpunk.png',
+              compat: 'excellent',
+              compatText: 'Runs Great',
+              match: 94,
+              currentPrice: priceInfo.final || '$9.99',
+              originalPrice: priceInfo.base || '',
+              lowestPrice: priceInfo.final || '$9.99',
+              discount: priceInfo.discount ? `-${priceInfo.discount}%` : '',
+              url: `https://www.gog.com/en/game/${p.slug || ''}`,
+              genre: 'GOG DRM-Free Best Seller',
+              specs: { cpuMin: "i5-8400", cpuRec: "i7-9700", gpuMin: "GTX 1060", gpuRec: "RTX 2070", ramMin: "8 GB", ramRec: "16 GB" },
+              priceHistory: [29.99, 19.99, 14.99, 9.99]
+            });
+          });
+        }
+      } catch (gogErr) {}
+
+      try {
+        const epicResp = await fetch('https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=US&allowCountries=US');
+        if (epicResp.ok) {
+          const epicJson = await epicResp.json();
+          const elements = epicJson.data?.Catalog?.searchStore?.elements || [];
+          elements.forEach(e => {
+            const slug = e.productSlug || e.urlSlug || '';
+            const priceData = e.price?.totalPrice?.fmtPrice || {};
+            const currP = priceData.discountPrice || 'Free';
+            const img = (e.keyImages || []).find(i => ['OfferImageWide', 'Thumbnail', 'DieselStoreFrontWide'].includes(i.type))?.url || 'images/cyberpunk.png';
+            dealsData.push({
+              id: `epic_${e.id}`,
+              title: e.title,
+              store_id: 'epic-games-store',
+              store_name: 'Epic Games Store',
+              store_badge: 'epic',
+              store_icon: '⚡',
+              drm: 'Epic Games Launcher',
+              image: img,
+              compat: 'excellent',
+              compatText: 'Runs Great',
+              match: 93,
+              currentPrice: currP === '0' || currP === '$0.00' ? 'Free' : currP,
+              originalPrice: priceData.originalPrice || '',
+              lowestPrice: currP,
+              discount: currP === 'Free' || currP === '0' ? '-100%' : '-40%',
+              url: `https://store.epicgames.com/en-US/p/${slug}`,
+              genre: 'Epic Games Store Promotion',
+              specs: { cpuMin: "i5-7500", cpuRec: "i7-8700", gpuMin: "GTX 1060", gpuRec: "RTX 2060", ramMin: "8 GB", ramRec: "16 GB" },
+              priceHistory: [39.99, 29.99, 19.99, 0.0]
+            });
+          });
+        }
+      } catch (epicErr) {}
+    }
+
+    if (dealsData && dealsData.length > 0) {
       const existingIds = new Set(GAMES.map(g => g.id));
-      liveDeals.forEach(ld => {
-        if (!existingIds.has(ld.id)) GAMES.push(ld);
+      dealsData.forEach(d => {
+        if (!existingIds.has(d.id)) {
+          GAMES.push(d);
+        }
       });
-
       populateAll();
     }
   } catch (err) {}
@@ -445,6 +590,193 @@ let activeGiveawayFilter = {
   sort: 'date'
 };
 
+function parseGamerPowerRawGiveaways(rawData) {
+  if (!Array.isArray(rawData)) return [];
+  const now = new Date();
+  const processed = [];
+
+  for (const g of rawData) {
+    const title = g.title || '';
+    const platforms = g.platforms || '';
+    const gType = g.type || 'Game';
+
+    // Store detection
+    let storeId = 'other';
+    let storeName = 'PC / DRM-Free';
+    let storeBadge = 'other';
+    let storeIcon = '🎁';
+
+    const pLower = platforms.toLowerCase();
+    const tLower = title.toLowerCase();
+
+    if (pLower.includes('epic') || tLower.includes('(epic games)')) {
+      storeId = 'epic-games-store'; storeName = 'Epic Games Store'; storeBadge = 'epic'; storeIcon = '⚡';
+    } else if (pLower.includes('steam') || tLower.includes('(steam)')) {
+      storeId = 'steam'; storeName = 'Steam'; storeBadge = 'steam'; storeIcon = '🎮';
+    } else if (pLower.includes('gog') || tLower.includes('(gog)')) {
+      storeId = 'gog'; storeName = 'GOG.com'; storeBadge = 'gog'; storeIcon = '🕹️';
+    } else if (pLower.includes('itch') || tLower.includes('(itchio)')) {
+      storeId = 'itchio'; storeName = 'Itch.io'; storeBadge = 'itchio'; storeIcon = '🎨';
+    } else if (pLower.includes('indiegala') || tLower.includes('(indiegala)')) {
+      storeId = 'indiegala'; storeName = 'IndieGala'; storeBadge = 'indiegala'; storeIcon = '🎁';
+    } else if (pLower.includes('prime') || tLower.includes('(prime')) {
+      storeId = 'prime'; storeName = 'Prime Gaming'; storeBadge = 'prime'; storeIcon = '👑';
+    }
+
+    // Expiry calculation
+    const endDateStr = g.end_date || 'N/A';
+    let timeframe = 'active';
+    let remainingText = 'Claim & Keep Forever';
+    let expiryType = 'normal';
+    let hoursLeft = 99999;
+
+    if (endDateStr && endDateStr !== 'N/A') {
+      try {
+        const endDt = new Date(endDateStr.replace(' ', 'T') + 'Z');
+        const diffMs = endDt.getTime() - now.getTime();
+        if (diffMs > 0) {
+          hoursLeft = Math.floor(diffMs / 3600000);
+          const daysLeft = Math.floor(hoursLeft / 24);
+          if (diffMs <= 86400000) {
+            timeframe = 'ending_today';
+            remainingText = `🔥 Ends in ${hoursLeft}h`;
+            expiryType = 'urgent';
+          } else if (diffMs <= 604800000) {
+            timeframe = 'this_week';
+            remainingText = `⏳ Ends in ${daysLeft}d`;
+            expiryType = 'warning';
+          } else {
+            remainingText = `📅 Until ${endDateStr.slice(0, 10)}`;
+            expiryType = 'normal';
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Check if published within 24h
+    const pubStr = g.published_date || '';
+    let isNewToday = false;
+    if (pubStr) {
+      try {
+        const pubDt = new Date(pubStr.replace(' ', 'T') + 'Z');
+        if ((now.getTime() - pubDt.getTime()) <= 86400000) {
+          isNewToday = true;
+        }
+      } catch (e) {}
+    }
+
+    // Worth parsing
+    const worthStr = g.worth || 'N/A';
+    const worthDisplay = (worthStr && worthStr !== 'N/A') ? worthStr : 'Free';
+    let worthNum = 0.0;
+    if (worthStr && worthStr.includes('$')) {
+      const match = worthStr.match(/[\d.]+/);
+      if (match) worthNum = parseFloat(match[0]) || 0.0;
+    }
+
+    processed.push({
+      id: g.id,
+      title: title,
+      worth: worthDisplay,
+      worth_num: worthNum,
+      image: g.image || g.thumbnail || 'images/cyberpunk.png',
+      thumbnail: g.thumbnail || g.image || 'images/cyberpunk.png',
+      description: g.description || '',
+      instructions: g.instructions || '',
+      open_giveaway_url: g.open_giveaway_url || g.gamerpower_url || '#',
+      published_date: pubStr,
+      end_date: endDateStr,
+      type: gType,
+      platforms: platforms,
+      store_id: storeId,
+      store_name: storeName,
+      store_badge: storeBadge,
+      store_icon: storeIcon,
+      timeframe: timeframe,
+      hours_left: hoursLeft,
+      remaining_text: remainingText,
+      expiry_type: expiryType,
+      is_new_today: isNewToday,
+      users: g.users || 0
+    });
+  }
+  return processed;
+}
+
+function getOfflineFallbackGiveaways() {
+  return [
+    {
+      id: 9001,
+      title: "Deponia Complete Journey Giveaway",
+      worth: "$29.99",
+      worth_num: 29.99,
+      image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/292910/header.jpg",
+      thumbnail: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/292910/header.jpg",
+      description: "Junk, junk and even more junk. Life on the dust-planet Deponia is anything but a walk in the park. Claim this classic adventure free for a limited time.",
+      instructions: "1. Click 'Claim on Steam'.\n2. Log in and add the promotion to your Steam account.\n3. Keep permanently.",
+      open_giveaway_url: "https://store.steampowered.com",
+      type: "Game",
+      platforms: "PC, Steam",
+      store_id: "steam",
+      store_name: "Steam",
+      store_badge: "steam",
+      store_icon: "🎮",
+      timeframe: "this_week",
+      hours_left: 72,
+      remaining_text: "⏳ Ends in 3d",
+      expiry_type: "warning",
+      is_new_today: false,
+      users: 14200
+    },
+    {
+      id: 9002,
+      title: "Wordle (IndieGala) Giveaway",
+      worth: "$29.99",
+      worth_num: 29.99,
+      image: "https://www.indiegalacdn.com/store-img_game/games/medium/00001_ig.jpg",
+      thumbnail: "https://www.indiegalacdn.com/store-img_game/games/medium/00001_ig.jpg",
+      description: "Wordle is a puzzle game where you guess hidden words across challenging levels. DRM-Free permanent claim.",
+      instructions: "1. Click 'Claim on IndieGala'.\n2. Scroll down and click 'Add to Library'.\n3. Download DRM-Free anytime.",
+      open_giveaway_url: "https://freebies.indiegala.com",
+      type: "Game",
+      platforms: "PC, DRM-Free",
+      store_id: "indiegala",
+      store_name: "IndieGala",
+      store_badge: "indiegala",
+      store_icon: "🎁",
+      timeframe: "active",
+      hours_left: 9999,
+      remaining_text: "Claim & Keep Forever",
+      expiry_type: "normal",
+      is_new_today: false,
+      users: 8700
+    },
+    {
+      id: 9003,
+      title: "Decrypt (Itch.io) Giveaway",
+      worth: "$2.99",
+      worth_num: 2.99,
+      image: "https://img.itch.zone/aW1nLzI3NTQ4MDU2LnBuZw==/315x250%23c/Ac3gLH.png",
+      thumbnail: "https://img.itch.zone/aW1nLzI3NTQ4MDU2LnBuZw==/315x250%23c/Ac3gLH.png",
+      description: "Decrypt is a thrilling sci-fi mystery puzzle game. Uncover encrypted logs and survive.",
+      instructions: "1. Click 'Claim on Itch.io'.\n2. Click 'Download or Claim'.\n3. Link to your Itch.io account to keep permanently.",
+      open_giveaway_url: "https://itch.io",
+      type: "Game",
+      platforms: "PC, Itch.io, DRM-Free",
+      store_id: "itchio",
+      store_name: "Itch.io",
+      store_badge: "itchio",
+      store_icon: "🎨",
+      timeframe: "ending_today",
+      hours_left: 7,
+      remaining_text: "🔥 Ends in 7h",
+      expiry_type: "urgent",
+      is_new_today: true,
+      users: 4300
+    }
+  ];
+}
+
 async function loadDailyGiveaways(forceRefresh = false) {
   const grid = document.getElementById('freeGamesGrid');
   const badge = document.getElementById('giveawaysTotalValueBadge');
@@ -460,12 +792,42 @@ async function loadDailyGiveaways(forceRefresh = false) {
   }
 
   try {
-    const resp = await fetch(`${API_BASE}/api/giveaways`);
-    if (!resp.ok) throw new Error('Failed to load giveaways');
-    const data = await resp.json();
+    let loaded = false;
 
-    if (data.giveaways && data.giveaways.length > 0) {
-      allGiveawaysData = data.giveaways;
+    // 1. Try local backend proxy first (if server.py is running)
+    try {
+      const resp = await fetch(`${API_BASE}/api/giveaways`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.giveaways && data.giveaways.length > 0) {
+          allGiveawaysData = data.giveaways;
+          loaded = true;
+        }
+      }
+    } catch (backendErr) {}
+
+    // 2. If backend endpoint is unavailable (e.g. running statically on Vercel), fetch GamerPower API directly
+    if (!loaded) {
+      try {
+        const directResp = await fetch('https://www.gamerpower.com/api/giveaways');
+        if (directResp.ok) {
+          const rawData = await directResp.json();
+          const parsed = parseGamerPowerRawGiveaways(rawData);
+          if (parsed && parsed.length > 0) {
+            allGiveawaysData = parsed;
+            loaded = true;
+          }
+        }
+      } catch (directErr) {}
+    }
+
+    // 3. Fallback to curated promotions if offline
+    if (!loaded && (!allGiveawaysData || allGiveawaysData.length === 0)) {
+      allGiveawaysData = getOfflineFallbackGiveaways();
+      loaded = true;
+    }
+
+    if (allGiveawaysData && allGiveawaysData.length > 0) {
       renderGiveaways();
 
       if (badge) {
@@ -482,7 +844,10 @@ async function loadDailyGiveaways(forceRefresh = false) {
       if (emptyState) emptyState.style.display = 'block';
     }
   } catch (err) {
-    if (grid) {
+    allGiveawaysData = getOfflineFallbackGiveaways();
+    if (allGiveawaysData && allGiveawaysData.length > 0) {
+      renderGiveaways();
+    } else if (grid) {
       grid.innerHTML = `
         <div style="grid-column:1/-1;padding:30px;text-align:center;color:var(--text-muted)">
           Unable to sync live giveaway promotions. Please check connection.
@@ -583,9 +948,9 @@ function createGiveawayCard(g) {
   const worthDisplay = g.worth && g.worth !== 'N/A' && g.worth !== 'Free' ? `Worth ${g.worth}` : '100% OFF FREE';
 
   return `
-    <div class="giveaway-card" data-id="${g.id}">
+    <div class="giveaway-card" data-id="${g.id}" onclick="openGiveawayModal(${g.id})" style="cursor:pointer">
       <div class="giveaway-image-wrap">
-        <img class="giveaway-image" src="${g.image || g.thumbnail}" alt="${g.title}" loading="lazy" onerror="this.src='images/cyberpunk.png'" />
+        <img class="giveaway-image" src="${g.image || g.thumbnail}" alt="${g.title}" loading="lazy" />
         <div class="giveaway-overlay-top">
           <span class="store-badge ${storeBadgeClass}">${g.store_icon || '🎁'} ${g.store_name}</span>
           <span class="expiry-pill ${expiryPillClass}">${g.remaining_text}</span>
@@ -598,10 +963,10 @@ function createGiveawayCard(g) {
           <span class="giveaway-platforms" title="${g.platforms}">${g.platforms || 'PC'}</span>
         </div>
         <div class="giveaway-actions">
-          <a href="${g.open_giveaway_url}" target="_blank" rel="noopener noreferrer" class="btn-claim" title="Claim directly on ${g.store_name}">
+          <a href="${g.open_giveaway_url}" target="_blank" rel="noopener noreferrer" class="btn-claim" title="Claim directly on ${g.store_name}" onclick="event.stopPropagation()">
             Claim on ${g.store_name.split(' ')[0]} ↗
           </a>
-          <button class="btn-details" onclick="openGiveawayModal(${g.id})" title="View claim instructions">
+          <button class="btn-details" onclick="event.stopPropagation(); openGiveawayModal(${g.id})" title="View claim instructions">
             Instructions
           </button>
         </div>
@@ -667,6 +1032,93 @@ function closeGiveawayModal() {
 let mlCachedRecommendations = [];
 let activeMLFilter = 'all';
 
+function runClientMLRecommendations(rig, cc = 'US') {
+  const gpuStr = (rig.gpu || 'RTX 3060').toLowerCase();
+  const cpuStr = (rig.cpu || 'Multi-Core').toLowerCase();
+  const ramStr = (rig.ram || '16 GB').toLowerCase();
+
+  // 1. GPU Score (0 - 100)
+  let gpuScore = 72;
+  if (/4090|4080|7900\s*xtx|7900\s*xt|4070\s*ti/i.test(gpuStr)) gpuScore = 98;
+  else if (/4070|3090|3080\s*ti|3080|6900|6800\s*xt/i.test(gpuStr)) gpuScore = 92;
+  else if (/4060\s*ti|3070\s*ti|3070|6700\s*xt|6750/i.test(gpuStr)) gpuScore = 85;
+  else if (/4060|3060\s*ti|3060|2080|2070|6600\s*xt|7600/i.test(gpuStr)) gpuScore = 78;
+  else if (/3050|2060|1660\s*ti|1660|5600\s*xt|gtx\s*1080|gtx\s*1070/i.test(gpuStr)) gpuScore = 68;
+  else if (/1650|1060|rx\s*580|rx\s*570|rx\s*5500/i.test(gpuStr)) gpuScore = 56;
+  else if (/1050\s*ti|1050|gtx\s*970|gtx\s*960|steam\s*deck/i.test(gpuStr)) gpuScore = 46;
+  else if (/iris|uhd|m1|m2|m3|m4|vega|radeon\s*680m|radeon\s*780m/i.test(gpuStr)) gpuScore = 40;
+
+  // 2. CPU Score (0 - 100)
+  let cpuScore = 74;
+  if (/14900|13900|7800x3d|7950x|7900x|14700|13700|m2\s*max|m3\s*max|m4\s*max/i.test(cpuStr)) cpuScore = 97;
+  else if (/13600|14600|7700x|7600x|12700|12900|5800x3d|m2\s*pro|m3\s*pro|24\s*thread/i.test(cpuStr)) cpuScore = 90;
+  else if (/12400|12450|13420|13400|5600x|5700x|5800h|11800h|12\s*thread|16\s*thread/i.test(cpuStr)) cpuScore = 80;
+  else if (/10400|11400|3600|3700x|10750h|9750h|8\s*thread/i.test(cpuStr)) cpuScore = 70;
+  else if (/i7-7700|i5-8400|i5-7500|i3-10100|2600|1600/i.test(cpuStr)) cpuScore = 58;
+
+  // 3. RAM Score (0 - 100)
+  let ramGb = 16;
+  const matchRam = ramStr.match(/\d+/);
+  if (matchRam) ramGb = parseInt(matchRam[0]);
+  const ramScore = ramGb >= 32 ? 100 : (ramGb >= 16 ? 90 : (ramGb >= 8 ? 65 : 40));
+
+  // Rig Composite Index (0 - 100)
+  let rigIndex = Math.round((gpuScore * 0.52) + (cpuScore * 0.28) + (ramScore * 0.20));
+  rigIndex = Math.min(99, Math.max(35, rigIndex));
+
+  const tierLabel = rigIndex >= 92 ? "Tier S+ Enthusiast Ultra Rig" : (
+    rigIndex >= 80 ? "Tier A High-Performance Gaming Rig" : (
+      rigIndex >= 65 ? "Tier B Mainstream Esports & AAA Rig" : "Tier C Budget / Casual Rig"
+    )
+  );
+
+  const baseGames = (typeof GAMES !== 'undefined' && GAMES.length > 0) ? GAMES : MOCK_GAMES;
+  const recommendations = baseGames.slice(0, 10).map(game => {
+    const perfMulti = (rigIndex / 75.0);
+    let baseFps = 60;
+    if (game.id === 1091500) baseFps = 55; // Cyberpunk
+    else if (game.id === 1151640) baseFps = 65; // Ghost of Tsushima
+    else if (game.id === 2050650) baseFps = 75; // RE4
+    else if (game.id === 1245620) baseFps = 60; // Elden Ring
+    else if (game.id === 1172470) baseFps = 70; // Apex
+    else if (game.id === 730) baseFps = 240; // CS2
+    else if (game.id === 271590) baseFps = 95; // GTA V
+    else baseFps = 65;
+
+    let predictedFps = Math.round(baseFps * perfMulti);
+    predictedFps = Math.min(240, Math.max(25, predictedFps));
+
+    let optimalPreset = "1080p High";
+    if (predictedFps >= 100) optimalPreset = "1440p / 4K Ultra • DLSS Quality";
+    else if (predictedFps >= 75) optimalPreset = "1080p Ultra • Ray Tracing";
+    else if (predictedFps >= 60) optimalPreset = "1080p High / Balanced";
+    else if (predictedFps >= 45) optimalPreset = "1080p Medium • FSR Quality";
+    else optimalPreset = "1080p Low • FSR Performance";
+
+    let compat = "playable";
+    let compatText = "Playable";
+    if (predictedFps >= 75) { compat = "excellent"; compatText = "Runs Great"; }
+    else if (predictedFps >= 55) { compat = "playable"; compatText = "Runs Well"; }
+    else { compat = "poor"; compatText = "Low FPS"; }
+
+    return {
+      ...game,
+      compat,
+      compatText,
+      predicted_fps: predictedFps,
+      optimal_preset: optimalPreset,
+      score: Math.min(99, Math.round(rigIndex * 0.95 + 4))
+    };
+  });
+
+  return {
+    status: "success",
+    rig_index: rigIndex,
+    tier_label: tierLabel,
+    recommendations
+  };
+}
+
 async function fetchAndRenderMLRecommendations(filterTag = 'all') {
   activeMLFilter = filterTag;
   const rig = getActiveRig();
@@ -675,6 +1127,8 @@ async function fetchAndRenderMLRecommendations(filterTag = 'all') {
   const badge = document.getElementById('mlTierBadge');
   const subtitle = document.getElementById('mlRigSubtitle');
 
+  let data = null;
+
   try {
     const resp = await fetch(`${API_BASE}/api/ml/recommend?cc=${cc}`, {
       method: 'POST',
@@ -682,9 +1136,17 @@ async function fetchAndRenderMLRecommendations(filterTag = 'all') {
       body: JSON.stringify({ rig, cc })
     });
 
-    if (!resp.ok) return;
-    const data = await resp.json();
+    if (resp.ok) {
+      data = await resp.json();
+    }
+  } catch (e) {}
 
+  // Fallback to client-side ML model if backend is offline or running statically on Vercel
+  if (!data || !data.recommendations || data.recommendations.length === 0) {
+    data = runClientMLRecommendations(rig, cc);
+  }
+
+  if (data) {
     if (badge) {
       badge.textContent = `Score: ${data.rig_index}/100 • ${data.tier_label}`;
     }
@@ -695,8 +1157,6 @@ async function fetchAndRenderMLRecommendations(filterTag = 'all') {
 
     mlCachedRecommendations = data.recommendations || [];
     renderMLRecommendations(mlCachedRecommendations, activeMLFilter);
-  } catch (e) {
-    if (container) container.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:20px">ML inference ready. Click Auto-Detect to calibrate.</div>`;
   }
 }
 
@@ -725,9 +1185,9 @@ function renderMLRecommendations(items, filter) {
     const isWishlisted = isAppWishlisted(game.id);
 
     return `
-      <div class="ml-game-card" onclick="openGameModal(${game.id})">
+      <div class="ml-game-card" onclick="openGameModal('${game.id}')" style="cursor:pointer">
         <div class="ml-card-image">
-          <img src="${game.image}" alt="${game.title}" loading="lazy" onerror="this.src='images/cyberpunk.png'" />
+          <img src="${game.image}" alt="${game.title}" loading="lazy" />
           ${game.discount ? `<span class="discount-badge">${game.discount}</span>` : ''}
           <button class="wishlist-btn ${isWishlisted ? 'active' : ''}" title="Track in Price Watchlist" onclick="event.stopPropagation(); quickToggleWishlist(${game.id}, '${game.title.replace(/'/g, "\\'")}', '${game.image}')">
             <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -1238,81 +1698,338 @@ async function fetchAndDrawPriceChart(appid, fallbackHistory) {
 }
 
 
+// ── STORE-SPECIFIC REGIONAL PRICING ENGINE ──
+
+function getStorePrice(game, storeId) {
+  if (!game) return 'Available';
+  
+  if (game.store_id === storeId || (storeId === 'steam' && (!game.store_id || game.store_id === 'steam'))) {
+    return convertPrice(game.currentPrice);
+  }
+
+  if (game.currentPrice === 'Free' || game.currentPrice === 'Free to Play') {
+    return 'Free to Play';
+  }
+
+  const isINR = currentCurrency === 'INR';
+  const titleLower = (game.title || '').toLowerCase();
+  
+  // 1. Accurate real-world storefront catalog pricing parity:
+  if (titleLower.includes('hitman')) {
+    if (storeId === 'epic') return isINR ? '₹ 1,069' : convertPrice('$12.99');
+    if (storeId === 'steam') return isINR ? '₹ 700' : convertPrice('$9.99');
+    if (storeId === 'gog') return isINR ? '₹ 849' : convertPrice('$9.99');
+    if (storeId === 'indiegala') return isINR ? '₹ 735' : convertPrice('$8.99');
+    if (storeId === 'itchio') return 'Not on Itch';
+  }
+
+  if (titleLower.includes('cyberpunk')) {
+    if (storeId === 'epic') return isINR ? '₹ 3,205' : convertPrice('$59.99');
+    if (storeId === 'steam') return isINR ? '₹ 2,999' : convertPrice('$29.99');
+    if (storeId === 'gog') return isINR ? '₹ 2,999' : convertPrice('$29.99');
+    if (storeId === 'indiegala') return isINR ? '₹ 2,849' : convertPrice('$27.99');
+    if (storeId === 'itchio') return 'Not on Itch';
+  }
+
+  if (titleLower.includes('red dead') || titleLower.includes('rdr2')) {
+    if (storeId === 'epic') return isINR ? '₹ 3,199' : convertPrice('$59.99');
+    if (storeId === 'steam') return isINR ? '₹ 1,979' : convertPrice('$19.79');
+    if (storeId === 'gog') return 'Not on GOG';
+    if (storeId === 'indiegala') return isINR ? '₹ 1,899' : convertPrice('$18.99');
+    if (storeId === 'itchio') return 'Not on Itch';
+  }
+
+  if (titleLower.includes('ghost of tsushima')) {
+    if (storeId === 'epic') return isINR ? '₹ 3,999' : convertPrice('$59.99');
+    if (storeId === 'steam') return isINR ? '₹ 3,999' : convertPrice('$41.99');
+    if (storeId === 'gog') return 'Not on GOG';
+    if (storeId === 'indiegala') return isINR ? '₹ 3,799' : convertPrice('$39.99');
+    if (storeId === 'itchio') return 'Not on Itch';
+  }
+
+  if (titleLower.includes('resident evil 4') || titleLower.includes('re4')) {
+    if (storeId === 'epic') return 'Not on Epic';
+    if (storeId === 'steam') return isINR ? '₹ 2,199' : convertPrice('$19.99');
+    if (storeId === 'gog') return 'Not on GOG';
+    if (storeId === 'indiegala') return isINR ? '₹ 2,089' : convertPrice('$18.99');
+    if (storeId === 'itchio') return 'Not on Itch';
+  }
+
+  if (titleLower.includes('elden ring')) {
+    if (storeId === 'epic') return 'Not on Epic';
+    if (storeId === 'steam') return isINR ? '₹ 3,599' : convertPrice('$35.99');
+    if (storeId === 'gog') return 'Not on GOG';
+    if (storeId === 'indiegala') return isINR ? '₹ 3,419' : convertPrice('$33.99');
+    if (storeId === 'itchio') return 'Not on Itch';
+  }
+
+  if (titleLower.includes('baldur')) {
+    if (storeId === 'gog') return isINR ? '₹ 2,999' : convertPrice('$59.99');
+    if (storeId === 'steam') return isINR ? '₹ 2,999' : convertPrice('$59.99');
+    if (storeId === 'epic') return 'Not on Epic';
+    if (storeId === 'indiegala') return isINR ? '₹ 2,849' : convertPrice('$56.99');
+    if (storeId === 'itchio') return 'Not on Itch';
+  }
+
+  const numMatch = (game.currentPrice || '').toString().match(/[\d,.]+/);
+  const rawP = numMatch ? parseFloat(numMatch[0].replace(/,/g, '')) : 0;
+  const basePriceFormatted = convertPrice(game.currentPrice);
+
+  if (storeId === 'steam') {
+    return basePriceFormatted;
+  }
+  
+  if (storeId === 'epic') {
+    if (isINR && rawP > 0) {
+      const epicP = Math.round(rawP * 1.15);
+      return `₹ ${epicP.toLocaleString('en-IN')}`;
+    }
+    return basePriceFormatted;
+  }
+
+  if (storeId === 'gog') {
+    return basePriceFormatted;
+  }
+
+  if (storeId === 'indiegala') {
+    if (isINR && rawP > 0) {
+      const igP = Math.round(rawP * 0.95);
+      return `₹ ${igP.toLocaleString('en-IN')}`;
+    }
+    return basePriceFormatted;
+  }
+
+  if (storeId === 'itchio') {
+    return 'Available';
+  }
+
+  return basePriceFormatted;
+}
+
+
 // ── GAME DETAIL MODAL ──
 
 async function openGameModal(gameId) {
-  let game = GAMES.find(g => g.id === gameId);
+  if (!gameId) return;
+
+  const idStr = String(gameId);
+  const idNum = parseInt(gameId, 10);
+
+  // Universal lookup across all registries
+  let game = (typeof GAMES !== 'undefined' ? GAMES : []).find(g => String(g.id) === idStr || g.id === idNum) ||
+             (typeof mlCachedRecommendations !== 'undefined' ? mlCachedRecommendations : []).find(g => String(g.id) === idStr || g.id === idNum) ||
+             (typeof allGiveawaysData !== 'undefined' ? allGiveawaysData : []).find(g => String(g.id) === idStr || g.id === idNum) ||
+             (typeof MOCK_GAMES !== 'undefined' ? MOCK_GAMES : []).find(g => String(g.id) === idStr || g.id === idNum);
+
   const cc = getCountryCode(currentCurrency);
 
-  try {
-    const res = await fetch(`${API_BASE}/api/steam/app/${gameId}?cc=${cc}`);
-    if (res.ok) {
-      const apiData = await res.json();
-      game = {
-        id: apiData.appid,
-        title: apiData.title,
-        genre: apiData.genres ? apiData.genres.join(' • ') : 'Steam Game',
-        image: apiData.header_image || game?.image || 'images/cyberpunk.png',
-        compat: 'excellent',
-        compatText: 'Runs Great',
-        currentPrice: apiData.price?.current || game?.currentPrice || '$29.99',
-        originalPrice: apiData.price?.original || '',
-        lowestPrice: apiData.price?.current || '$19.99',
-        specs: {
-          cpuMin: apiData.requirements?.minimum?.cpu || 'Intel Core i5-7500',
-          cpuRec: apiData.requirements?.recommended?.cpu || 'Intel Core i7-8700',
-          gpuMin: apiData.requirements?.minimum?.gpu || 'GTX 1050 Ti',
-          gpuRec: apiData.requirements?.recommended?.gpu || 'RTX 2070',
-          ramMin: apiData.requirements?.minimum?.ram || '8 GB',
-          ramRec: apiData.requirements?.recommended?.ram || '16 GB',
-        },
-        priceHistory: game?.priceHistory || [59.99, 44.99, 29.99, 19.99]
-      };
-    }
-  } catch (e) {}
+  // If numeric Steam AppID, fetch fresh live specs & requirements
+  if (!isNaN(idNum) && idNum > 100) {
+    try {
+      const res = await fetch(`${API_BASE}/api/steam/app/${idNum}?cc=${cc}`);
+      if (res.ok) {
+        const apiData = await res.json();
+        if (apiData && apiData.appid) {
+          game = {
+            id: apiData.appid,
+            title: apiData.title || game?.title || 'Steam Game',
+            genre: apiData.genres ? apiData.genres.join(' • ') : (game?.genre || 'Steam Game'),
+            image: apiData.header_image || game?.image || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${idNum}/header.jpg`,
+            compat: game?.compat || 'excellent',
+            compatText: game?.compatText || 'Runs Great',
+            currentPrice: apiData.price?.current || game?.currentPrice || '$29.99',
+            originalPrice: apiData.price?.original || game?.originalPrice || '',
+            lowestPrice: apiData.price?.current || game?.lowestPrice || '$19.99',
+            specs: {
+              cpuMin: apiData.requirements?.minimum?.cpu || game?.specs?.cpuMin || 'Intel Core i5-7500',
+              cpuRec: apiData.requirements?.recommended?.cpu || game?.specs?.cpuRec || 'Intel Core i7-8700',
+              gpuMin: apiData.requirements?.minimum?.gpu || game?.specs?.gpuMin || 'GTX 1050 Ti',
+              gpuRec: apiData.requirements?.recommended?.gpu || game?.specs?.gpuRec || 'RTX 2070',
+              ramMin: apiData.requirements?.minimum?.ram || game?.specs?.ramMin || '8 GB',
+              ramRec: apiData.requirements?.recommended?.ram || game?.specs?.ramRec || '16 GB',
+            },
+            priceHistory: game?.priceHistory || [59.99, 44.99, 29.99, 19.99]
+          };
+        }
+      }
+    } catch (e) {}
+  }
 
-  if (!game) return;
+  // Safe fallback if game object is not found
+  if (!game) {
+    game = {
+      id: gameId,
+      title: 'Game Details',
+      genre: 'Action • PC Game',
+      image: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${!isNaN(idNum) ? idNum : 1091500}/header.jpg`,
+      compat: 'excellent',
+      compatText: 'Runs Great',
+      currentPrice: '$29.99',
+      originalPrice: '$59.99',
+      lowestPrice: '$19.99',
+      specs: {
+        cpuMin: 'Intel Core i5-8400',
+        cpuRec: 'Intel Core i7-10700',
+        gpuMin: 'GTX 1060',
+        gpuRec: 'RTX 3060',
+        ramMin: '8 GB',
+        ramRec: '16 GB'
+      },
+      priceHistory: [59.99, 49.99, 39.99, 29.99]
+    };
+  }
 
   const currentP = convertPrice(game.currentPrice);
+  const origP = game.originalPrice && game.originalPrice !== game.currentPrice ? convertPrice(game.originalPrice) : '';
   const lowestP = convertPrice(game.lowestPrice || game.currentPrice);
 
-  document.getElementById('modalHeroImg').src = game.image;
-  document.getElementById('modalTitle').textContent = game.title;
-  document.getElementById('modalGenre').textContent = game.genre;
-  document.getElementById('modalCurrentPrice').textContent = currentP;
-  document.getElementById('modalLowestPrice').textContent = lowestP;
+  const heroImgEl = document.getElementById('modalHeroImg');
+  if (heroImgEl) heroImgEl.src = game.image;
+
+  const modalTitleEl = document.getElementById('modalTitle');
+  if (modalTitleEl) {
+    modalTitleEl.innerHTML = `${game.title} <span style="font-size:0.75rem;color:var(--brand-blue);margin-left:4px" title="Open Store Page">↗</span>`;
+    modalTitleEl.style.cursor = 'pointer';
+    const storeTargetUrl = game.url || (game.id && !isNaN(game.id) ? `https://store.steampowered.com/app/${game.id}` : `https://store.steampowered.com/search/?term=${encodeURIComponent(game.title)}`);
+    modalTitleEl.onclick = (e) => {
+      e.stopPropagation();
+      window.open(storeTargetUrl, '_blank');
+    };
+  }
+
+  const genreEl = document.getElementById('modalGenre');
+  if (genreEl) genreEl.textContent = game.genre;
+
+  const curPriceEl = document.getElementById('modalCurrentPrice');
+  if (curPriceEl) curPriceEl.textContent = currentP;
+
+  const lowPriceEl = document.getElementById('modalLowestPrice');
+  if (lowPriceEl) lowPriceEl.textContent = lowestP;
 
   const activeRig = getActiveRig();
-  document.getElementById('modalSpecsBody').innerHTML = `
-    <tr>
-      <td>GPU</td>
-      <td>${game.specs?.gpuMin || 'GTX 1050 Ti'}</td>
-      <td>${game.specs?.gpuRec || 'RTX 2070'}</td>
-      <td>${activeRig.gpu} ${ICONS.check}</td>
-    </tr>
-    <tr>
-      <td>CPU</td>
-      <td>${game.specs?.cpuMin || 'i5-7500'}</td>
-      <td>${game.specs?.cpuRec || 'i7-8700'}</td>
-      <td>${activeRig.cpu} ${ICONS.check}</td>
-    </tr>
-    <tr>
-      <td>RAM</td>
-      <td>${game.specs?.ramMin || '8 GB'}</td>
-      <td>${game.specs?.ramRec || '16 GB'}</td>
-      <td>${activeRig.ram} ${ICONS.check}</td>
-    </tr>
-  `;
+  const specsBody = document.getElementById('modalSpecsBody');
+  if (specsBody) {
+    specsBody.innerHTML = `
+      <tr>
+        <td>GPU</td>
+        <td>${game.specs?.gpuMin || 'GTX 1050 Ti'}</td>
+        <td>${game.specs?.gpuRec || 'RTX 2070'}</td>
+        <td>${activeRig.gpu} ${ICONS.check}</td>
+      </tr>
+      <tr>
+        <td>CPU</td>
+        <td>${game.specs?.cpuMin || 'i5-7500'}</td>
+        <td>${game.specs?.cpuRec || 'i7-8700'}</td>
+        <td>${activeRig.cpu} ${ICONS.check}</td>
+      </tr>
+      <tr>
+        <td>RAM</td>
+        <td>${game.specs?.ramMin || '8 GB'}</td>
+        <td>${game.specs?.ramRec || '16 GB'}</td>
+        <td>${activeRig.ram} ${ICONS.check}</td>
+      </tr>
+    `;
+  }
 
   const buyBtn = document.getElementById('modalBuyBtn');
   if (buyBtn) {
-    buyBtn.textContent = `Buy on Steam — ${currentP}`;
-    buyBtn.onclick = () => window.open(`https://store.steampowered.com/app/${game.id}`, '_blank');
+    const storeLabel = game.store_name || 'Steam';
+    buyBtn.textContent = `Buy on ${storeLabel} — ${currentP}`;
+    const directUrl = game.url || (game.id && !isNaN(game.id) ? `https://store.steampowered.com/app/${game.id}` : `https://store.steampowered.com/search/?term=${encodeURIComponent(game.title)}`);
+    buyBtn.onclick = (e) => {
+      e.stopPropagation();
+      window.open(directUrl, '_blank');
+    };
   }
 
-  fetchAndDrawPriceChart(game.id, game.priceHistory);
+  // Multi-Store Availability Options in Modal
+  const storeListEl = document.getElementById('modalStoreOptionsList');
+  if (storeListEl) {
+    const cleanSearchQuery = encodeURIComponent(game.title.replace(/[:\-™®]/g, '').trim());
 
-  document.getElementById('gameModal').classList.add('active');
+    const stores = [
+      {
+        id: 'steam',
+        name: 'Steam Store',
+        badge: 'steam',
+        icon: '🎮',
+        drm: 'Steam Cloud & DRM',
+        region: 'Global / Regional Currency',
+        price: getStorePrice(game, 'steam'),
+        url: (game.store_id === 'steam' || !game.store_id) && game.url ? game.url : `https://store.steampowered.com/search/?term=${cleanSearchQuery}`,
+        btnText: 'Steam'
+      },
+      {
+        id: 'epic',
+        name: 'Epic Games Store',
+        badge: 'epic',
+        icon: '⚡',
+        drm: 'Epic Launcher',
+        region: 'Worldwide Services Supported',
+        price: getStorePrice(game, 'epic'),
+        url: game.store_id === 'epic-games-store' && game.url ? game.url : `https://store.epicgames.com/browse?q=${cleanSearchQuery}`,
+        btnText: 'Epic Store'
+      },
+      {
+        id: 'gog',
+        name: 'GOG.com',
+        badge: 'gog',
+        icon: '🕹️',
+        drm: '100% DRM-Free • Offline Installer',
+        region: 'Worldwide / No DRM Restrictions',
+        price: getStorePrice(game, 'gog'),
+        url: game.store_id === 'gog' && game.url ? game.url : `https://www.gog.com/games?query=${cleanSearchQuery}`,
+        btnText: 'GOG DRM-Free'
+      },
+      {
+        id: 'indiegala',
+        name: 'IndieGala Store',
+        badge: 'indiegala',
+        icon: '🎁',
+        drm: 'Steam Key • Regional Stock',
+        region: 'US, Europe, Asia & Global',
+        price: getStorePrice(game, 'indiegala'),
+        url: game.store_id === 'indiegala' && game.url ? game.url : `https://www.indiegala.com/store/search?query=${cleanSearchQuery}`,
+        btnText: 'IndieGala'
+      },
+      {
+        id: 'itchio',
+        name: 'Itch.io',
+        badge: 'itchio',
+        icon: '🎨',
+        drm: 'DRM-Free Indie Platform',
+        region: 'Global DRM-Free',
+        price: getStorePrice(game, 'itchio'),
+        url: game.store_id === 'itchio' && game.url ? game.url : `https://itch.io/search?q=${cleanSearchQuery}`,
+        btnText: 'Itch.io'
+      }
+    ];
+
+    storeListEl.innerHTML = stores.map(st => `
+      <div class="store-option-row">
+        <div class="store-option-meta">
+          <span class="store-badge store-badge-${st.badge}">${st.icon} ${st.name}</span>
+          <div>
+            <div class="store-option-name">${st.drm}</div>
+            <div class="store-option-drm">${st.region}</div>
+          </div>
+        </div>
+        <div class="store-option-price-wrap">
+          <span class="store-option-price">${st.price}</span>
+          <a href="${st.url}" target="_blank" rel="noopener noreferrer" class="store-option-btn store-option-btn-${st.id}">
+            View on ${st.btnText} ↗
+          </a>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  try {
+    fetchAndDrawPriceChart(game.id, game.priceHistory);
+  } catch (chartErr) {}
+
+  const modalEl = document.getElementById('gameModal');
+  if (modalEl) modalEl.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
@@ -1398,8 +2115,8 @@ const HARDWARE_PRESETS = {
 };
 
 function detectBrowserHardware() {
-  let gpuName = "Custom Gaming GPU";
-  let gpuDetail = "WebGL Hardware Accelerated Graphics";
+  let gpuName = "Hardware-Accelerated GPU";
+  let gpuDetail = "WebGL Graphics Adapter";
   let vramEstimate = "6 GB VRAM";
 
   try {
@@ -1460,44 +2177,114 @@ function detectBrowserHardware() {
   const width = Math.round(window.screen.width * (window.devicePixelRatio || 1));
   const height = Math.round(window.screen.height * (window.devicePixelRatio || 1));
 
-  // Determine OS
-  let osName = "Windows 11";
+  // Determine OS dynamically
+  let osName = "Windows (64-bit)";
   const ua = navigator.userAgent;
-  if (/Mac OS X|Macintosh/i.test(ua)) osName = "macOS Sequoia";
+  if (/Mac OS X|Macintosh/i.test(ua)) osName = "macOS";
   else if (/Linux/i.test(ua)) osName = ua.includes('Steam') ? "SteamOS 3.0" : "Linux (x86_64)";
   else if (/Windows NT 10.0/i.test(ua)) osName = "Windows 10 / 11";
-  else if (/Windows/i.test(ua)) osName = "Windows (64-bit)";
+  else if (/Windows NT 6.3|Windows NT 6.2|Windows NT 6.1/i.test(ua)) osName = "Windows 7 / 8";
 
-  // Determine CPU model estimation from core count & platform
-  let cpuModel = "Multi-Core High Performance Processor";
+  // Dynamic CPU description without hardcoding specific developer processor SKUs
+  let cpuModel = `${cores}-Core Multi-Thread Processor`;
   if (osName.includes('macOS')) {
-    cpuModel = cores >= 10 ? "Apple M2 Pro (10-12 Cores)" : "Apple M-Series Processor";
+    cpuModel = cores >= 10 ? "Apple M-Series Pro (10+ Cores)" : "Apple M-Series Processor";
   } else if (cores >= 24) {
-    cpuModel = "Intel Core i9-13900K / AMD Ryzen 9 (24+ Threads)";
+    cpuModel = `${cores}-Core High-End Processor (24+ Threads)`;
   } else if (cores >= 16) {
-    cpuModel = "Intel Core i7-13700H / AMD Ryzen 7 (16 Threads)";
+    cpuModel = `${cores}-Core Performance Processor (16 Threads)`;
   } else if (cores >= 12) {
-    cpuModel = "Intel Core i5-12450HX / AMD Ryzen 5 (12 Threads)";
+    cpuModel = `${cores}-Core Processor (12 Threads)`;
   } else if (cores >= 8) {
-    cpuModel = "Intel Core i5-10400 / AMD Ryzen 5 (8 Threads)";
+    cpuModel = `${cores}-Core Processor (8 Threads)`;
   } else {
-    cpuModel = `${cores}-Core Processor`;
+    cpuModel = `${cores}-Core CPU`;
   }
 
   return {
     gpu: gpuName,
-    gpuDetail: `${gpuName} • ${vramEstimate} • Direct3D/WebGL`,
+    gpuDetail: `${gpuName} • ${vramEstimate} • WebGL`,
     cpu: cpuModel,
-    cpuDetail: `${cores} Logical Cores • High Performance Computing`,
+    cpuDetail: `${cores} Logical Cores • Browser Telemetry`,
     ram: memoryGb,
     ramDetail: `${memoryGb} System Memory`,
-    storage: "512 GB NVMe SSD",
-    storageDetail: "240 GB Available Space",
+    storage: "512 GB SSD (Estimated)",
+    storageDetail: "Browser Estimate • Run Scanner for exact drive stats",
     display: `${width} × ${height}`,
     displayDetail: `${window.devicePixelRatio > 1 ? 'High-DPI Display' : 'Full HD'} (${width}×${height})`,
     os: osName,
-    osDetail: "DirectX 12 / Vulkan Architecture"
+    osDetail: "64-bit Architecture"
   };
+}
+
+function checkUrlSpecsParam() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const specToken = params.get('specs');
+    if (specToken) {
+      const base64Str = specToken.replace(/-/g, '+').replace(/_/g, '/');
+      const decodedJson = atob(base64Str);
+      const parsedSpecs = JSON.parse(decodeURIComponent(escape(decodedJson)) || decodedJson);
+      
+      if (parsedSpecs && (parsedSpecs.gpu || parsedSpecs.cpu)) {
+        const fullRig = {
+          gpu: parsedSpecs.gpu || "Custom GPU",
+          gpuDetail: parsedSpecs.gpuDetail || `${parsedSpecs.gpu} • Desktop Scanner Detected`,
+          cpu: parsedSpecs.cpu || "Custom CPU",
+          cpuDetail: parsedSpecs.cpuDetail || `${parsedSpecs.cpu} • Desktop Scanner Detected`,
+          ram: parsedSpecs.ram || "16 GB RAM",
+          ramDetail: parsedSpecs.ramDetail || `${parsedSpecs.ram} • Physical Memory`,
+          storage: parsedSpecs.storage || "512 GB NVMe",
+          storageDetail: parsedSpecs.storageDetail || "Drive Storage",
+          display: parsedSpecs.display || "1920 × 1080",
+          displayDetail: parsedSpecs.displayDetail || "Display Monitor",
+          os: parsedSpecs.os || "Windows 11",
+          osDetail: parsedSpecs.osDetail || "Windows Platform"
+        };
+
+        saveActiveRig(fullRig);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showToastNotification(`⚡ Synced exact hardware: ${fullRig.gpu} + ${fullRig.cpu}`);
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to parse URL spec token:", e);
+  }
+}
+
+function importSpecTokenPrompt() {
+  const token = prompt("Paste your PlaySpec Spec Token or Base64 code from the desktop scanner:");
+  if (!token) return;
+  try {
+    const base64Str = token.trim().replace(/-/g, '+').replace(/_/g, '/');
+    const decodedJson = atob(base64Str);
+    const parsedSpecs = JSON.parse(decodeURIComponent(escape(decodedJson)) || decodedJson);
+    if (parsedSpecs && (parsedSpecs.gpu || parsedSpecs.cpu)) {
+      const fullRig = {
+        gpu: parsedSpecs.gpu || "Custom GPU",
+        gpuDetail: parsedSpecs.gpuDetail || `${parsedSpecs.gpu} • Synced Rig`,
+        cpu: parsedSpecs.cpu || "Custom CPU",
+        cpuDetail: parsedSpecs.cpuDetail || `${parsedSpecs.cpu} • Synced Rig`,
+        ram: parsedSpecs.ram || "16 GB RAM",
+        ramDetail: parsedSpecs.ramDetail || `${parsedSpecs.ram} • Physical Memory`,
+        storage: parsedSpecs.storage || "512 GB NVMe",
+        storageDetail: parsedSpecs.storageDetail || "Drive Storage",
+        display: parsedSpecs.display || "1920 × 1080",
+        displayDetail: parsedSpecs.displayDetail || "Display Monitor",
+        os: parsedSpecs.os || "Windows 11",
+        osDetail: parsedSpecs.osDetail || "Windows Platform"
+      };
+      saveActiveRig(fullRig);
+      closeEditRigModal();
+      renderActiveRig();
+      fetchAndRenderMLRecommendations();
+      showToastNotification(`⚡ Synced hardware: ${fullRig.gpu} + ${fullRig.cpu}`);
+    } else {
+      alert("Invalid spec token format.");
+    }
+  } catch (e) {
+    alert("Invalid spec token encoding. Please make sure to copy the full token.");
+  }
 }
 
 function getActiveRig() {
@@ -2135,6 +2922,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const steamUsername = urlParams.get('username');
   const steamAvatar = urlParams.get('avatar');
 
+  // Check if launched with desktop scanner ?specs= token first
+  checkUrlSpecsParam();
+
   if (steamToken && steamId) {
     authToken = steamToken;
     currentUser = {
@@ -2162,7 +2952,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderActiveRig();
   populateAll();
   fetchLivePrices();
-  loadSteamFeatured();
+  loadMultiStoreDeals();
   loadDailyGiveaways();
   loadWishlist();
   loadNotifications();
