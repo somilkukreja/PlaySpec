@@ -20,7 +20,7 @@ app = Flask(__name__, static_folder=None)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'playspec-secret-key-change-in-production')
 app.config['JWT_EXPIRATION_DELTA'] = timedelta(days=30)
 
-DATABASE = 'playspec.db'
+DATABASE = os.path.join('/tmp' if os.environ.get('VERCEL') else os.path.dirname(os.path.abspath(__file__)), 'playspec.db')
 
 def detect_system_hardware():
     specs = {
