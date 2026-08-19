@@ -671,6 +671,87 @@
           </div>
         </div>
 
+        <!-- HowLongToBeat (Gameplay Duration Times) -->
+        <div class="modal-section hltb-section" id="modalHltbSection" style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border-subtle)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div class="modal-section-title" style="display:flex;align-items:center;gap:6px;margin-bottom:0">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:var(--brand-blue);width:15px;height:15px">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>HowLongToBeat • Gameplay Completion Times</span>
+            </div>
+            <a href="https://howlongtobeat.com" id="modalHltbSourceLink" target="_blank" rel="noopener noreferrer" class="hltb-source-link">
+              Powered by HowLongToBeat ↗
+            </a>
+          </div>
+
+          <!-- 3 HLTB Time Cards Grid -->
+          <div class="hltb-cards-grid">
+            <!-- 1. Main Story -->
+            <div class="hltb-card hltb-card-main">
+              <div class="hltb-card-header">
+                <div class="hltb-icon-wrap hltb-icon-main">
+                  <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="6"></circle>
+                    <circle cx="12" cy="12" r="2"></circle>
+                  </svg>
+                </div>
+                <div class="hltb-card-label">Main Story</div>
+              </div>
+              <div class="hltb-card-val" id="modalHltbMain">26 Hours</div>
+              <div class="hltb-card-sub">Core campaign objectives</div>
+            </div>
+
+            <!-- 2. Main + Extra -->
+            <div class="hltb-card hltb-card-extra">
+              <div class="hltb-card-header">
+                <div class="hltb-icon-wrap hltb-icon-extra">
+                  <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                  </svg>
+                </div>
+                <div class="hltb-card-label">Main + Extra Content</div>
+              </div>
+              <div class="hltb-card-val" id="modalHltbExtra">63 Hours</div>
+              <div class="hltb-card-sub">Campaign + side quests & extras</div>
+            </div>
+
+            <!-- 3. Completionist -->
+            <div class="hltb-card hltb-card-comp">
+              <div class="hltb-card-header">
+                <div class="hltb-icon-wrap hltb-icon-comp">
+                  <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
+                    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                    <path d="M4 22h16"></path>
+                    <path d="M10 14.66V17c0 .55-.45 1-1 1H7v2h10v-2h-2c-.55 0-1-.45-1-1v-2.34c3.43-.8 6-3.88 6-7.66V4H4v5c0 3.78 2.57 6.86 6 7.66z"></path>
+                  </svg>
+                </div>
+                <div class="hltb-card-label">Completionist (100%)</div>
+              </div>
+              <div class="hltb-card-val" id="modalHltbComp">109 Hours</div>
+              <div class="hltb-card-sub">100% all trophies & secrets</div>
+            </div>
+          </div>
+
+          <!-- Visual Timeline Breakdown Bar -->
+          <div class="hltb-progress-wrap">
+            <div class="hltb-progress-track">
+              <div class="hltb-progress-segment hltb-seg-main" id="modalHltbSegMain" style="width:24%" title="Main Story"></div>
+              <div class="hltb-progress-segment hltb-seg-extra" id="modalHltbSegExtra" style="width:34%" title="Extra Content"></div>
+              <div class="hltb-progress-segment hltb-seg-comp" id="modalHltbSegComp" style="width:42%" title="Completionist"></div>
+            </div>
+            <div class="hltb-progress-legend">
+              <span class="hltb-legend-item"><span class="hltb-dot hltb-dot-main"></span> Main Story</span>
+              <span class="hltb-legend-item"><span class="hltb-dot hltb-dot-extra"></span> Side Quests / Extras</span>
+              <span class="hltb-legend-item"><span class="hltb-dot hltb-dot-comp"></span> 100% Completionist</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Multi-Store Availability & Regional Options -->
         <div class="modal-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle)">
           <div class="modal-section-title">Multi-Store Availability & Regional Options</div>

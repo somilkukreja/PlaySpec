@@ -1625,6 +1625,170 @@ input, select, textarea {
   padding: 10px;
 }
 
+/* ═══════════════════════ HOW LONG TO BEAT (HLTB) ═══════════════════════ */
+.hltb-source-link {
+  font-size: 0.74rem;
+  color: var(--brand-blue);
+  text-decoration: none;
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+.hltb-source-link:hover {
+  text-decoration: underline;
+  color: #ffffff;
+}
+
+.hltb-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.hltb-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-base);
+}
+.hltb-card:hover {
+  border-color: var(--border-medium);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.hltb-card-main {
+  border-top: 3px solid #38bdf8;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.09) 0%, var(--bg-surface) 100%);
+}
+.hltb-card-extra {
+  border-top: 3px solid #c084fc;
+  background: linear-gradient(180deg, rgba(192, 132, 252, 0.09) 0%, var(--bg-surface) 100%);
+}
+.hltb-card-comp {
+  border-top: 3px solid #fbbf24;
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.09) 0%, var(--bg-surface) 100%);
+}
+
+.hltb-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hltb-icon-wrap {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.hltb-icon-wrap .svg-icon {
+  width: 13px;
+  height: 13px;
+}
+.hltb-icon-main {
+  background: rgba(56, 189, 248, 0.16);
+  color: #38bdf8;
+}
+.hltb-icon-extra {
+  background: rgba(192, 132, 252, 0.16);
+  color: #c084fc;
+}
+.hltb-icon-comp {
+  background: rgba(251, 191, 36, 0.16);
+  color: #fbbf24;
+}
+
+.hltb-card-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.hltb-card-val {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  margin: 2px 0;
+}
+
+.hltb-card-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.hltb-progress-wrap {
+  margin-top: 12px;
+  background: var(--bg-surface);
+  padding: 10px 12px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+}
+
+.hltb-progress-track {
+  height: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  display: flex;
+  gap: 2px;
+}
+
+.hltb-progress-segment {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.hltb-seg-main { background: #38bdf8; }
+.hltb-seg-extra { background: #c084fc; }
+.hltb-seg-comp { background: #fbbf24; }
+
+.hltb-progress-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 7px;
+  font-size: 0.71rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.hltb-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hltb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.hltb-dot-main { background: #38bdf8; }
+.hltb-dot-extra { background: #c084fc; }
+.hltb-dot-comp { background: #fbbf24; }
+
+@media (max-width: 640px) {
+  .hltb-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
 .modal-actions {
   display: flex;
   gap: 10px;
