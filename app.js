@@ -22,6 +22,75 @@ const ICONS = {
 };
 
 
+// ── THEME ENGINE (Dark, Light, Gaming Theme) ──
+let currentTheme = localStorage.getItem('playspec_theme') || 'dark';
+let previousNonGamingTheme = localStorage.getItem('playspec_prev_theme') || 'dark';
+
+function initTheme() {
+  setPlaySpecTheme(currentTheme, false);
+}
+
+function setPlaySpecTheme(theme, notify = true) {
+  if (!['dark', 'light', 'gaming'].includes(theme)) {
+    theme = 'dark';
+  }
+  currentTheme = theme;
+  localStorage.setItem('playspec_theme', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+
+  if (theme !== 'gaming') {
+    previousNonGamingTheme = theme;
+    localStorage.setItem('playspec_prev_theme', theme);
+  }
+
+  // Update Gaming button active state
+  const gamingBtn = document.getElementById('gamingThemeToggle');
+  if (gamingBtn) {
+    if (theme === 'gaming') {
+      gamingBtn.classList.add('active');
+    } else {
+      gamingBtn.classList.remove('active');
+    }
+  }
+
+  // Redraw price history chart if open to adapt colors
+  if (typeof priceHistoryChart !== 'undefined' && priceHistoryChart) {
+    const isGaming = theme === 'gaming';
+    const isDark = theme === 'dark';
+    const lineColor = isGaming ? '#00f0ff' : (isDark ? '#38bdf8' : '#0284c7');
+    const fillColor = isGaming ? 'rgba(0, 240, 255, 0.16)' : (isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(2, 132, 199, 0.08)');
+    priceHistoryChart.data.datasets[0].borderColor = lineColor;
+    priceHistoryChart.data.datasets[0].backgroundColor = fillColor;
+    priceHistoryChart.data.datasets[0].pointBorderColor = lineColor;
+    priceHistoryChart.update();
+  }
+
+  if (notify && typeof showToastNotification === 'function') {
+    const themeName = theme === 'gaming' ? 'Gaming Theme (RGB Neon)' : (theme === 'light' ? 'Light Theme' : 'Dark Theme');
+    showToastNotification(`🎨 Switched to ${themeName}`);
+  }
+}
+
+function toggleLightDarkMode() {
+  if (currentTheme === 'light') {
+    setPlaySpecTheme('dark');
+  } else {
+    setPlaySpecTheme('light');
+  }
+}
+
+function toggleGamingMode() {
+  if (currentTheme === 'gaming') {
+    setPlaySpecTheme(previousNonGamingTheme || 'dark');
+  } else {
+    setPlaySpecTheme('gaming');
+  }
+}
+
+// Apply saved theme immediately to prevent layout or color flash
+initTheme();
+
+
 // ── CURRENCY CONVERSION ENGINE ──
 let currentCurrency = localStorage.getItem('playspec_currency') || 'USD';
 
@@ -3055,6 +3124,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   updateAuthUI();
+  initTheme();
   fetchExchangeRates();
   initCurrencySelector();
   renderActiveRig();
