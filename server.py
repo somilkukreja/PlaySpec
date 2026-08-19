@@ -2170,7 +2170,9 @@ def check_can_run(appid):
 
 @app.route('/api/auth/steam/login')
 def steam_login():
-    host_base = request.host_url.rstrip('/')
+    proto = request.headers.get('X-Forwarded-Proto') or request.scheme or ('https' if os.environ.get('VERCEL') else 'http')
+    host = request.headers.get('X-Forwarded-Host') or request.host
+    host_base = f"{proto}://{host}".rstrip('/')
     return_to = f"{host_base}/api/auth/steam/callback"
     realm = f"{host_base}/"
     params = {
