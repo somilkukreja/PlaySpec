@@ -22,6 +22,74 @@ const ICONS = {
 };
 
 
+// ── THEME ENGINE (Dark, Light, Gaming Mode) ──
+let currentTheme = localStorage.getItem('playspec_theme') || 'dark';
+
+const THEME_ICONS = {
+  dark: '🌙',
+  light: '☀️',
+  gaming: '🎮'
+};
+
+const THEME_TITLES = {
+  dark: 'Dark Theme (Obsidian & Slate)',
+  light: 'Light Theme (Clean & Crisp)',
+  gaming: 'Gaming Theme (RGB Cyberpunk Neon)'
+};
+
+function initTheme() {
+  setPlaySpecTheme(currentTheme, false);
+}
+
+function setPlaySpecTheme(theme, notify = true) {
+  if (!['dark', 'light', 'gaming'].includes(theme)) {
+    theme = 'dark';
+  }
+  currentTheme = theme;
+  localStorage.setItem('playspec_theme', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+
+  // Update navbar button icon
+  const iconEl = document.getElementById('themeBtnIcon');
+  if (iconEl) iconEl.textContent = THEME_ICONS[theme] || '🌙';
+
+  const btnEl = document.getElementById('themeToggleBtn');
+  if (btnEl) btnEl.title = `Theme: ${THEME_TITLES[theme]} (Click to switch)`;
+
+  // Update checkmarks in theme dropdown
+  document.querySelectorAll('.theme-option').forEach(opt => {
+    if (opt.dataset.themeVal === theme) {
+      opt.classList.add('active');
+    } else {
+      opt.classList.remove('active');
+    }
+  });
+
+  // Close dropdown menu
+  const dropdown = document.getElementById('themeDropdown');
+  if (dropdown) dropdown.classList.remove('active');
+
+  // Redraw price history chart if open to adapt colors
+  if (typeof priceHistoryChart !== 'undefined' && priceHistoryChart) {
+    const isDark = theme === 'dark';
+    const isGaming = theme === 'gaming';
+    const lineColor = isGaming ? '#00f0ff' : (isDark ? '#38bdf8' : '#0284c7');
+    const fillColor = isGaming ? 'rgba(0, 240, 255, 0.16)' : (isDark ? 'rgba(56, 189, 248, 0.12)' : 'rgba(2, 132, 199, 0.08)');
+    priceHistoryChart.data.datasets[0].borderColor = lineColor;
+    priceHistoryChart.data.datasets[0].backgroundColor = fillColor;
+    priceHistoryChart.data.datasets[0].pointBorderColor = lineColor;
+    priceHistoryChart.update();
+  }
+
+  if (notify && typeof showToastNotification === 'function') {
+    showToastNotification(`🎨 Switched to ${THEME_TITLES[theme]}`);
+  }
+}
+
+// Apply saved theme immediately to prevent layout / color flash
+initTheme();
+
+
 // ── CURRENCY CONVERSION ENGINE ──
 let currentCurrency = localStorage.getItem('playspec_currency') || 'USD';
 
@@ -2946,15 +3014,27 @@ function initUI() {
   });
 
   // Dropdowns
+  const themeBtn = document.getElementById('themeToggleBtn');
+  const themeDropdown = document.getElementById('themeDropdown');
   const notifBtn = document.getElementById('notifBtn');
   const notifDropdown = document.getElementById('notifDropdown');
   const profileBtn = document.getElementById('profileBtn');
   const profileDropdown = document.getElementById('profileDropdown');
 
+  if (themeBtn && themeDropdown) {
+    themeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      themeDropdown.classList.toggle('active');
+      if (notifDropdown) notifDropdown.classList.remove('active');
+      if (profileDropdown) profileDropdown.classList.remove('active');
+    });
+  }
+
   if (notifBtn && notifDropdown) {
     notifBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       notifDropdown.classList.toggle('active');
+      if (themeDropdown) themeDropdown.classList.remove('active');
       if (profileDropdown) profileDropdown.classList.remove('active');
     });
   }
@@ -2963,11 +3043,13 @@ function initUI() {
     profileBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       profileDropdown.classList.toggle('active');
+      if (themeDropdown) themeDropdown.classList.remove('active');
       if (notifDropdown) notifDropdown.classList.remove('active');
     });
   }
 
   document.addEventListener('click', () => {
+    if (themeDropdown) themeDropdown.classList.remove('active');
     if (notifDropdown) notifDropdown.classList.remove('active');
     if (profileDropdown) profileDropdown.classList.remove('active');
   });
