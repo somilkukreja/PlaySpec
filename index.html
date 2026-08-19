@@ -47,42 +47,6 @@
           <option value="VND">VND (₫)</option>
         </select>
 
-        <!-- Theme Selector (Dark, Light, Gaming Mode) -->
-        <div class="theme-selector-wrap" style="position:relative">
-          <button class="nav-icon-btn theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Theme (Dark, Light, Gaming)" title="Theme: Dark Mode (Click to switch)">
-            <span id="themeBtnIcon">🌙</span>
-          </button>
-
-          <!-- Theme Dropdown Menu -->
-          <div class="theme-dropdown" id="themeDropdown">
-            <div class="theme-dropdown-header">Select Display Theme</div>
-            <button class="theme-option active" id="themeOptDark" data-theme-val="dark" onclick="setPlaySpecTheme('dark')">
-              <span class="theme-option-icon">🌙</span>
-              <div class="theme-option-info">
-                <div class="theme-option-name">Dark Theme</div>
-                <div class="theme-option-desc">Obsidian & Slate (Default)</div>
-              </div>
-              <span class="theme-check">✓</span>
-            </button>
-            <button class="theme-option" id="themeOptLight" data-theme-val="light" onclick="setPlaySpecTheme('light')">
-              <span class="theme-option-icon">☀️</span>
-              <div class="theme-option-info">
-                <div class="theme-option-name">Light Theme</div>
-                <div class="theme-option-desc">Crisp, High-Contrast Light</div>
-              </div>
-              <span class="theme-check">✓</span>
-            </button>
-            <button class="theme-option" id="themeOptGaming" data-theme-val="gaming" onclick="setPlaySpecTheme('gaming')">
-              <span class="theme-option-icon">🎮</span>
-              <div class="theme-option-info">
-                <div class="theme-option-name">Gaming Theme</div>
-                <div class="theme-option-desc">RGB Neon & Cyberpunk Synth</div>
-              </div>
-              <span class="theme-check">✓</span>
-            </button>
-          </div>
-        </div>
-
         <!-- Search Trigger (Ctrl+K) -->
         <button class="nav-icon-btn" id="searchBtn" title="Search (Ctrl+K)" aria-label="Search">
           <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
