@@ -158,7 +158,8 @@ def init_db():
         for col_def in [
             'ALTER TABLE users ADD COLUMN steam_id TEXT UNIQUE',
             'ALTER TABLE users ADD COLUMN avatar_url TEXT',
-            'ALTER TABLE users ADD COLUMN profile_url TEXT'
+            'ALTER TABLE users ADD COLUMN profile_url TEXT',
+            'ALTER TABLE users ADD COLUMN favorite_genres TEXT'
         ]:
             try:
                 db.execute(col_def)
@@ -167,6 +168,21 @@ def init_db():
                 pass
 
         db.executescript('''
+            CREATE TABLE IF NOT EXISTS user_game_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                game_title TEXT NOT NULL,
+                appid INTEGER,
+                genre TEXT,
+                hours_played REAL DEFAULT 0,
+                rating INTEGER,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                UNIQUE(user_id, game_title)
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_user_history ON user_game_history(user_id);
+
             CREATE TABLE IF NOT EXISTS wishlist (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -307,6 +323,8 @@ def register():
     email = data.get('email', '').strip().lower()
     password = data.get('password', '')
     username = data.get('username', '').strip()
+    played_games = data.get('played_games', []) or data.get('history', [])
+    favorite_genres = data.get('favorite_genres', []) or data.get('genres', [])
     
     if not email or not password:
         return jsonify({'error': 'Email and password required'}), 400
@@ -316,19 +334,48 @@ def register():
     db = get_db()
     try:
         password_hash = hash_password(password)
+        fav_genres_str = json.dumps(favorite_genres) if favorite_genres else ""
         cursor = db.execute(
-            'INSERT INTO users (email, password_hash, username) VALUES (?, ?, ?)',
-            (email, password_hash, username or email.split('@')[0])
+            'INSERT INTO users (email, password_hash, username, favorite_genres) VALUES (?, ?, ?, ?)',
+            (email, password_hash, username or email.split('@')[0], fav_genres_str)
         )
         db.commit()
         user_id = cursor.lastrowid
+        
+        # Save selected played games into history
+        if played_games:
+            for g_item in played_games:
+                title = g_item if isinstance(g_item, str) else (g_item.get('title') or g_item.get('game_title', ''))
+                genre = g_item.get('genre', '') if isinstance(g_item, dict) else ''
+                appid = g_item.get('appid') if isinstance(g_item, dict) else None
+                hours = g_item.get('hours', 0) if isinstance(g_item, dict) else 0
+                if title and title.strip():
+                    try:
+                        db.execute(
+                            'INSERT OR IGNORE INTO user_game_history (user_id, game_title, appid, genre, hours_played) VALUES (?, ?, ?, ?, ?)',
+                            (user_id, title.strip(), appid, genre, hours)
+                        )
+                    except Exception:
+                        pass
+            db.commit()
+            
         token = generate_token(user_id)
+        
+        history_rows = db.execute('SELECT game_title, appid, genre, hours_played FROM user_game_history WHERE user_id = ?', (user_id,)).fetchall()
+        history_list = [{'title': r['game_title'], 'appid': r['appid'], 'genre': r['genre'], 'hours': r['hours_played']} for r in history_rows]
+        
         return jsonify({
             'token': token,
-            'user': {'id': user_id, 'email': email, 'username': username or email.split('@')[0]}
+            'user': {
+                'id': user_id, 
+                'email': email, 
+                'username': username or email.split('@')[0],
+                'played_games': history_list,
+                'favorite_genres': favorite_genres
+            }
         }), 201
     except sqlite3.IntegrityError:
-        return jsonify({'error': 'Email already registered'}), 400
+        return jsonify({'error': 'Email already registered. Please sign in.'}), 400
 
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -344,12 +391,32 @@ def login():
     user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
     
     if not user or not verify_password(password, user['password_hash']):
-        return jsonify({'error': 'Invalid credentials'}), 401
+        return jsonify({'error': 'Invalid email or password'}), 401
     
     token = generate_token(user['id'])
+    
+    # Fetch played games history
+    history_rows = db.execute('SELECT game_title, appid, genre, hours_played FROM user_game_history WHERE user_id = ? ORDER BY added_at DESC', (user['id'],)).fetchall()
+    history_list = [{'title': r['game_title'], 'appid': r['appid'], 'genre': r['genre'], 'hours': r['hours_played']} for r in history_rows]
+    
+    fav_genres = []
+    try:
+        if 'favorite_genres' in user.keys() and user['favorite_genres']:
+            fav_genres = json.loads(user['favorite_genres'])
+    except Exception:
+        pass
+    
     return jsonify({
         'token': token,
-        'user': {'id': user['id'], 'email': user['email'], 'username': user['username']}
+        'user': {
+            'id': user['id'], 
+            'email': user['email'], 
+            'username': user['username'],
+            'steam_id': user['steam_id'] if 'steam_id' in user.keys() else None,
+            'avatar_url': user['avatar_url'] if 'avatar_url' in user.keys() else None,
+            'played_games': history_list,
+            'favorite_genres': fav_genres
+        }
     })
 
 
@@ -357,11 +424,73 @@ def login():
 @token_required
 def get_current_user():
     db = get_db()
-    user = db.execute('SELECT id, email, username, steam_id, avatar_url, profile_url, created_at FROM users WHERE id = ?', 
+    user = db.execute('SELECT id, email, username, steam_id, avatar_url, profile_url, favorite_genres, created_at FROM users WHERE id = ?', 
                       (request.current_user_id,)).fetchone()
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    return jsonify({'user': dict(user)})
+    
+    history_rows = db.execute('SELECT game_title, appid, genre, hours_played, added_at FROM user_game_history WHERE user_id = ? ORDER BY added_at DESC', (user['id'],)).fetchall()
+    history_list = [{'title': r['game_title'], 'appid': r['appid'], 'genre': r['genre'], 'hours': r['hours_played']} for r in history_rows]
+    
+    user_dict = dict(user)
+    try:
+        user_dict['favorite_genres'] = json.loads(user_dict['favorite_genres']) if user_dict.get('favorite_genres') else []
+    except Exception:
+        user_dict['favorite_genres'] = []
+    user_dict['played_games'] = history_list
+    
+    return jsonify({'user': user_dict})
+
+
+@app.route('/api/user/history', methods=['GET', 'POST', 'DELETE'])
+@token_required
+def user_game_history_api():
+    db = get_db()
+    user_id = request.current_user_id
+    
+    if request.method == 'GET':
+        rows = db.execute('SELECT id, game_title, appid, genre, hours_played, added_at FROM user_game_history WHERE user_id = ? ORDER BY added_at DESC', (user_id,)).fetchall()
+        history = [dict(r) for r in rows]
+        return jsonify({'status': 'success', 'history': history})
+        
+    elif request.method == 'POST':
+        data = request.json or {}
+        games = data.get('games') or ([data.get('game')] if data.get('game') else [])
+        if not games and data.get('title'):
+            games = [data]
+            
+        added = 0
+        for g_item in games:
+            if not g_item: continue
+            title = g_item if isinstance(g_item, str) else (g_item.get('title') or g_item.get('game_title', ''))
+            genre = g_item.get('genre', '') if isinstance(g_item, dict) else ''
+            appid = g_item.get('appid') if isinstance(g_item, dict) else None
+            hours = g_item.get('hours', 0) if isinstance(g_item, dict) else 0
+            if title and title.strip():
+                try:
+                    db.execute(
+                        'INSERT OR REPLACE INTO user_game_history (user_id, game_title, appid, genre, hours_played) VALUES (?, ?, ?, ?, ?)',
+                        (user_id, title.strip(), appid, genre, hours)
+                    )
+                    added += 1
+                except Exception:
+                    pass
+        db.commit()
+        rows = db.execute('SELECT id, game_title, appid, genre, hours_played, added_at FROM user_game_history WHERE user_id = ? ORDER BY added_at DESC', (user_id,)).fetchall()
+        return jsonify({'status': 'success', 'added': added, 'history': [dict(r) for r in rows]})
+        
+    elif request.method == 'DELETE':
+        data = request.json or {}
+        game_title = data.get('game_title') or data.get('title') or request.args.get('title')
+        game_id = data.get('id') or request.args.get('id')
+        if game_id:
+            db.execute('DELETE FROM user_game_history WHERE user_id = ? AND id = ?', (user_id, game_id))
+        elif game_title:
+            db.execute('DELETE FROM user_game_history WHERE user_id = ? AND LOWER(game_title) = LOWER(?)', (user_id, game_title.strip()))
+        else:
+            return jsonify({'error': 'Game title or ID required'}), 400
+        db.commit()
+        return jsonify({'status': 'success', 'message': 'Removed from history'})
 
 
 # --- REST API Endpoints ---
@@ -1945,8 +2074,7 @@ def ml_recommend_games():
         )
     )
 
-    cc = request.args.get('cc') or (data.get('cc') if data else 'US')
-    cc = cc.upper()
+    cc = (request.args.get('cc') or (data.get('cc') if data else None) or 'US').strip().upper()
 
     # Fetch live regional Steam Store prices for catalog
     catalog_appids = ",".join(str(g['id']) for g in ML_GAME_DATABASE if g['id'] != 730)
@@ -1962,7 +2090,39 @@ def ml_recommend_games():
     except Exception:
         pass
 
-    # 4. Run ML Evaluation Regression on Catalog Games
+    # 4. Extract User Played History & Genre Preferences for Personalization
+    played_history = data.get('history') or data.get('played_games') or []
+    fav_genres = data.get('favorite_genres') or []
+    
+    auth_header = request.headers.get('Authorization')
+    if (not played_history or not fav_genres) and auth_header and auth_header.startswith('Bearer '):
+        try:
+            token_val = auth_header.split(' ')[1]
+            tok_data = decode_token(token_val)
+            if tok_data and 'user_id' in tok_data:
+                db = get_db()
+                h_rows = db.execute('SELECT game_title, genre FROM user_game_history WHERE user_id = ?', (tok_data['user_id'],)).fetchall()
+                if h_rows and not played_history:
+                    played_history = [{'title': r['game_title'], 'genre': r['genre']} for r in h_rows]
+                u_row = db.execute('SELECT favorite_genres FROM users WHERE id = ?', (tok_data['user_id'],)).fetchone()
+                if u_row and u_row['favorite_genres'] and not fav_genres:
+                    try:
+                        fav_genres = json.loads(u_row['favorite_genres'])
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    history_titles_lower = []
+    history_genres_lower = [str(fg).lower() for fg in fav_genres]
+    for h in played_history:
+        t = h.get('title', '') if isinstance(h, dict) else str(h)
+        if t:
+            history_titles_lower.append(t.lower())
+        if isinstance(h, dict) and h.get('genre'):
+            history_genres_lower.append(str(h.get('genre')).lower())
+
+    # 5. Run ML Evaluation Regression on Catalog Games
     scored_games = []
     for g in ML_GAME_DATABASE:
         gpu_ratio = min(2.4, max(0.2, gpu_score / float(g['target_gpu'])))
@@ -2005,8 +2165,38 @@ def ml_recommend_games():
             bottleneck = "Optimal Hardware Balance"
             bottleneck_type = "balanced"
 
-        # ML Compatibility Score (0 - 99%)
-        ml_score = int(min(99, max(50, 88 + (g['rating'] - 4.0) * 10 - abs(pred_fps - 85) * 0.2)))
+        # Base ML Compatibility Score (0 - 99%)
+        base_score = int(min(99, max(50, 88 + (g['rating'] - 4.0) * 10 - abs(pred_fps - 85) * 0.2)))
+
+        # History-Based Personalization & Affinity Scoring
+        is_history_match = False
+        history_rationale = ""
+        history_bonus = 0
+        g_title_lower = g['title'].lower()
+        g_genre_lower = g['genre'].lower()
+
+        # Check franchise / title affinity
+        for ht in history_titles_lower:
+            if ht in g_title_lower or (len(ht) > 4 and any(w in g_title_lower for w in ht.split() if len(w) > 3)):
+                is_history_match = True
+                history_rationale = f"Because you played {ht.title()}"
+                history_bonus = 15
+                break
+
+        # Check genre / playstyle affinity if not title-matched
+        if not is_history_match and history_genres_lower:
+            matched_tags = []
+            for hg in history_genres_lower:
+                for token in hg.replace('/', ' ').replace(',', ' ').split():
+                    if len(token) > 2 and token in g_genre_lower and token not in matched_tags:
+                        matched_tags.append(token)
+            if matched_tags:
+                is_history_match = True
+                tag_str = " / ".join(t.title() for t in matched_tags[:2])
+                history_rationale = f"Matches your {tag_str} playstyle"
+                history_bonus = min(12, len(matched_tags) * 4)
+
+        final_ml_score = min(99, base_score + history_bonus)
 
         # Regional Pricing Resolution
         p_info = live_prices.get(g['id'])
@@ -2051,18 +2241,23 @@ def ml_recommend_games():
             "optimal_setting": optimal_setting,
             "bottleneck": bottleneck,
             "bottleneck_type": bottleneck_type,
-            "ml_score": ml_score,
+            "ml_score": final_ml_score,
+            "base_ml_score": base_score,
+            "history_match": is_history_match,
+            "history_rationale": history_rationale,
             "category_tag": category_tag,
             "dlss_fsr": g['dlss_fsr']
         })
 
-    # Sort by ML match score descending
-    scored_games.sort(key=lambda x: (x['predicted_fps'] >= 50, x['ml_score']), reverse=True)
+    # Sort by: (1) Good FPS (>=45), (2) History match affinity, (3) ML compatibility score
+    scored_games.sort(key=lambda x: (x['predicted_fps'] >= 45, x['history_match'], x['ml_score']), reverse=True)
 
     return jsonify({
         "status": "success",
         "rig_index": rig_index,
         "tier_label": tier_label,
+        "personalized": bool(played_history or fav_genres),
+        "history_count": len(played_history),
         "hardware_metrics": {
             "gpu_score": gpu_score,
             "cpu_score": cpu_score,

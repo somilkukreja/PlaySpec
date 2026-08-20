@@ -2818,5 +2818,85 @@ input, select, textarea {
   background: #94a3b8;
 }
 
+/* ═══════════════════════ GAMING HISTORY & RECOMMENDATIONS PERSONALIZATION ═══════════════════════ */
+.history-match-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-purple);
+  background: var(--color-purple-bg);
+  border: 1px solid var(--color-purple);
+  border-radius: var(--radius-xs);
+  padding: 3px 8px;
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
+  animation: fadeIn 0.2s ease-out;
+}
+
+[data-theme="light"] .history-match-badge {
+  background: #f3e8ff;
+  border-color: #9333ea;
+  color: #7e22ce;
+}
+
+.game-chip {
+  padding: 4px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+  transition: all var(--transition-fast);
+}
+
+.game-chip:hover {
+  border-color: var(--brand-blue);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.game-chip.selected {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(99, 102, 241, 0.15));
+  border-color: var(--brand-blue);
+  color: var(--brand-blue);
+  box-shadow: 0 0 8px var(--brand-blue-glow);
+}
+
+[data-theme="light"] .game-chip.selected {
+  background: #e0f2fe;
+  border-color: var(--brand-blue);
+  color: #0369a1;
+}
+
+.genre-chip {
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.genre-chip:hover {
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+.genre-chip.selected {
+  background: var(--color-purple-bg);
+  border-color: var(--color-purple);
+  color: var(--color-purple);
+}
+
+
 
 

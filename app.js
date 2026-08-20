@@ -1119,6 +1119,17 @@ function runClientMLRecommendations(rig, cc = 'US') {
   };
 }
 
+function getUserPlayedGames() {
+  if (currentUser && currentUser.played_games && currentUser.played_games.length > 0) {
+    return currentUser.played_games;
+  }
+  try {
+    const raw = localStorage.getItem('playspec_played_games');
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return [];
+}
+
 async function fetchAndRenderMLRecommendations(filterTag = 'all') {
   activeMLFilter = filterTag;
   const rig = getActiveRig();
@@ -1126,14 +1137,40 @@ async function fetchAndRenderMLRecommendations(filterTag = 'all') {
   const container = document.getElementById('mlRecommendationsRow');
   const badge = document.getElementById('mlTierBadge');
   const subtitle = document.getElementById('mlRigSubtitle');
+  const personalizedBadge = document.getElementById('mlPersonalizedBadge');
+  const historyFilterTab = document.getElementById('mlHistoryFilterTab');
+
+  const playedGames = getUserPlayedGames();
+  const favGenres = (currentUser && currentUser.favorite_genres) || [];
+
+  if (playedGames.length > 0 || favGenres.length > 0) {
+    if (personalizedBadge) {
+      personalizedBadge.style.display = 'inline-flex';
+      const pCount = playedGames.length;
+      personalizedBadge.textContent = `🔥 Personalized (${pCount} game${pCount === 1 ? '' : 's'} in history)`;
+    }
+    if (historyFilterTab) {
+      historyFilterTab.style.display = 'inline-flex';
+    }
+  } else {
+    if (personalizedBadge) personalizedBadge.style.display = 'none';
+    if (historyFilterTab) historyFilterTab.style.display = 'none';
+  }
 
   let data = null;
+  const headers = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
   try {
     const resp = await fetch(`${API_BASE}/api/ml/recommend?cc=${cc}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rig, cc })
+      headers: headers,
+      body: JSON.stringify({ 
+        rig, 
+        cc,
+        played_games: playedGames,
+        favorite_genres: favGenres
+      })
     });
 
     if (resp.ok) {
@@ -1165,7 +1202,9 @@ function renderMLRecommendations(items, filter) {
   if (!container) return;
 
   let filtered = items;
-  if (filter === 'maxout') {
+  if (filter === 'history') {
+    filtered = items.filter(g => g.history_match);
+  } else if (filter === 'maxout') {
     filtered = items.filter(g => g.predicted_fps >= 85);
   } else if (filter === 'smooth') {
     filtered = items.filter(g => g.predicted_fps >= 60 && g.predicted_fps < 85);
@@ -1174,7 +1213,9 @@ function renderMLRecommendations(items, filter) {
   }
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:30px">No titles matched this specific ML filter. Try selecting 'All AI Matches'.</div>`;
+    container.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:30px">
+      ${filter === 'history' ? 'No history matches found yet. Add games you have played in "My Gaming History" to get custom matches!' : "No titles matched this specific ML filter. Try selecting 'All AI Matches'."}
+    </div>`;
     return;
   }
 
@@ -1194,17 +1235,22 @@ function renderMLRecommendations(items, filter) {
           </button>
         </div>
         <div class="ml-card-body">
+          ${game.history_match ? `
+            <div class="history-match-badge" title="Recommended from your played games">
+              <span>🎯</span> ${game.history_rationale || 'Played History Match'}
+            </div>
+          ` : ''}
           <div class="ml-card-title">${game.title}</div>
           <div class="ml-card-genre">${game.genre}</div>
 
           <div class="ml-card-metrics">
-            <span class="fps-pill ${game.fps_class}">⚡ ${game.fps_display}</span>
-            <span class="badge badge-cyan">${game.ml_score}% Match</span>
+            <span class="fps-pill ${game.fps_class || 'playable'}">⚡ ${game.fps_display || (game.predicted_fps + ' FPS')}</span>
+            <span class="badge ${game.history_match ? 'badge-purple' : 'badge-cyan'}">${game.ml_score || game.score}% Match</span>
           </div>
 
           <div class="ml-optimal-preset">
-            <span>Optimal: <strong>${game.optimal_setting}</strong></span>
-            <span class="bottleneck-pill" title="Hardware Bottleneck Analysis">${game.bottleneck}</span>
+            <span>Optimal: <strong>${game.optimal_setting || game.optimal_preset || '1080p High'}</strong></span>
+            ${game.bottleneck ? `<span class="bottleneck-pill" title="Hardware Bottleneck Analysis">${game.bottleneck}</span>` : ''}
           </div>
 
           <div class="ml-card-price">
@@ -2693,12 +2739,20 @@ function logout() {
   localStorage.removeItem('playspec_token');
   localStorage.removeItem('playspec_user');
   updateAuthUI();
+  fetchAndRenderMLRecommendations();
   showToastNotification('Signed out.');
+}
+
+function logoutUser() {
+  logout();
 }
 
 function updateAuthUI() {
   const profileBtn = document.getElementById('profileBtn');
   const profileDropdown = document.getElementById('profileDropdown');
+  const profileDropdownGuest = document.getElementById('profileDropdownGuest');
+  const profileDropdownUser = document.getElementById('profileDropdownUser');
+  const profileDropdownUsername = document.getElementById('profileDropdownUsername');
 
   if (currentUser && profileBtn) {
     if (currentUser.avatar || currentUser.avatar_url) {
@@ -2708,17 +2762,12 @@ function updateAuthUI() {
     }
     profileBtn.title = currentUser.username;
 
-    if (profileDropdown) {
-      profileDropdown.innerHTML = `
-        <div style="padding:8px 12px;font-size:0.8rem;font-weight:700;color:#fff;border-bottom:1px solid var(--border-subtle)">
-          ${currentUser.username} ${currentUser.steam_id ? '<span style="color:var(--steam-blue);font-size:0.7rem">🔵 Steam</span>' : ''}
-        </div>
-        <div class="profile-dropdown-item" onclick="document.getElementById('steam-section').scrollIntoView({behavior:'smooth'})">Steam Library</div>
-        <div class="profile-dropdown-item" onclick="document.getElementById('price-tracker').scrollIntoView({behavior:'smooth'})">Price Tracker</div>
-        <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">Hardware Profile</div>
-        <div class="profile-dropdown-divider"></div>
-        <div class="profile-dropdown-item" style="color:var(--color-danger)" onclick="logout()">Sign Out</div>
-      `;
+    if (profileDropdownGuest) profileDropdownGuest.style.display = 'none';
+    if (profileDropdownUser) {
+      profileDropdownUser.style.display = 'block';
+      if (profileDropdownUsername) {
+        profileDropdownUsername.innerHTML = `${currentUser.username} ${currentUser.steam_id ? '<span style="color:var(--steam-blue);font-size:0.7rem">🔵 Steam</span>' : ''}`;
+      }
     }
   } else if (profileBtn) {
     profileBtn.innerHTML = `
@@ -2727,15 +2776,112 @@ function updateAuthUI() {
         <circle cx="12" cy="7" r="4"></circle>
       </svg>
     `;
-    if (profileDropdown) {
-      profileDropdown.innerHTML = `
-        <div class="profile-dropdown-item" onclick="openAuthModal('login')">Sign In</div>
-        <div class="profile-dropdown-item" onclick="window.location.href='/api/auth/steam/login'">Steam Sign In</div>
-        <div class="profile-dropdown-divider"></div>
-        <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">Hardware Profile</div>
-      `;
+    if (profileDropdownGuest) profileDropdownGuest.style.display = 'block';
+    if (profileDropdownUser) profileDropdownUser.style.display = 'none';
+  }
+}
+
+// ── GAMING HISTORY & PREFERENCES MODAL SYSTEM ──
+
+function openHistoryModal() {
+  const modal = document.getElementById('historyModal');
+  if (!modal) return;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  renderHistoryModalList();
+}
+
+function closeHistoryModal() {
+  const modal = document.getElementById('historyModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function renderHistoryModalList() {
+  const container = document.getElementById('modalHistoryList');
+  const countBadge = document.getElementById('modalHistoryCountBadge');
+  if (!container) return;
+
+  const history = getUserPlayedGames();
+  if (countBadge) {
+    countBadge.textContent = `${history.length} game${history.length === 1 ? '' : 's'}`;
+  }
+
+  if (history.length === 0) {
+    container.innerHTML = `<span style="font-size:0.78rem;color:var(--text-muted);padding:8px">No played games saved yet. Add titles below to customize recommendations!</span>`;
+    return;
+  }
+
+  container.innerHTML = history.map((item, idx) => {
+    const title = typeof item === 'string' ? item : (item.title || item.game_title || '');
+    return `
+      <span class="game-chip selected" style="cursor:default">
+        ${title}
+        <button type="button" onclick="removeModalGameHistory(${idx}, '${title.replace(/'/g, "\\'")}')" style="background:none;border:none;color:var(--text-muted);cursor:pointer;padding:0 2px;margin-left:4px;font-size:0.8rem;line-height:1" title="Remove game">✕</button>
+      </span>
+    `;
+  }).join('');
+}
+
+async function addModalGameHistory() {
+  const input = document.getElementById('modalAddGameInput');
+  if (!input) return;
+  const title = input.value.trim();
+  if (!title) return;
+  await quickAddHistory(title);
+  input.value = '';
+}
+
+async function quickAddHistory(title, genre = '') {
+  let list = getUserPlayedGames();
+  const exists = list.some(item => {
+    const t = typeof item === 'string' ? item : (item.title || item.game_title || '');
+    return t.toLowerCase() === title.toLowerCase();
+  });
+
+  if (!exists) {
+    list.unshift({ title, genre });
+    localStorage.setItem('playspec_played_games', JSON.stringify(list));
+    if (currentUser) {
+      currentUser.played_games = list;
+      localStorage.setItem('playspec_user', JSON.stringify(currentUser));
+    }
+
+    if (authToken) {
+      try {
+        await apiRequest('/api/user/history', {
+          method: 'POST',
+          body: JSON.stringify({ game: { title, genre } })
+        });
+      } catch (e) {}
     }
   }
+
+  renderHistoryModalList();
+  fetchAndRenderMLRecommendations();
+}
+
+async function removeModalGameHistory(index, title) {
+  let list = getUserPlayedGames();
+  list.splice(index, 1);
+  localStorage.setItem('playspec_played_games', JSON.stringify(list));
+  if (currentUser) {
+    currentUser.played_games = list;
+    localStorage.setItem('playspec_user', JSON.stringify(currentUser));
+  }
+
+  if (authToken && title) {
+    try {
+      await apiRequest('/api/user/history', {
+        method: 'DELETE',
+        body: JSON.stringify({ game_title: title })
+      });
+    } catch (e) {}
+  }
+
+  renderHistoryModalList();
+  fetchAndRenderMLRecommendations();
 }
 
 function openAuthModal(mode = 'login') {
