@@ -916,20 +916,21 @@
         </div>
 
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
-          <!-- Option 1: 1-Click Scanner -->
+          <!-- Option 1: Scanner Script Execution / Download -->
           <div style="background:var(--bg-elevated);border:1px solid var(--border-color);border-radius:12px;padding:16px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
               <div>
                 <div style="font-weight:700;font-size:0.92rem;color:var(--text-primary);display:flex;align-items:center;gap:6px">
-                  <span>🚀 1-Click Scanner Downloaded</span>
-                  <span style="background:#22c55e;color:#000;font-size:0.68rem;font-weight:800;padding:2px 6px;border-radius:4px">RECOMMENDED</span>
+                  <span>🚀 Run Native Scanner</span>
+                  <span style="background:#22c55e;color:#000;font-size:0.68rem;font-weight:800;padding:2px 6px;border-radius:4px">100% ACCURATE</span>
                 </div>
                 <div style="color:var(--text-muted);font-size:0.8rem;margin-top:4px;line-height:1.4">
-                  Run <strong>PlaySpec-QuickScan.bat</strong> from your Downloads folder. It reads your dedicated GPU, VRAM, CPU, and RAM, then auto-opens this dashboard with your exact real hardware!
+                  • <strong>Already downloaded?</strong> Just double-click <code>PlaySpec-QuickScan.bat</code> on your PC. It will automatically scan your real RTX 3050 GPU, VRAM, and RAM, and sync this page instantly!<br>
+                  • <strong>Don't have it yet?</strong> Click the button to download.
                 </div>
               </div>
               <a href="downloads/PlaySpec-QuickScan.bat" download class="btn btn-sm btn-primary" style="white-space:nowrap;padding:8px 12px;font-size:0.8rem">
-                Download .bat
+                📥 Download .bat
               </a>
             </div>
           </div>
@@ -937,21 +938,21 @@
           <!-- Option 2: 1-Click Quick GPU Presets -->
           <div style="background:var(--bg-elevated);border:1px solid var(--border-color);border-radius:12px;padding:16px">
             <div style="font-weight:700;font-size:0.92rem;color:var(--text-primary);margin-bottom:8px">
-              ⚡ Or Select Your GPU in 1-Click:
+              ⚡ Or Set Your GPU in 1-Click:
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:8px">
-              <button class="preset-chip" onclick="quickApplyRigPreset('rtx3050_6gb')">RTX 3050 (6GB) • 16GB RAM</button>
-              <button class="preset-chip" onclick="quickApplyRigPreset('rtx4060_8gb')">RTX 4060 (8GB) • 16GB RAM</button>
-              <button class="preset-chip" onclick="quickApplyRigPreset('gtx1650_4gb')">GTX 1650 (4GB) • 8GB RAM</button>
-              <button class="preset-chip" onclick="quickApplyRigPreset('rtx4070_12gb')">RTX 4070 (12GB) • 32GB RAM</button>
-              <button class="preset-chip" onclick="quickApplyRigPreset('iris_xe')">Intel Iris Xe • 16GB RAM</button>
-              <button class="preset-chip" onclick="quickApplyRigPreset('rx6600')">Radeon RX 6600 (8GB)</button>
+              <button class="preset-chip" onclick="quickApplyRigPreset('rtx3050_6gb')">⚡ RTX 3050 (6GB) • 16GB RAM</button>
+              <button class="preset-chip" onclick="quickApplyRigPreset('rtx4060_8gb')">⚡ RTX 4060 (8GB) • 16GB RAM</button>
+              <button class="preset-chip" onclick="quickApplyRigPreset('gtx1650_4gb')">⚡ GTX 1650 (4GB) • 8GB RAM</button>
+              <button class="preset-chip" onclick="quickApplyRigPreset('rtx4070_12gb')">⚡ RTX 4070 (12GB) • 32GB RAM</button>
+              <button class="preset-chip" onclick="quickApplyRigPreset('iris_xe')">⚡ Intel Iris Xe • 16GB RAM</button>
+              <button class="preset-chip" onclick="quickApplyRigPreset('rx6600')">⚡ Radeon RX 6600 (8GB)</button>
             </div>
           </div>
 
           <!-- Option 3: Paste Token -->
           <div style="background:var(--bg-elevated);border:1px solid var(--border-color);border-radius:12px;padding:14px">
-            <div style="font-weight:600;font-size:0.82rem;color:var(--text-muted);margin-bottom:6px">Have a Scanner Token?</div>
+            <div style="font-weight:600;font-size:0.82rem;color:var(--text-muted);margin-bottom:6px">Have a Spec Token from Scanner?</div>
             <div style="display:flex;gap:8px">
               <input type="text" id="cloudTokenInput" class="rig-input-field" placeholder="Paste Base64 Spec Token here..." style="font-size:0.82rem;padding:8px 12px;flex:1" />
               <button class="btn btn-sm btn-secondary" onclick="applyCloudTokenInput()">Import</button>

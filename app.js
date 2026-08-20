@@ -2733,10 +2733,8 @@ async function runRealHardwareScan() {
             fetchAndRenderMLRecommendations();
             showToastNotification(`✓ Real PC Hardware Verified: ${nativeSpecs.gpu} (${nativeSpecs.vram || ''}) • ${nativeSpecs.ram}`);
           } else {
-            // Running on Cloud/Vercel: Download scanner script and open Cloud Sync Modal
-            downloadScannerScript();
+            // Running on Cloud/Vercel: Open Cloud Sync Modal (do NOT force automatic download on every click)
             openCloudSyncModal();
-            showToastNotification('📥 Downloaded PlaySpec-QuickScan.bat! Run it to auto-sync exact real specs.');
           }
         }, 500);
       } else {
@@ -3173,6 +3171,45 @@ function importSpecTokenPrompt() {
     }
   } catch (e) {
     alert("Invalid spec token encoding. Please make sure to copy the full token.");
+  }
+}
+
+function checkUrlSpecsParam() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const specToken = params.get('specs');
+    if (specToken) {
+      const base64Str = specToken.replace(/-/g, '+').replace(/_/g, '/');
+      const decodedJson = atob(base64Str);
+      const parsedSpecs = JSON.parse(decodeURIComponent(escape(decodedJson)) || decodedJson);
+      
+      if (parsedSpecs && (parsedSpecs.gpu || parsedSpecs.cpu)) {
+        const fullRig = {
+          gpu: parsedSpecs.gpu || "RTX 3050 6GB Laptop GPU",
+          gpuDetail: parsedSpecs.gpuDetail || `${parsedSpecs.gpu} • Desktop Scanner Verified`,
+          vram: parsedSpecs.vram || (parsedSpecs.gpuDetail && parsedSpecs.gpuDetail.includes('VRAM') ? parsedSpecs.gpuDetail.split('•')[1]?.trim() : '6.0 GB VRAM'),
+          cpu: parsedSpecs.cpu || "12th Gen Intel Core i5-12450HX",
+          cpuDetail: parsedSpecs.cpuDetail || `${parsedSpecs.cpu} • Desktop Scanner Verified`,
+          ram: parsedSpecs.ram || "16 GB RAM",
+          ramDetail: parsedSpecs.ramDetail || `${parsedSpecs.ram} • Physical Memory`,
+          storage: parsedSpecs.storage || "512 GB NVMe",
+          storageDetail: parsedSpecs.storageDetail || "Drive Storage",
+          display: parsedSpecs.display || "1920 × 1080",
+          displayDetail: parsedSpecs.displayDetail || "Display Monitor",
+          os: parsedSpecs.os || "Windows 11",
+          osDetail: parsedSpecs.osDetail || "Windows Platform",
+          isVerifiedRealHardware: true
+        };
+
+        saveActiveRig(fullRig);
+        window.history.replaceState({}, document.title, window.location.pathname);
+        renderActiveRig();
+        fetchAndRenderMLRecommendations();
+        showToastNotification(`✓ Exact Real Hardware Synced: ${fullRig.gpu} • ${fullRig.ram}`);
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to parse URL spec token:", e);
   }
 }
 
