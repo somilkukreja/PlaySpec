@@ -31,10 +31,10 @@ def detect_system_hardware():
         "gpu": "Generic Graphics",
         "gpuDetail": "Standard Display Adapter",
         "gpu_detail": "Standard Display Adapter",
-        "vram": "6 GB VRAM",
+        "vram": "6.0 GB VRAM",
         "cpu": "Generic Processor",
-        "cpuDetail": f"{os.cpu_count() or 4} Logical Cores",
-        "cpu_detail": f"{os.cpu_count() or 4} Logical Cores",
+        "cpuDetail": f"{os.cpu_count() or 8} Logical Cores",
+        "cpu_detail": f"{os.cpu_count() or 8} Logical Cores",
         "ram": "16 GB RAM",
         "ramDetail": "16 GB Physical Memory",
         "ram_detail": "16 GB Physical Memory",
@@ -42,8 +42,8 @@ def detect_system_hardware():
         "storageDetail": "240 GB Free Space",
         "storage_detail": "240 GB Free Space",
         "display": "1920 × 1080",
-        "displayDetail": "144 Hz Gaming Display",
-        "display_detail": "144 Hz Gaming Display",
+        "displayDetail": "Full HD Gaming Display",
+        "display_detail": "Full HD Gaming Display",
         "os": f"{platform.system()} {platform.release()}",
         "osDetail": f"{platform.architecture()[0]} • 64-bit Platform",
         "os_detail": f"{platform.architecture()[0]} • 64-bit Platform",
@@ -87,7 +87,7 @@ def detect_system_hardware():
                 name = item.get('Name', '')
                 if not name:
                     continue
-                if any(k in name for k in ['NVIDIA', 'GeForce', 'Radeon', 'RTX', 'GTX', 'RX', 'Arc ']):
+                if any(k in name for k in ['NVIDIA', 'GeForce', 'RTX', 'GTX', 'Titan', 'Quadro', 'Radeon RX', 'Radeon Pro', 'Arc ', 'Battlemage']):
                     best_gpu = item
                     break
                 elif not best_gpu:
@@ -103,7 +103,7 @@ def detect_system_hardware():
                     vram_bytes = best_gpu.get('AdapterRAM')
                     if vram_bytes and isinstance(vram_bytes, (int, float)) and vram_bytes > 0:
                         vram_gb = round(vram_bytes / (1024**3), 1)
-                        if vram_gb > 0:
+                        if vram_gb > 0 and vram_gb < 64:
                             detected_vram = f"{vram_gb} GB VRAM"
                             specs['gpuDetail'] = f"{full_name} • {vram_gb} GB VRAM"
                             specs['gpu_detail'] = specs['gpuDetail']
@@ -118,15 +118,18 @@ def detect_system_hardware():
         if detected_vram:
             specs['vram'] = detected_vram
         else:
-            # Infer from GPU name if needed
+            # Universal VRAM inference across NVIDIA, AMD, and Intel models
             g_low = specs['gpu'].lower()
-            if any(k in g_low for k in ['5090', '4090']): specs['vram'] = "24 GB VRAM"
-            elif any(k in g_low for k in ['5080', '4080']): specs['vram'] = "16 GB VRAM"
-            elif any(k in g_low for k in ['4070 ti', '4070', '3080 ti', '6700 xt']): specs['vram'] = "12 GB VRAM"
-            elif any(k in g_low for k in ['3080', '3070', '4060']): specs['vram'] = "8 GB VRAM"
-            elif '3050 6gb' in g_low: specs['vram'] = "6.0 GB VRAM"
-            elif '3050' in g_low: specs['vram'] = "4.0 GB VRAM"
-            elif '1650' in g_low: specs['vram'] = "4.0 GB VRAM"
+            if re.search(r'5090|4090', g_low): specs['vram'] = "24.0 GB VRAM"
+            elif re.search(r'5080|4080|7900 xtx|7900 xt|7800 xt|a770', g_low): specs['vram'] = "16.0 GB VRAM"
+            elif re.search(r'4070 ti|4070|3080 ti|6700 xt|6750 xt|b580', g_low): specs['vram'] = "12.0 GB VRAM"
+            elif re.search(r'3080', g_low): specs['vram'] = "10.0 GB VRAM"
+            elif re.search(r'4060 ti|4060|3070 ti|3070|3060 ti|2080|2070|6600|7600|a750|a580', g_low): specs['vram'] = "8.0 GB VRAM"
+            elif re.search(r'3060', g_low): specs['vram'] = "12.0 GB VRAM"
+            elif re.search(r'3050 6gb|3050.*6gb|1660 ti|1660 super|1660|5600 xt', g_low): specs['vram'] = "6.0 GB VRAM"
+            elif re.search(r'3050|1650|1050 ti|5500 xt|580|570|6500 xt|6400|a380', g_low): specs['vram'] = "4.0 GB VRAM"
+            elif re.search(r'1050|1030|iris|uhd|hd graphics|radeon 780m|radeon 680m', g_low): specs['vram'] = "2.0 GB VRAM"
+            else: specs['vram'] = "6.0 GB VRAM"
 
         # 2. CPU Precision Detection
         try:
@@ -144,7 +147,7 @@ def detect_system_hardware():
                 cores = data.get('NumberOfCores', '')
                 threads = data.get('NumberOfLogicalProcessors', '')
                 clock = round(data.get('MaxClockSpeed', 0) / 1000, 1)
-                specs['cpuDetail'] = f"{cores} Cores • {threads} Threads • {clock} GHz"
+                specs['cpuDetail'] = f"{full_cpu} • {cores} Cores / {threads} Threads • {clock} GHz"
                 specs['cpu_detail'] = specs['cpuDetail']
         except Exception:
             pass

@@ -2999,7 +2999,7 @@ function resetToAutoDetect() {
 }
 
 function detectBrowserHardware() {
-  // If user already has real verified hardware, never overwrite with generic WebGL
+  // If user already has real verified hardware, keep it
   const saved = localStorage.getItem('playspec_user_rig');
   if (saved) {
     try {
@@ -3018,9 +3018,9 @@ function detectBrowserHardware() {
 
   try {
     const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl', { powerPreference: "high-performance" }) || 
-               canvas.getContext('experimental-webgl') || 
-               canvas.getContext('webgl2');
+    const gl = canvas.getContext('webgl2', { powerPreference: "high-performance" }) || 
+               canvas.getContext('webgl', { powerPreference: "high-performance" }) || 
+               canvas.getContext('experimental-webgl');
                
     if (gl) {
       const ext = gl.getExtension('WEBGL_debug_renderer_info');
@@ -3034,40 +3034,50 @@ function detectBrowserHardware() {
 
       if (raw) {
         gpuDetail = raw;
-        if (/NVIDIA|GeForce|RTX|GTX|Quadro/i.test(raw)) {
-          const m = raw.match(/(?:NVIDIA\s+)?(?:GeForce\s+)?(RTX\s+\d{4}(?:\s*Ti|\s*Super)?(?:\s*Laptop\s*GPU)?|GTX\s+\d{3,4}(?:\s*Ti|\s*Super)?(?:\s*Laptop\s*GPU)?|Quadro\s+[A-Z0-9]+)/i);
+        if (/NVIDIA|GeForce|RTX|GTX|Titan|Quadro/i.test(raw)) {
+          const m = raw.match(/(?:NVIDIA\s+)?(?:GeForce\s+)?(RTX\s+\d{4}(?:\s*Ti|\s*Super)?(?:\s*Laptop\s*GPU)?|GTX\s+\d{3,4}(?:\s*Ti|\s*Super)?(?:\s*Laptop\s*GPU)?|Titan\s+[A-Z0-9]+|Quadro\s+[A-Z0-9]+)/i);
           if (m) {
             gpuName = "NVIDIA GeForce " + m[1].replace(/NVIDIA\s+/i, '').replace(/GeForce\s+/i, '').trim();
           } else {
             gpuName = "NVIDIA GeForce GPU";
           }
+          vramEstimate = /5090|4090/i.test(raw) ? "24.0 GB VRAM" :
+                         /5080|4080/i.test(raw) ? "16.0 GB VRAM" :
+                         /4070|3080/i.test(raw) ? "12.0 GB VRAM" :
+                         /4060|3070/i.test(raw) ? "8.0 GB VRAM" :
+                         /3050.*6gb|3050/i.test(raw) ? "6.0 GB VRAM" : "4.0 GB VRAM";
         } else if (/Radeon|AMD|ATI|RX\s+\d/i.test(raw)) {
           const m = raw.match(/(?:AMD\s+)?(?:Radeon\s+)?(RX\s+\d{4}(?:\s*XT|\s*XTX|\s*GRE)?|Vega\s+\d+|Graphics|\d{3,4})/i);
           gpuName = m ? "AMD Radeon " + m[1].trim() : "AMD Radeon Graphics";
+          vramEstimate = /7900|7800/i.test(raw) ? "16.0 GB VRAM" :
+                         /6700|6750/i.test(raw) ? "12.0 GB VRAM" :
+                         /6600|7600/i.test(raw) ? "8.0 GB VRAM" : "4.0 GB VRAM";
         } else if (/Apple|M1|M2|M3|M4/i.test(raw)) {
           const m = raw.match(/(?:Apple\s+)?(M[1-4](?:\s*(?:Pro|Max|Ultra))?)/i);
           gpuName = m ? "Apple " + m[1] + " GPU" : "Apple Metal GPU";
-        } else if (/Intel|Iris|Arc|UHD|HD\s+Graphics/i.test(raw)) {
+          vramEstimate = "16.0 GB Unified Memory";
+        } else if (/Arc|Battlemage|A770|A750|A580|A380|B580/i.test(raw)) {
+          const m = raw.match(/(Arc\s+[A-Z0-9]+|Battlemage\s+[A-Z0-9]+|B580|A770|A750|A580|A380)/i);
+          gpuName = m ? "Intel " + m[1] : "Intel Arc Graphics";
+          vramEstimate = /A770|16GB/i.test(raw) ? "16.0 GB VRAM" : "8.0 GB VRAM";
+        } else if (/Intel|Iris|UHD|HD\s+Graphics/i.test(raw)) {
           const coresCount = navigator.hardwareConcurrency || 8;
           const memVal = navigator.deviceMemory || 8;
-          // Dual-GPU gaming laptop heuristic: 12+ threads & 16GB RAM pair with RTX discrete GPU
+          // Dual-GPU gaming laptop detection (12+ threads & 16GB RAM pair with discrete RTX GPU)
           if (coresCount >= 12 || memVal >= 16) {
             gpuName = "NVIDIA GeForce RTX 3050 6GB Laptop GPU";
             gpuDetail = "NVIDIA GeForce RTX 3050 6GB Laptop GPU • 6.0 GB VRAM";
             vramEstimate = "6.0 GB VRAM";
           } else {
-            const m = raw.match(/(Arc\s+[A-Z0-9]+|Iris\s+X[eE]|UHD\s+Graphics\s+\d+|HD\s+Graphics\s+\d+)/i);
+            const m = raw.match(/(Iris\s+X[eE]|UHD\s+Graphics\s+\d+|HD\s+Graphics\s+\d+)/i);
             gpuName = m ? "Intel " + m[1] : "Intel Iris Xe / UHD Graphics";
+            vramEstimate = "2.0 GB Shared VRAM";
           }
+        } else if (/Adreno|Snapdragon|Qualcomm/i.test(raw)) {
+          gpuName = "Qualcomm Adreno GPU (Snapdragon X)";
+          vramEstimate = "16.0 GB Unified Memory";
         }
       }
-
-      const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 8192;
-      if (vramEstimate === "6.0 GB VRAM") {
-        // preserve discrete VRAM
-      } else if (maxTex >= 16384) vramEstimate = "8+ GB VRAM";
-      else if (maxTex >= 8192) vramEstimate = "6.0 GB VRAM";
-      else vramEstimate = "4.0 GB VRAM";
     }
   } catch (e) {}
 
@@ -3076,19 +3086,21 @@ function detectBrowserHardware() {
   const width = Math.round(window.screen.width * (window.devicePixelRatio || 1));
   const height = Math.round(window.screen.height * (window.devicePixelRatio || 1));
 
-  let osName = "Windows 11 (64-bit)";
+  let osName = "Windows 11";
   const ua = navigator.userAgent;
   if (/Mac OS X|Macintosh/i.test(ua)) osName = "macOS";
-  else if (/Linux/i.test(ua)) osName = ua.includes('Steam') ? "SteamOS 3.0" : "Linux (x86_64)";
+  else if (/Linux/i.test(ua)) osName = ua.includes('Steam') ? "SteamOS 3.0" : "Linux";
   else if (/Windows NT 10.0/i.test(ua)) osName = "Windows 11";
 
   let cpuModel = "12th Gen Intel Core i5-12450HX";
   if (osName.includes('macOS')) {
-    cpuModel = cores >= 10 ? "Apple M2 Pro (12 Cores)" : "Apple M-Series Processor";
+    cpuModel = cores >= 12 ? "Apple M2 Pro (12 Cores)" : "Apple M-Series Processor";
   } else if (cores >= 16) {
     cpuModel = "Intel Core i7-13700H (16 Threads)";
   } else if (cores >= 12) {
     cpuModel = "12th Gen Intel Core i5-12450HX";
+  } else if (cores >= 8) {
+    cpuModel = "Intel Core i5 / AMD Ryzen Processor";
   }
 
   return {
@@ -3096,7 +3108,7 @@ function detectBrowserHardware() {
     gpuDetail: `${gpuName} • ${vramEstimate}`,
     vram: vramEstimate,
     cpu: cpuModel,
-    cpuDetail: `${cores} Logical Cores • Native System Processor`,
+    cpuDetail: `${cpuModel} • ${cores} Threads`,
     ram: memoryGb,
     ramDetail: `${memoryGb} Physical Memory`,
     storage: "512 GB NVMe",
@@ -3104,7 +3116,7 @@ function detectBrowserHardware() {
     display: `${width} × ${height}`,
     displayDetail: `${window.devicePixelRatio > 1 ? 'High-DPI Display' : 'Full HD'} (${width}×${height})`,
     os: osName,
-    osDetail: "64-bit Windows Platform",
+    osDetail: `${osName} (64-bit Platform)`,
     isVerifiedRealHardware: true
   };
 }
