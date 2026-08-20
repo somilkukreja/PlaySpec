@@ -2917,11 +2917,61 @@ function initSearch() {
 }
 
 
+// ── GAMER THEME TOGGLE ENGINE ──
+
+function playThemeSwitchSound() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(850, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.04);
+    gain.gain.setValueAtTime(0.04, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.04);
+  } catch (e) {}
+}
+
+function initThemeToggle() {
+  const toggleBtn = document.getElementById('themeToggleBtn');
+  const currentTheme = localStorage.getItem('playspec_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-checked', currentTheme === 'light' ? 'true' : 'false');
+    toggleBtn.setAttribute('title', currentTheme === 'light' ? 'Switch to Dark Mode (Cyber Ops)' : 'Switch to Light Mode (Solar Matrix)');
+
+    toggleBtn.addEventListener('click', () => {
+      playThemeSwitchSound();
+      const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = activeTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('playspec_theme', newTheme);
+      toggleBtn.setAttribute('aria-checked', newTheme === 'light' ? 'true' : 'false');
+      toggleBtn.setAttribute('title', newTheme === 'light' ? 'Switch to Dark Mode (Cyber Ops)' : 'Switch to Light Mode (Solar Matrix)');
+      showToastNotification(newTheme === 'light' ? '☀️ Solar Matrix (Light Theme) Activated' : '🌙 Cyber Ops (Dark Theme) Activated');
+    });
+
+    toggleBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleBtn.click();
+      }
+    });
+  }
+}
+
 // ── TOAST NOTIFICATIONS HELPER ──
 
 function showToastNotification(msg) {
   const toast = document.createElement('div');
-  toast.style.cssText = "position:fixed;bottom:24px;right:24px;background:var(--bg-elevated);color:#fff;border:1px solid var(--border-medium);padding:12px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;box-shadow:var(--shadow-lg);z-index:9999;transition:all 0.25s ease;transform:translateY(16px);opacity:0;display:flex;align-items:center;gap:8px;";
+  toast.style.cssText = "position:fixed;bottom:24px;right:24px;background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-medium);padding:12px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;box-shadow:var(--shadow-lg);z-index:9999;transition:all 0.25s ease;transform:translateY(16px);opacity:0;display:flex;align-items:center;gap:8px;";
   toast.innerHTML = `${ICONS.check} <span>${msg}</span>`;
   document.body.appendChild(toast);
   requestAnimationFrame(() => {
@@ -3054,6 +3104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  initThemeToggle();
   updateAuthUI();
   fetchExchangeRates();
   initCurrencySelector();

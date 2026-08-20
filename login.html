@@ -7,6 +7,12 @@
   <meta name="description" content="Sign in to PlaySpec with your Steam account or email to track game prices, historical lows, and benchmark PC compatibility." />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2338bdf8'/><path d='M25 50h50M50 25v50' stroke='white' stroke-width='12' stroke-linecap='round'/></svg>" />
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('playspec_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
   <style>
     body {
       background-color: var(--bg-base);
@@ -148,6 +154,34 @@
 </head>
 <body>
 
+  <div style="position: fixed; top: 20px; right: 20px; z-index: 100;">
+    <button class="theme-toggle-btn" id="themeToggleBtn" role="switch" aria-checked="false" aria-label="Toggle Dark / Light Theme" title="Toggle Light / Dark Gamer Theme">
+      <div class="theme-toggle-track">
+        <span class="theme-icon moon-icon" title="Dark Mode (Cyber Ops)">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </span>
+        <span class="theme-icon sun-icon" title="Light Mode (Solar Matrix)">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <line x1="12" y1="2" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+            <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"></line>
+            <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"></line>
+            <line x1="2" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="22" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"></line>
+            <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"></line>
+          </svg>
+        </span>
+        <div class="theme-toggle-thumb">
+          <span class="thumb-glow"></span>
+        </div>
+      </div>
+    </button>
+  </div>
+
   <div class="auth-glow"></div>
 
   <div class="auth-card">
@@ -195,6 +229,45 @@
   </div>
 
   <script>
+    function playSwitchSound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(850, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      } catch (e) {}
+    }
+
+    function initTheme() {
+      const toggleBtn = document.getElementById('themeToggleBtn');
+      const currentTheme = localStorage.getItem('playspec_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      if (toggleBtn) {
+        toggleBtn.setAttribute('aria-checked', currentTheme === 'light' ? 'true' : 'false');
+        toggleBtn.setAttribute('title', currentTheme === 'light' ? 'Switch to Dark Mode (Cyber Ops)' : 'Switch to Light Mode (Solar Matrix)');
+        toggleBtn.addEventListener('click', () => {
+          playSwitchSound();
+          const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+          const newTheme = activeTheme === 'light' ? 'dark' : 'light';
+          document.documentElement.setAttribute('data-theme', newTheme);
+          localStorage.setItem('playspec_theme', newTheme);
+          toggleBtn.setAttribute('aria-checked', newTheme === 'light' ? 'true' : 'false');
+          toggleBtn.setAttribute('title', newTheme === 'light' ? 'Switch to Dark Mode (Cyber Ops)' : 'Switch to Light Mode (Solar Matrix)');
+        });
+      }
+    }
+    initTheme();
+
     async function handleEmailAuth(e) {
       e.preventDefault();
       const email = document.getElementById('authEmail').value.trim().toLowerCase();
