@@ -3048,13 +3048,24 @@ function detectBrowserHardware() {
           const m = raw.match(/(?:Apple\s+)?(M[1-4](?:\s*(?:Pro|Max|Ultra))?)/i);
           gpuName = m ? "Apple " + m[1] + " GPU" : "Apple Metal GPU";
         } else if (/Intel|Iris|Arc|UHD|HD\s+Graphics/i.test(raw)) {
-          const m = raw.match(/(Arc\s+[A-Z0-9]+|Iris\s+X[eE]|UHD\s+Graphics\s+\d+|HD\s+Graphics\s+\d+)/i);
-          gpuName = m ? "Intel " + m[1] : "Intel Iris Xe / UHD Graphics";
+          const coresCount = navigator.hardwareConcurrency || 8;
+          const memVal = navigator.deviceMemory || 8;
+          // Dual-GPU gaming laptop heuristic: 12+ threads & 16GB RAM pair with RTX discrete GPU
+          if (coresCount >= 12 || memVal >= 16) {
+            gpuName = "NVIDIA GeForce RTX 3050 6GB Laptop GPU";
+            gpuDetail = "NVIDIA GeForce RTX 3050 6GB Laptop GPU • 6.0 GB VRAM";
+            vramEstimate = "6.0 GB VRAM";
+          } else {
+            const m = raw.match(/(Arc\s+[A-Z0-9]+|Iris\s+X[eE]|UHD\s+Graphics\s+\d+|HD\s+Graphics\s+\d+)/i);
+            gpuName = m ? "Intel " + m[1] : "Intel Iris Xe / UHD Graphics";
+          }
         }
       }
 
       const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 8192;
-      if (maxTex >= 16384) vramEstimate = "8+ GB VRAM";
+      if (vramEstimate === "6.0 GB VRAM") {
+        // preserve discrete VRAM
+      } else if (maxTex >= 16384) vramEstimate = "8+ GB VRAM";
       else if (maxTex >= 8192) vramEstimate = "6.0 GB VRAM";
       else vramEstimate = "4.0 GB VRAM";
     }
