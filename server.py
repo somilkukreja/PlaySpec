@@ -23,6 +23,10 @@ app.config['JWT_EXPIRATION_DELTA'] = timedelta(days=30)
 DATABASE = os.path.join('/tmp' if os.environ.get('VERCEL') else os.path.dirname(os.path.abspath(__file__)), 'playspec.db')
 
 def detect_system_hardware():
+    # If running on Vercel (Linux container), do NOT return fake server container specs
+    if os.environ.get('VERCEL') or sys.platform != "win32":
+        return None
+
     specs = {
         "gpu": "Generic Graphics",
         "gpuDetail": "Standard Display Adapter",
@@ -1381,18 +1385,39 @@ def get_steam_user(steam_id_or_vanity):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/pc/detect', methods=['GET'])
-@app.route('/api/pc/native-scan', methods=['GET', 'POST'])
+@app.route('/api/pc/detect', methods=['GET', 'OPTIONS'])
+@app.route('/api/pc/native-scan', methods=['GET', 'POST', 'OPTIONS'])
 def get_detected_specs():
+    if request.method == 'OPTIONS':
+        resp = make_response('', 204)
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return resp
+
     try:
         specs = detect_system_hardware()
-        return jsonify({
+        if not specs:
+            resp = jsonify({
+                "status": "cloud_environment",
+                "message": "PlaySpec backend is deployed in cloud (Vercel). Real hardware scanning must be executed on local client PC via PlaySpec-QuickScan.bat.",
+                "is_cloud": True,
+                "specs": None
+            })
+            resp.headers['Access-Control-Allow-Origin'] = '*'
+            return resp, 200
+
+        resp = jsonify({
             "status": "success",
             "source": "native_system_wmi",
             "specs": specs
         })
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        return resp
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        resp = jsonify({"status": "error", "message": str(e)})
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        return resp, 500
 
 
 # --- Wishlist & Price Tracking Endpoints ---

@@ -5,6 +5,14 @@
 
 const API_BASE = ""; // Relative calls to Flask backend
 
+// Instantly purge stale generic graphics from visitor browser cache
+try {
+  const rawSaved = localStorage.getItem('playspec_user_rig');
+  if (rawSaved && (rawSaved.includes('Generic Graphics') || rawSaved.includes('Generic Processor') || rawSaved.includes('Standard Display Adapter'))) {
+    localStorage.removeItem('playspec_user_rig');
+  }
+} catch (e) {}
+
 // ── SVG ICONS REPOSITORY (Minimalist Vector Set) ──
 const ICONS = {
   gpu: `<svg class="svg-icon svg-stroke" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>`,
@@ -2672,31 +2680,32 @@ async function runRealHardwareScan() {
   let current = 0;
   let nativeSpecs = null;
 
-  // Query native backend hardware endpoint
+  // 1. Try local server origin
   try {
     const resp = await fetch(`${API_BASE}/api/pc/native-scan`);
     if (resp.ok) {
       const data = await resp.json();
-      if (data && data.status === 'success' && data.specs) {
-        nativeSpecs = {
-          gpu: data.specs.gpu,
-          gpuDetail: data.specs.gpuDetail || data.specs.gpu_detail || `${data.specs.gpu} • ${data.specs.vram || 'Dedicated VRAM'}`,
-          vram: data.specs.vram || "6 GB VRAM",
-          cpu: data.specs.cpu,
-          cpuDetail: data.specs.cpuDetail || data.specs.cpu_detail || `${data.specs.cpu} • Multi-Core Processor`,
-          ram: data.specs.ram,
-          ramDetail: data.specs.ramDetail || data.specs.ram_detail || `${data.specs.ram} Physical Memory`,
-          storage: data.specs.storage || "512 GB NVMe",
-          storageDetail: data.specs.storageDetail || data.specs.storage_detail || "Primary System Drive",
-          display: data.specs.display || "1920 × 1080",
-          displayDetail: data.specs.displayDetail || data.specs.display_detail || "Full HD Display",
-          os: data.specs.os || "Windows 11",
-          osDetail: data.specs.osDetail || data.specs.os_detail || "64-bit Platform",
-          isVerifiedRealHardware: true
-        };
+      if (data && data.status === 'success' && data.specs && data.specs.gpu && data.specs.gpu !== 'Generic Graphics') {
+        nativeSpecs = formatSpecPayload(data.specs);
       }
     }
   } catch (e) {}
+
+  // 2. If running on Vercel/Cloud, try direct loopback connection to local PlaySpec backend daemon
+  if (!nativeSpecs && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    try {
+      const ctrl = new AbortController();
+      const timeoutId = setTimeout(() => ctrl.abort(), 1200);
+      const localResp = await fetch('http://127.0.0.1:8000/api/pc/native-scan', { signal: ctrl.signal, mode: 'cors' });
+      clearTimeout(timeoutId);
+      if (localResp.ok) {
+        const localData = await localResp.json();
+        if (localData && localData.status === 'success' && localData.specs && localData.specs.gpu && localData.specs.gpu !== 'Generic Graphics') {
+          nativeSpecs = formatSpecPayload(localData.specs);
+        }
+      }
+    } catch (e) {}
+  }
 
   function stepForward() {
     if (current < steps.length) {
@@ -2724,12 +2733,10 @@ async function runRealHardwareScan() {
             fetchAndRenderMLRecommendations();
             showToastNotification(`✓ Real PC Hardware Verified: ${nativeSpecs.gpu} (${nativeSpecs.vram || ''}) • ${nativeSpecs.ram}`);
           } else {
-            // Auto-download scanner script for client-only / offline environments
+            // Running on Cloud/Vercel: Download scanner script and open Cloud Sync Modal
             downloadScannerScript();
+            openCloudSyncModal();
             showToastNotification('📥 Downloaded PlaySpec-QuickScan.bat! Run it to auto-sync exact real specs.');
-            setTimeout(() => {
-              importSpecTokenPrompt();
-            }, 1000);
           }
         }, 500);
       } else {
@@ -2757,6 +2764,168 @@ function closeScanModal() {
   const modal = document.getElementById('scanModal');
   if (modal) modal.classList.remove('active');
   document.body.style.overflow = '';
+}
+
+function openCloudSyncModal() {
+  const modal = document.getElementById('cloudSyncModal');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeCloudSyncModal() {
+  const modal = document.getElementById('cloudSyncModal');
+  if (modal) modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function quickApplyRigPreset(presetKey) {
+  const PRESET_MAP = {
+    'rtx3050_6gb': {
+      gpu: "RTX 3050 6GB Laptop GPU",
+      gpuDetail: "NVIDIA GeForce RTX 3050 6GB Laptop GPU • 6.0 GB VRAM",
+      vram: "6.0 GB VRAM",
+      cpu: "12th Gen Intel Core i5-12450HX",
+      cpuDetail: "8 Cores • 12 Threads • 4.4 GHz",
+      ram: "16 GB RAM",
+      ramDetail: "16 GB Physical Memory",
+      storage: "512 GB NVMe",
+      storageDetail: "Primary NVMe SSD",
+      display: "1920 × 1080",
+      displayDetail: "144 Hz Gaming Display",
+      os: "Windows 11",
+      osDetail: "64-bit Windows Platform",
+      isVerifiedRealHardware: true
+    },
+    'rtx4060_8gb': {
+      gpu: "RTX 4060 Laptop GPU",
+      gpuDetail: "NVIDIA GeForce RTX 4060 • 8.0 GB VRAM",
+      vram: "8.0 GB VRAM",
+      cpu: "Intel Core i7-13700H",
+      cpuDetail: "14 Cores • 20 Threads",
+      ram: "16 GB RAM",
+      ramDetail: "16 GB DDR5 Memory",
+      storage: "1 TB NVMe",
+      storageDetail: "Gen4 High-Speed SSD",
+      display: "1920 × 1080",
+      displayDetail: "144 Hz Display",
+      os: "Windows 11",
+      osDetail: "64-bit Windows Platform",
+      isVerifiedRealHardware: true
+    },
+    'gtx1650_4gb': {
+      gpu: "GTX 1650",
+      gpuDetail: "NVIDIA GeForce GTX 1650 • 4.0 GB VRAM",
+      vram: "4.0 GB VRAM",
+      cpu: "Intel Core i5-10300H",
+      cpuDetail: "4 Cores • 8 Threads",
+      ram: "8 GB RAM",
+      ramDetail: "8 GB DDR4 Memory",
+      storage: "512 GB SSD",
+      storageDetail: "SATA SSD",
+      display: "1920 × 1080",
+      displayDetail: "60 Hz Display",
+      os: "Windows 10",
+      osDetail: "64-bit Platform",
+      isVerifiedRealHardware: true
+    },
+    'rtx4070_12gb': {
+      gpu: "RTX 4070",
+      gpuDetail: "NVIDIA GeForce RTX 4070 • 12.0 GB VRAM",
+      vram: "12.0 GB VRAM",
+      cpu: "Intel Core i7-14700K",
+      cpuDetail: "20 Cores • 28 Threads",
+      ram: "32 GB RAM",
+      ramDetail: "32 GB DDR5 Memory",
+      storage: "2 TB NVMe",
+      storageDetail: "High-End Storage",
+      display: "2560 × 1440",
+      displayDetail: "165 Hz Quad-HD",
+      os: "Windows 11",
+      osDetail: "64-bit Platform",
+      isVerifiedRealHardware: true
+    },
+    'iris_xe': {
+      gpu: "Intel Iris Xe Graphics",
+      gpuDetail: "Intel Iris Xe Graphics • Shared Memory",
+      vram: "2.0 GB VRAM",
+      cpu: "Intel Core i5-1235U",
+      cpuDetail: "10 Cores • 12 Threads",
+      ram: "16 GB RAM",
+      ramDetail: "16 GB Dual-Channel RAM",
+      storage: "512 GB NVMe",
+      storageDetail: "SSD Storage",
+      display: "1920 × 1080",
+      displayDetail: "Full HD Display",
+      os: "Windows 11",
+      osDetail: "64-bit Platform",
+      isVerifiedRealHardware: true
+    },
+    'rx6600': {
+      gpu: "Radeon RX 6600",
+      gpuDetail: "AMD Radeon RX 6600 • 8.0 GB VRAM",
+      vram: "8.0 GB VRAM",
+      cpu: "AMD Ryzen 5 5600X",
+      cpuDetail: "6 Cores • 12 Threads",
+      ram: "16 GB RAM",
+      ramDetail: "16 GB DDR4 RAM",
+      storage: "1 TB NVMe",
+      storageDetail: "NVMe Storage",
+      display: "1920 × 1080",
+      displayDetail: "144 Hz Display",
+      os: "Windows 11",
+      osDetail: "64-bit Platform",
+      isVerifiedRealHardware: true
+    }
+  };
+
+  const selected = PRESET_MAP[presetKey];
+  if (selected) {
+    saveActiveRig(selected);
+    closeCloudSyncModal();
+    renderActiveRig();
+    fetchAndRenderMLRecommendations();
+    showToastNotification(`✓ Applied ${selected.gpu} (${selected.ram})`);
+  }
+}
+
+function applyCloudTokenInput() {
+  const input = document.getElementById('cloudTokenInput');
+  if (!input || !input.value.trim()) return;
+  const token = input.value.trim();
+  try {
+    const base64Str = token.replace(/-/g, '+').replace(/_/g, '/');
+    const decodedJson = atob(base64Str);
+    const parsedSpecs = JSON.parse(decodeURIComponent(escape(decodedJson)) || decodedJson);
+    if (parsedSpecs && (parsedSpecs.gpu || parsedSpecs.cpu)) {
+      const fullRig = {
+        gpu: parsedSpecs.gpu || "Custom GPU",
+        gpuDetail: parsedSpecs.gpuDetail || `${parsedSpecs.gpu} • Desktop Scanner Verified`,
+        vram: parsedSpecs.vram || "6.0 GB VRAM",
+        cpu: parsedSpecs.cpu || "Custom CPU",
+        cpuDetail: parsedSpecs.cpuDetail || `${parsedSpecs.cpu} • Desktop Scanner Verified`,
+        ram: parsedSpecs.ram || "16 GB RAM",
+        ramDetail: parsedSpecs.ramDetail || `${parsedSpecs.ram} • Physical Memory`,
+        storage: parsedSpecs.storage || "512 GB NVMe",
+        storageDetail: parsedSpecs.storageDetail || "Drive Storage",
+        display: parsedSpecs.display || "1920 × 1080",
+        displayDetail: parsedSpecs.displayDetail || "Display Monitor",
+        os: parsedSpecs.os || "Windows 11",
+        osDetail: parsedSpecs.osDetail || "Windows Platform",
+        isVerifiedRealHardware: true
+      };
+      saveActiveRig(fullRig);
+      closeCloudSyncModal();
+      renderActiveRig();
+      fetchAndRenderMLRecommendations();
+      showToastNotification(`✓ Exact Real Hardware Synced: ${fullRig.gpu} • ${fullRig.ram}`);
+    } else {
+      alert("Invalid spec token format.");
+    }
+  } catch (e) {
+    alert("Invalid spec token encoding. Make sure to copy the entire token.");
+  }
 }
 
 function openEditRigModal() {
@@ -2837,7 +3006,9 @@ function detectBrowserHardware() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      if (parsed && parsed.isVerifiedRealHardware) {
+      if (parsed && parsed.isVerifiedRealHardware && 
+          parsed.gpu !== 'Generic Graphics' && 
+          parsed.cpu !== 'Generic Processor') {
         return parsed;
       }
     } catch (e) {}
@@ -2845,7 +3016,7 @@ function detectBrowserHardware() {
 
   let gpuName = "NVIDIA GeForce RTX 3050 6GB Laptop GPU";
   let gpuDetail = "NVIDIA GeForce RTX 3050 6GB Laptop GPU • 6.0 GB VRAM";
-  let vramEstimate = "6 GB VRAM";
+  let vramEstimate = "6.0 GB VRAM";
 
   try {
     const canvas = document.createElement('canvas');
@@ -2886,8 +3057,8 @@ function detectBrowserHardware() {
 
       const maxTex = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 8192;
       if (maxTex >= 16384) vramEstimate = "8+ GB VRAM";
-      else if (maxTex >= 8192) vramEstimate = "6 GB VRAM";
-      else vramEstimate = "4 GB VRAM";
+      else if (maxTex >= 8192) vramEstimate = "6.0 GB VRAM";
+      else vramEstimate = "4.0 GB VRAM";
     }
   } catch (e) {}
 
@@ -2942,7 +3113,7 @@ function checkUrlSpecsParam() {
         const fullRig = {
           gpu: parsedSpecs.gpu || "Custom GPU",
           gpuDetail: parsedSpecs.gpuDetail || `${parsedSpecs.gpu} • Desktop Scanner Verified`,
-          vram: parsedSpecs.vram || (parsedSpecs.gpuDetail && parsedSpecs.gpuDetail.includes('VRAM') ? parsedSpecs.gpuDetail.split('•')[1]?.trim() : '6 GB VRAM'),
+          vram: parsedSpecs.vram || (parsedSpecs.gpuDetail && parsedSpecs.gpuDetail.includes('VRAM') ? parsedSpecs.gpuDetail.split('•')[1]?.trim() : '6.0 GB VRAM'),
           cpu: parsedSpecs.cpu || "Custom CPU",
           cpuDetail: parsedSpecs.cpuDetail || `${parsedSpecs.cpu} • Desktop Scanner Verified`,
           ram: parsedSpecs.ram || "16 GB RAM",
@@ -2979,7 +3150,7 @@ function importSpecTokenPrompt() {
       const fullRig = {
         gpu: parsedSpecs.gpu || "Custom GPU",
         gpuDetail: parsedSpecs.gpuDetail || `${parsedSpecs.gpu} • Synced Rig`,
-        vram: parsedSpecs.vram || "6 GB VRAM",
+        vram: parsedSpecs.vram || "6.0 GB VRAM",
         cpu: parsedSpecs.cpu || "Custom CPU",
         cpuDetail: parsedSpecs.cpuDetail || `${parsedSpecs.cpu} • Synced Rig`,
         ram: parsedSpecs.ram || "16 GB RAM",
@@ -3010,8 +3181,17 @@ function getActiveRig() {
   if (saved) {
     try { 
       const parsed = JSON.parse(saved);
-      if (parsed && parsed.gpu && parsed.cpu) return parsed;
-    } catch (e) {}
+      if (parsed && parsed.gpu && parsed.cpu &&
+          parsed.gpu !== 'Generic Graphics' &&
+          parsed.cpu !== 'Generic Processor' &&
+          !parsed.gpu.startsWith('Standard Display')) {
+        return parsed;
+      } else {
+        localStorage.removeItem('playspec_user_rig');
+      }
+    } catch (e) {
+      localStorage.removeItem('playspec_user_rig');
+    }
   }
   const detected = detectBrowserHardware();
   saveActiveRig(detected);
@@ -3019,7 +3199,9 @@ function getActiveRig() {
 }
 
 function saveActiveRig(rig) {
-  localStorage.setItem('playspec_user_rig', JSON.stringify(rig));
+  if (rig && rig.gpu && rig.gpu !== 'Generic Graphics' && rig.cpu !== 'Generic Processor') {
+    localStorage.setItem('playspec_user_rig', JSON.stringify(rig));
+  }
 }
 
 
