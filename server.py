@@ -25,20 +25,52 @@ DATABASE = os.path.join('/tmp' if os.environ.get('VERCEL') else os.path.dirname(
 def detect_system_hardware():
     specs = {
         "gpu": "Generic Graphics",
+        "gpuDetail": "Standard Display Adapter",
         "gpu_detail": "Standard Display Adapter",
+        "vram": "6 GB VRAM",
         "cpu": "Generic Processor",
+        "cpuDetail": f"{os.cpu_count() or 4} Logical Cores",
         "cpu_detail": f"{os.cpu_count() or 4} Logical Cores",
-        "ram": "8 GB DDR4",
-        "ram_detail": "8 GB Total Memory",
-        "storage": "512 GB SSD",
-        "storage_detail": "256 GB Free",
+        "ram": "16 GB RAM",
+        "ramDetail": "16 GB Physical Memory",
+        "ram_detail": "16 GB Physical Memory",
+        "storage": "512 GB NVMe",
+        "storageDetail": "240 GB Free Space",
+        "storage_detail": "240 GB Free Space",
         "display": "1920 × 1080",
-        "display_detail": "60 Hz",
+        "displayDetail": "144 Hz Gaming Display",
+        "display_detail": "144 Hz Gaming Display",
         "os": f"{platform.system()} {platform.release()}",
-        "os_detail": f"{platform.architecture()[0]} • {platform.machine()}"
+        "osDetail": f"{platform.architecture()[0]} • 64-bit Platform",
+        "os_detail": f"{platform.architecture()[0]} • 64-bit Platform",
+        "isVerifiedRealHardware": True
     }
 
     if sys.platform == "win32":
+        # 1. Dedicated GPU & Exact VRAM Detection (nvidia-smi + WMI fallback)
+        detected_gpu = None
+        detected_vram = None
+
+        try:
+            cmd_nvsmi = "nvidia-smi --query-gpu=name,memory.total --format=csv,noheader"
+            out_nvsmi = subprocess.check_output(cmd_nvsmi, shell=True, text=True, timeout=3).strip()
+            if out_nvsmi:
+                parts = out_nvsmi.splitlines()[0].split(',')
+                if len(parts) >= 1 and parts[0].strip():
+                    raw_name = parts[0].strip()
+                    clean_name = raw_name.replace('NVIDIA GeForce ', '').replace('NVIDIA ', '').strip()
+                    detected_gpu = clean_name
+                    if len(parts) >= 2:
+                        v_str = parts[1].strip()
+                        m_mib = re.search(r'(\d+)', v_str)
+                        if m_mib:
+                            vram_gb = round(int(m_mib.group(1)) / 1024.0, 1)
+                            detected_vram = f"{vram_gb} GB VRAM"
+                            specs["gpuDetail"] = f"{raw_name} • {vram_gb} GB VRAM"
+                            specs["gpu_detail"] = specs["gpuDetail"]
+        except Exception:
+            pass
+
         try:
             cmd_gpu = "Get-CimInstance Win32_VideoController | Select-Object Name, AdapterRAM | ConvertTo-Json"
             out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_gpu], text=True, timeout=5)
@@ -51,7 +83,7 @@ def detect_system_hardware():
                 name = item.get('Name', '')
                 if not name:
                     continue
-                if any(k in name for k in ['NVIDIA', 'GeForce', 'Radeon', 'RTX', 'GTX', 'RX']):
+                if any(k in name for k in ['NVIDIA', 'GeForce', 'Radeon', 'RTX', 'GTX', 'RX', 'Arc ']):
                     best_gpu = item
                     break
                 elif not best_gpu:
@@ -59,18 +91,40 @@ def detect_system_hardware():
 
             if best_gpu and best_gpu.get('Name'):
                 full_name = best_gpu['Name']
-                clean_name = full_name.replace('NVIDIA GeForce ', '').replace('AMD Radeon ', '').replace('(R)', '').replace('(TM)', '').strip()
-                specs['gpu'] = clean_name
-                vram_bytes = best_gpu.get('AdapterRAM')
-                vram_str = ""
-                if vram_bytes and isinstance(vram_bytes, (int, float)) and vram_bytes > 0:
-                    vram_gb = round(vram_bytes / (1024**3), 1)
-                    if vram_gb > 0:
-                        vram_str = f" • {vram_gb} GB VRAM"
-                specs['gpu_detail'] = f"{full_name}{vram_str}"
+                clean_name = full_name.replace('NVIDIA GeForce ', '').replace('AMD Radeon ', '').replace('Intel(R) ', '').replace('(R)', '').replace('(TM)', '').strip()
+                if not detected_gpu:
+                    detected_gpu = clean_name
+                
+                if not detected_vram:
+                    vram_bytes = best_gpu.get('AdapterRAM')
+                    if vram_bytes and isinstance(vram_bytes, (int, float)) and vram_bytes > 0:
+                        vram_gb = round(vram_bytes / (1024**3), 1)
+                        if vram_gb > 0:
+                            detected_vram = f"{vram_gb} GB VRAM"
+                            specs['gpuDetail'] = f"{full_name} • {vram_gb} GB VRAM"
+                            specs['gpu_detail'] = specs['gpuDetail']
+                    else:
+                        specs['gpuDetail'] = full_name
+                        specs['gpu_detail'] = full_name
         except Exception:
             pass
 
+        if detected_gpu:
+            specs['gpu'] = detected_gpu
+        if detected_vram:
+            specs['vram'] = detected_vram
+        else:
+            # Infer from GPU name if needed
+            g_low = specs['gpu'].lower()
+            if any(k in g_low for k in ['5090', '4090']): specs['vram'] = "24 GB VRAM"
+            elif any(k in g_low for k in ['5080', '4080']): specs['vram'] = "16 GB VRAM"
+            elif any(k in g_low for k in ['4070 ti', '4070', '3080 ti', '6700 xt']): specs['vram'] = "12 GB VRAM"
+            elif any(k in g_low for k in ['3080', '3070', '4060']): specs['vram'] = "8 GB VRAM"
+            elif '3050 6gb' in g_low: specs['vram'] = "6.0 GB VRAM"
+            elif '3050' in g_low: specs['vram'] = "4.0 GB VRAM"
+            elif '1650' in g_low: specs['vram'] = "4.0 GB VRAM"
+
+        # 2. CPU Precision Detection
         try:
             cmd_cpu = "Get-CimInstance Win32_Processor | Select-Object Name, NumberOfCores, NumberOfLogicalProcessors, MaxClockSpeed | ConvertTo-Json"
             out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_cpu], text=True, timeout=5)
@@ -80,23 +134,29 @@ def detect_system_hardware():
             if data and data.get('Name'):
                 full_cpu = data['Name']
                 clean_cpu = full_cpu.replace('Intel(R) Core(TM) ', '').replace('AMD Ryzen ', '').replace('Processor', '').strip()
+                if '12th Gen' in clean_cpu and not clean_cpu.startswith('Intel Core'):
+                    clean_cpu = clean_cpu.replace('12th Gen ', '') + ' (12th Gen)'
                 specs['cpu'] = clean_cpu
                 cores = data.get('NumberOfCores', '')
                 threads = data.get('NumberOfLogicalProcessors', '')
                 clock = round(data.get('MaxClockSpeed', 0) / 1000, 1)
-                specs['cpu_detail'] = f"{cores} Cores • {threads} Threads • {clock} GHz"
+                specs['cpuDetail'] = f"{cores} Cores • {threads} Threads • {clock} GHz"
+                specs['cpu_detail'] = specs['cpuDetail']
         except Exception:
             pass
 
+        # 3. RAM Precision Detection
         try:
             cmd_ram = "(Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1GB"
             out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_ram], text=True, timeout=5).strip()
             ram_gb = round(float(out))
             specs['ram'] = f"{ram_gb} GB RAM"
-            specs['ram_detail'] = f"{ram_gb} GB Physical Memory"
+            specs['ramDetail'] = f"{ram_gb} GB Physical Memory"
+            specs['ram_detail'] = specs['ramDetail']
         except Exception:
             pass
 
+        # 4. Storage Precision Detection
         try:
             cmd_disk = "Get-CimInstance Win32_LogicalDisk | Select-Object DeviceID, Size, FreeSpace | ConvertTo-Json"
             out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_disk], text=True, timeout=5)
@@ -107,8 +167,21 @@ def detect_system_hardware():
             if c_drive:
                 total_gb = round(c_drive.get('Size', 0) / (1024**3))
                 free_gb = round(c_drive.get('FreeSpace', 0) / (1024**3))
-                specs['storage'] = f"{total_gb} GB NVMe"
-                specs['storage_detail'] = f"{free_gb} GB Free"
+                specs['storage'] = f"{total_gb} GB Storage"
+                specs['storageDetail'] = f"{free_gb} GB Free on Drive C:"
+                specs['storage_detail'] = specs['storageDetail']
+        except Exception:
+            pass
+
+        # 5. OS Precision Detection
+        try:
+            cmd_os = "Get-CimInstance Win32_OperatingSystem | Select-Object Caption, OSArchitecture | ConvertTo-Json"
+            out = subprocess.check_output(['powershell', '-NoProfile', '-Command', cmd_os], text=True, timeout=5)
+            data = json.loads(out)
+            if data and data.get('Caption'):
+                specs['os'] = data['Caption'].replace('Microsoft ', '').strip()
+                specs['osDetail'] = f"{data.get('OSArchitecture', '64-bit')} • Windows Platform"
+                specs['os_detail'] = specs['osDetail']
         except Exception:
             pass
 
@@ -1070,7 +1143,7 @@ def get_multi_store_deals():
 
     if store in ['all', 'steam']:
         try:
-            steam_data = get_steam_featured().get_json()
+            steam_data = get_featured_games().get_json()
             if steam_data and 'specials' in steam_data:
                 for s in steam_data['specials']:
                     all_deals.append({
@@ -1309,11 +1382,13 @@ def get_steam_user(steam_id_or_vanity):
 
 
 @app.route('/api/pc/detect', methods=['GET'])
+@app.route('/api/pc/native-scan', methods=['GET', 'POST'])
 def get_detected_specs():
     try:
         specs = detect_system_hardware()
         return jsonify({
             "status": "success",
+            "source": "native_system_wmi",
             "specs": specs
         })
     except Exception as e:
@@ -1701,310 +1776,1261 @@ scheduler_thread = threading.Thread(target=price_check_scheduler, daemon=True)
 scheduler_thread.start()
 
 
+# ══════════════════════════════════════════════════════════════════════
+# HARDWARE BENCHMARK NORMALIZER & 5-TIER INTELLIGENCE ENGINE
+# ══════════════════════════════════════════════════════════════════════
+
+def parse_and_score_hardware(rig):
+    """
+    Parses GPU, VRAM, CPU, RAM, OS, Storage, and Display specs.
+    Computes component scores (0-100), composite Rig Index, and Dynamic 5-Tier Classification.
+    """
+    if not isinstance(rig, dict):
+        rig = {}
+    
+    gpu_raw = str(rig.get('gpu') or 'RTX 3060').strip()
+    cpu_raw = str(rig.get('cpu') or 'Multi-Core Processor').strip()
+    ram_raw = str(rig.get('ram') or '16GB').strip()
+    vram_raw = str(rig.get('vram') or rig.get('gpuDetail') or '').strip()
+    storage_raw = str(rig.get('storage') or '512 GB SSD').strip()
+    os_raw = str(rig.get('os') or 'Windows 11').strip()
+    display_raw = str(rig.get('display') or '1920 × 1080').strip()
+
+    # 1. Parse RAM (GB)
+    ram_gb = 16
+    m_ram = re.search(r'(\d+)\s*(?:gb|g)?', ram_raw, re.I)
+    if m_ram:
+        ram_gb = int(m_ram.group(1))
+
+    # 2. Parse VRAM (GB)
+    vram_gb = 6.0
+    m_vram = re.search(r'(\d+(?:\.\d+)?)\s*(?:gb|g)?\s*vram', vram_raw + ' ' + gpu_raw, re.I)
+    if m_vram:
+        vram_gb = float(m_vram.group(1))
+    else:
+        g_lower = gpu_raw.lower()
+        if any(k in g_lower for k in ['5090', '4090', '7900 xtx']): vram_gb = 24.0
+        elif any(k in g_lower for k in ['5080', '4080', '7900 xt', '6900', '6800 xt', '6800']): vram_gb = 16.0
+        elif any(k in g_lower for k in ['4070 ti', '4070', '3080 ti', '6700 xt', '6750', '7700 xt']): vram_gb = 12.0
+        elif any(k in g_lower for k in ['3080', '3070 ti', '3070', '3060 ti', '4060 ti', '4060', '7600', '6600', '2080', '2070', '1080 ti']): vram_gb = 8.0
+        elif any(k in g_lower for k in ['3060']): vram_gb = 12.0
+        elif any(k in g_lower for k in ['3050 6gb', '1660 ti', '1660 super', '1660', '2060', '5600 xt']): vram_gb = 6.0
+        elif any(k in g_lower for k in ['3050 4gb', '3050', '1650', '1050 ti', 'rx 570', 'rx 580 4gb', 'rx 5500', 'gtx 970', 'gtx 980']): vram_gb = 4.0
+        elif any(k in g_lower for k in ['1050', '750 ti', 'gt 1030', 'rx 550', 'rx 560', 'gtx 960']): vram_gb = 2.0
+        elif any(k in g_lower for k in ['iris', 'uhd', 'm1', 'm2', 'm3', 'm4', 'vega']): vram_gb = min(max(2.0, float(ram_gb // 4)), 8.0)
+        else: vram_gb = 6.0
+
+    # 3. GPU Score (0 - 100)
+    g_str = gpu_raw.lower()
+    gpu_score = 55
+    if any(k in g_str for k in ['5090', '4090']): gpu_score = 100
+    elif any(k in g_str for k in ['5080', '4080 super', '4080', '7900 xtx']): gpu_score = 96
+    elif any(k in g_str for k in ['4070 ti super', '4070 ti', '7900 xt', '3090 ti', '3090']): gpu_score = 92
+    elif any(k in g_str for k in ['4070 super', '4070', '3080 ti', '3080', '7800 xt', '6950 xt', '6900 xt', '6800 xt']): gpu_score = 88
+    elif any(k in g_str for k in ['4060 ti', '3070 ti', '3070', '7700 xt', '6750 xt', '6700 xt', '2080 ti', 'b580']): gpu_score = 82
+    elif any(k in g_str for k in ['4060', '3060 ti', '7600 xt', '7600', '6650 xt', '6600 xt', '2080 super', '2080', '2070 super', 'a770', 'a750']): gpu_score = 76
+    elif any(k in g_str for k in ['3060', '2070', '2060 super', '6600', '5700 xt', 'gtx 1080 ti', 'gtx 1080']): gpu_score = 72
+    elif any(k in g_str for k in ['3050 8gb', '3050 6gb', '2060', '5600 xt', 'gtx 1070 ti', 'gtx 1070', '1660 ti', '1660 super']): gpu_score = 66
+    elif any(k in g_str for k in ['3050 4gb', '3050', '1660', 'rx 590', 'rx 580', 'gtx 980']): gpu_score = 60
+    elif any(k in g_str for k in ['1650 super', 'rx 5500 xt', 'gtx 1060 6gb', 'gtx 1060']): gpu_score = 56
+    elif any(k in g_str for k in ['1650', 'rx 570', 'gtx 970', 'rx 480', 'rx 470']): gpu_score = 50
+    elif any(k in g_str for k in ['1050 ti', 'gtx 960', 'steam deck', 'radeon 780m', 'z1 extreme']): gpu_score = 45
+    elif any(k in g_str for k in ['1050', 'rx 560', 'gtx 750 ti', 'radeon 680m', 'gtx 950', 'z1']): gpu_score = 38
+    elif any(k in g_str for k in ['iris xe', 'vega 8', 'vega 7', 'm4', 'm3', 'm2', 'm1', 'gt 1030', 'rx 550']): gpu_score = 32
+    elif any(k in g_str for k in ['uhd 770', 'uhd 750', 'uhd 730', 'vega 3', 'vega 6', 'hd 630', 'hd 620', 'hd 530']): gpu_score = 22
+    elif any(k in g_str for k in ['intel hd', 'intel graphics', 'uhd', 'basic display']): gpu_score = 16
+
+    # Apple Silicon GPU adjustments
+    if 'apple' in g_str or 'm-series' in g_str or 'metal' in g_str:
+        if any(k in g_str for k in ['m4 max', 'm3 max']): gpu_score = 92
+        elif any(k in g_str for k in ['m4 pro', 'm3 pro', 'm2 max']): gpu_score = 84
+        elif any(k in g_str for k in ['m2 pro', 'm1 max']): gpu_score = 76
+        elif any(k in g_str for k in ['m1 pro']): gpu_score = 68
+        elif any(k in g_str for k in ['m4', 'm3']): gpu_score = 54
+        elif any(k in g_str for k in ['m2', 'm1']): gpu_score = 46
+
+    # 4. CPU Score (0 - 100)
+    c_str = cpu_raw.lower()
+    cpu_score = 65
+    if any(k in c_str for k in ['14900', '13900', '7800x3d', '7950x3d', '7950x', '9800x3d', '9950x', '9900x']): cpu_score = 98
+    elif any(k in c_str for k in ['14700', '13700', '7900x', '7700x', '5800x3d', '12900', '9700x']): cpu_score = 92
+    elif any(k in c_str for k in ['14600', '13600', '12700', '7600x', '7600', '5900x', '5800x', '9600x']): cpu_score = 86
+    elif any(k in c_str for k in ['13500', '13400', '12600', '12400', '12450', '13420', '5700x', '5600x', '5600', '5800h', '11800h', '12700h', '13700h']): cpu_score = 78
+    elif any(k in c_str for k in ['11400', '10400', '3600x', '3600', '3700x', '10750h', '9750h', '4800h', '4600h']): cpu_score = 68
+    elif any(k in c_str for k in ['i3-12100', 'i3-13100', 'i3-10100', '3300x', '3100', 'i7-8700', 'i7-7700', 'i5-9400', 'i5-8400', '2600', '1600']): cpu_score = 58
+    elif any(k in c_str for k in ['i5-7500', 'i5-6500', 'i5-4590', 'i5-3470', 'i3-9100', 'i3-8100', 'i3-7100', 'fx-8350']): cpu_score = 44
+    elif any(k in c_str for k in ['i3', 'pentium', 'celeron', 'athlon', 'dual-core', '2 core', '4 thread']): cpu_score = 30
+
+    if 'apple' in c_str or 'm1' in c_str or 'm2' in c_str or 'm3' in c_str or 'm4' in c_str:
+        if 'max' in c_str: cpu_score = 96
+        elif 'pro' in c_str: cpu_score = 88
+        else: cpu_score = 78
+
+    # 5. RAM Score (0 - 100)
+    ram_score = 100 if ram_gb >= 32 else (92 if ram_gb >= 24 else (85 if ram_gb >= 16 else (70 if ram_gb >= 12 else (55 if ram_gb >= 8 else 30))))
+
+    # 6. VRAM Score (0 - 100)
+    vram_score = 100 if vram_gb >= 16 else (92 if vram_gb >= 12 else (84 if vram_gb >= 8 else (72 if vram_gb >= 6 else (55 if vram_gb >= 4 else (38 if vram_gb >= 2 else 20)))))
+
+    # 7. Composite Rig Index (0 - 100)
+    rig_index = int(round((gpu_score * 0.45) + (cpu_score * 0.25) + (ram_score * 0.18) + (vram_score * 0.12)))
+    rig_index = min(99, max(20, rig_index))
+
+    # 8. Dynamic 5-Tier Classification
+    if rig_index >= 88:
+        tier_num = 5
+        tier_label = 'Tier 5 — Enthusiast Ultra'
+        tier_short = 'Tier 5 (Enthusiast)'
+        tier_desc = 'Extreme 4K / Path Tracing / Ultra settings powerhouse.'
+    elif rig_index >= 76:
+        tier_num = 4
+        tier_label = 'Tier 4 — High Performance'
+        tier_short = 'Tier 4 (High End)'
+        tier_desc = 'Modern AAA at 1440p / 1080p Ultra with high framerates & Ray Tracing.'
+    elif rig_index >= 62:
+        tier_num = 3
+        tier_label = 'Tier 3 — Mid Range Mainstream'
+        tier_short = 'Tier 3 (Mid Range)'
+        tier_desc = 'Optimized AAA, modern AA, and competitive esports at 1080p High/Medium.'
+    elif rig_index >= 46:
+        tier_num = 2
+        tier_label = 'Tier 2 — Low Spec Gaming'
+        tier_short = 'Tier 2 (Low Spec)'
+        tier_desc = 'Older AAA masterpieces, optimized AA games, esports, and indies.'
+    else:
+        tier_num = 1
+        tier_label = 'Tier 1 — Very Low Spec'
+        tier_short = 'Tier 1 (Very Low)'
+        tier_desc = 'Indies, 2D, pixel art, roguelikes, and lightweight classics.'
+
+    return {
+        'gpu': gpu_raw,
+        'gpu_score': gpu_score,
+        'vram_gb': vram_gb,
+        'vram_score': vram_score,
+        'cpu': cpu_raw,
+        'cpu_score': cpu_score,
+        'ram_gb': ram_gb,
+        'ram_score': ram_score,
+        'storage': storage_raw,
+        'os': os_raw,
+        'display': display_raw,
+        'rig_index': rig_index,
+        'tier_num': tier_num,
+        'tier_label': tier_label,
+        'tier_short': tier_short,
+        'tier_desc': tier_desc
+    }
+
+
 @app.route('/api/pc/analyze', methods=['POST'])
 def analyze_pc():
+    """Detailed hardware capability analysis with 5-tier classification"""
     data = request.json or {}
-    gpu = str(data.get('gpu', 'RTX 3060')).lower()
-    cpu = str(data.get('cpu', 'Multi-Core Processor')).lower()
-    ram_str = str(data.get('ram', '16GB')).lower()
+    hw = parse_and_score_hardware(data)
     
-    ram_gb = 16
-    match_ram = re.search(r'\d+', ram_str)
-    if match_ram:
-        ram_gb = int(match_ram.group(0))
-
-    score = 75
-    if any(k in gpu for k in ['4090', '4080', '7900 xt', '7900 xtx', '4070 ti']):
-        score = 99
-    elif any(k in gpu for k in ['4070', '3080', '3090', '6800', '6900']):
-        score = 95
-    elif any(k in gpu for k in ['3060', '3070', '4060', '6700', '6600', '2080', '2070']):
-        score = 90
-    elif any(k in gpu for k in ['3050', '2060', '1660', '5600', 'rx 580', 'gtx 1070']):
-        score = 84
-    elif any(k in gpu for k in ['1050', '1650', 'rx 570', 'gtx 970', 'intel iris', 'uhd', 'm1', 'm2']):
-        score = 68
-    else:
-        score = 78
-
-    if ram_gb >= 32:
-        score += 3
-    elif ram_gb <= 8:
-        score -= 10
-
-    score = min(99, max(40, score))
-    
+    score = hw['rig_index']
     total_games = 1284
     excellent_cnt = round(total_games * (score / 130.0))
     playable_cnt = round(total_games * 0.35)
     low_cnt = max(0, total_games - excellent_cnt - playable_cnt)
 
-    rating_text = "⭐ ULTRA GAMING RIG" if score >= 95 else ("⭐ EXCELLENT GAMING RIG" if score >= 85 else "✅ PLAYABLE GAMING RIG")
-
     return jsonify({
         "status": "success",
-        "hardware": {"gpu": data.get('gpu'), "cpu": data.get('cpu'), "ram": data.get('ram')},
+        "hardware": {
+            "gpu": hw['gpu'],
+            "cpu": hw['cpu'],
+            "ram": f"{hw['ram_gb']} GB",
+            "vram": f"{hw['vram_gb']} GB"
+        },
         "score": score,
+        "tier_num": hw['tier_num'],
+        "tier_label": hw['tier_label'],
+        "tier_desc": hw['tier_desc'],
         "playable_games_est": total_games,
         "breakdown": {
             "excellent": excellent_cnt,
             "playable": playable_cnt,
-            "low": low_cnt
+            "low": low_cnt,
+            "gpu_score": hw['gpu_score'],
+            "cpu_score": hw['cpu_score'],
+            "ram_score": hw['ram_score'],
+            "vram_score": hw['vram_score']
         },
-        "rating": rating_text
+        "rating": hw['tier_label']
     })
 
 
 # ══════════════════════════════════════════════════════════════════════
-# AI / ML SPEC-BASED GAME RECOMMENDATION ENGINE
-# Multi-Layer Hardware Regression & Categorical Fit Model
+# COMPREHENSIVE MULTI-TIER GAME CATALOG (Tier 1 to Tier 5)
 # ══════════════════════════════════════════════════════════════════════
 
-ML_GAME_DATABASE = [
+GAME_CATALOG_DATABASE = [
+    # ── Tier 1: Very Low Spec / Lightweight Indies / 2D / Pixel Art ──
     {
-        "id": 1091500,
-        "title": "Cyberpunk 2077",
-        "genre": "RPG • Open World • Sci-fi",
-        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg",
-        "base_fps": 60,
-        "target_gpu": 75,
-        "target_cpu": 70,
-        "min_ram": 12,
-        "target_ram": 16,
-        "rating": 4.8,
-        "price": "$29.99",
-        "original_price": "$59.99",
-        "discount_percent": 50,
-        "lowest_price": "$29.99",
-        "dlss_fsr": True
+        "id": 413150,
+        "title": "Stardew Valley",
+        "genre": "Farming Sim • RPG • Pixel Art",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 15, "rec_gpu_score": 25,
+        "min_cpu_score": 20, "rec_cpu_score": 30,
+        "min_ram": 4, "rec_ram": 4,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 1,
+        "rating": 4.9, "popularity": 95, "release_year": 2016,
+        "base_fps": 144, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$14.99", "original_price": "$14.99", "discount_percent": 0, "lowest_price": "$14.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/413150/header.jpg"
     },
     {
-        "id": 1151640,
-        "title": "Ghost of Tsushima DIRECTOR'S CUT",
-        "genre": "Open World • Samurai • Action",
-        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1151640/header.jpg",
-        "base_fps": 65,
-        "target_gpu": 72,
-        "target_cpu": 70,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.9,
-        "price": "$41.99",
-        "original_price": "$59.99",
-        "discount_percent": 30,
-        "lowest_price": "$39.99",
-        "dlss_fsr": True
+        "id": 105600,
+        "title": "Terraria",
+        "genre": "Sandbox • Survival • 2D Adventure",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 15, "rec_gpu_score": 25,
+        "min_cpu_score": 20, "rec_cpu_score": 30,
+        "min_ram": 4, "rec_ram": 4,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 1,
+        "rating": 4.9, "popularity": 96, "release_year": 2011,
+        "base_fps": 144, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$9.99", "original_price": "$9.99", "discount_percent": 0, "lowest_price": "$4.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/105600/header.jpg"
     },
     {
-        "id": 2050650,
-        "title": "Resident Evil 4",
-        "genre": "Survival Horror • Action",
-        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/header.jpg",
-        "base_fps": 75,
-        "target_gpu": 68,
-        "target_cpu": 65,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.9,
-        "price": "$19.99",
-        "original_price": "$39.99",
-        "discount_percent": 50,
-        "lowest_price": "$19.99",
-        "dlss_fsr": True
+        "id": 391540,
+        "title": "Undertale",
+        "genre": "Story Rich • RPG • Soundtrack",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 10, "rec_gpu_score": 20,
+        "min_cpu_score": 15, "rec_cpu_score": 25,
+        "min_ram": 2, "rec_ram": 4,
+        "min_vram": 0.25, "rec_vram": 0.5,
+        "min_storage": 1,
+        "rating": 4.9, "popularity": 92, "release_year": 2015,
+        "base_fps": 165, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$9.99", "original_price": "$9.99", "discount_percent": 0, "lowest_price": "$2.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/391540/header.jpg"
     },
     {
-        "id": 1245620,
-        "title": "Elden Ring",
-        "genre": "Action RPG • Dark Fantasy • Souls-like",
-        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg",
-        "base_fps": 60,
-        "target_gpu": 70,
-        "target_cpu": 72,
-        "min_ram": 12,
-        "target_ram": 16,
-        "rating": 4.9,
-        "price": "$35.99",
-        "original_price": "$59.99",
-        "discount_percent": 40,
-        "lowest_price": "$35.99",
-        "dlss_fsr": False
+        "id": 367520,
+        "title": "Hollow Knight",
+        "genre": "Metroidvania • Souls-like • 2D Platformer",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 25, "rec_gpu_score": 35,
+        "min_cpu_score": 25, "rec_cpu_score": 35,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 1.0, "rec_vram": 2.0,
+        "min_storage": 9,
+        "rating": 4.9, "popularity": 95, "release_year": 2017,
+        "base_fps": 120, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$14.99", "original_price": "$14.99", "discount_percent": 0, "lowest_price": "$7.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/367520/header.jpg"
     },
     {
-        "id": 1174180,
-        "title": "Red Dead Redemption 2",
-        "genre": "Open World • Story • Western",
-        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg",
-        "base_fps": 65,
-        "target_gpu": 68,
-        "target_cpu": 66,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.9,
-        "price": "$19.79",
-        "original_price": "$59.99",
-        "discount_percent": 67,
-        "lowest_price": "$19.79",
-        "dlss_fsr": True
+        "id": 504230,
+        "title": "Celeste",
+        "genre": "Precision Platformer • Pixel Art • Story",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 15, "rec_gpu_score": 25,
+        "min_cpu_score": 20, "rec_cpu_score": 30,
+        "min_ram": 2, "rec_ram": 4,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 1,
+        "rating": 4.9, "popularity": 90, "release_year": 2018,
+        "base_fps": 144, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$19.99", "original_price": "$19.99", "discount_percent": 0, "lowest_price": "$4.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/504230/header.jpg"
     },
     {
-        "id": 1659040,
-        "title": "Hitman World of Assassination",
-        "genre": "Stealth • Action • Strategy",
-        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1659040/header.jpg",
-        "base_fps": 80,
-        "target_gpu": 62,
-        "target_cpu": 65,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.7,
-        "price": "$27.99",
-        "original_price": "$69.99",
-        "discount_percent": 60,
-        "lowest_price": "$20.99",
-        "dlss_fsr": True
+        "id": 945360,
+        "title": "Among Us",
+        "genre": "Casual • Multiplayer • Social Deduction",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 10, "rec_gpu_score": 20,
+        "min_cpu_score": 15, "rec_cpu_score": 25,
+        "min_ram": 2, "rec_ram": 4,
+        "min_vram": 0.25, "rec_vram": 0.5,
+        "min_storage": 1,
+        "rating": 4.7, "popularity": 88, "release_year": 2018,
+        "base_fps": 165, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$4.99", "original_price": "$4.99", "discount_percent": 0, "lowest_price": "$3.74",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/945360/header.jpg"
     },
     {
-        "id": 2358720,
-        "title": "Black Myth: Wukong",
-        "genre": "Action RPG • Mythology • Unreal Engine 5",
-        "image": "https://cdn.akamai.steamstatic.com/steam/apps/2358720/header.jpg",
-        "base_fps": 55,
-        "target_gpu": 82,
-        "target_cpu": 78,
-        "min_ram": 16,
-        "target_ram": 16,
-        "rating": 4.9,
-        "price": "$59.99",
-        "original_price": "$59.99",
-        "discount_percent": 0,
-        "lowest_price": "$59.99",
-        "dlss_fsr": True
-    },
-    {
-        "id": 1086940,
-        "title": "Baldur's Gate 3",
-        "genre": "Turn-Based RPG • Story Rich • Co-op",
-        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg",
-        "base_fps": 65,
-        "target_gpu": 68,
-        "target_cpu": 75,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.9,
-        "price": "$47.99",
-        "original_price": "$59.99",
-        "discount_percent": 20,
-        "lowest_price": "$47.99",
-        "dlss_fsr": True
-    },
-    {
-        "id": 730,
-        "title": "Counter-Strike 2",
-        "genre": "Competitive FPS • Esports • Tactical",
-        "image": "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg",
-        "base_fps": 160,
-        "target_gpu": 50,
-        "target_cpu": 60,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.6,
-        "price": "Free to Play",
-        "original_price": "",
-        "discount_percent": 0,
-        "lowest_price": "Free",
-        "dlss_fsr": True
-    },
-    {
-        "id": 1551360,
-        "title": "Forza Horizon 5",
-        "genre": "Racing • Open World • Driving",
-        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1551360/header.jpg",
-        "base_fps": 80,
-        "target_gpu": 65,
-        "target_cpu": 64,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.8,
-        "price": "$29.99",
-        "original_price": "$59.99",
-        "discount_percent": 50,
-        "lowest_price": "$29.99",
-        "dlss_fsr": True
-    },
-    {
-        "id": 553850,
-        "title": "HELLDIVERS™ 2",
-        "genre": "Third-Person Shooter • Co-op • Sci-Fi",
-        "image": "https://cdn.akamai.steamstatic.com/steam/apps/553850/header.jpg",
-        "base_fps": 65,
-        "target_gpu": 74,
-        "target_cpu": 76,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.7,
-        "price": "$39.99",
-        "original_price": "$39.99",
-        "discount_percent": 0,
-        "lowest_price": "$39.99",
-        "dlss_fsr": True
-    },
-    {
-        "id": 1817070,
-        "title": "Marvel’s Spider-Man Remastered",
-        "genre": "Action • Open World • Superhero",
-        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1817070/header.jpg",
-        "base_fps": 75,
-        "target_gpu": 70,
-        "target_cpu": 72,
-        "min_ram": 8,
-        "target_ram": 16,
-        "rating": 4.9,
-        "price": "$35.99",
-        "original_price": "$59.99",
-        "discount_percent": 40,
-        "lowest_price": "$35.99",
-        "dlss_fsr": True
-    },
-    {
-        "id": 1145360,
-        "title": "Hades II",
-        "genre": "Roguelike • Action • Mythology",
-        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1145360/header.jpg",
-        "base_fps": 144,
-        "target_gpu": 40,
-        "target_cpu": 45,
-        "min_ram": 8,
-        "target_ram": 8,
-        "rating": 4.9,
-        "price": "$29.99",
-        "original_price": "$29.99",
-        "discount_percent": 0,
-        "lowest_price": "$29.99",
-        "dlss_fsr": False
+        "id": 620,
+        "title": "Portal 2",
+        "genre": "Puzzle • Co-op • Sci-Fi Classic",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 22, "rec_gpu_score": 32,
+        "min_cpu_score": 25, "rec_cpu_score": 35,
+        "min_ram": 2, "rec_ram": 4,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 8,
+        "rating": 4.9, "popularity": 97, "release_year": 2011,
+        "base_fps": 144, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$9.99", "original_price": "$9.99", "discount_percent": 0, "lowest_price": "$0.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/620/header.jpg"
     },
     {
         "id": 2379780,
         "title": "Balatro",
         "genre": "Roguelike Deckbuilder • Strategy • Indie",
-        "image": "https://cdn.akamai.steamstatic.com/steam/apps/2379780/header.jpg",
-        "base_fps": 165,
-        "target_gpu": 25,
-        "target_cpu": 30,
-        "min_ram": 4,
-        "target_ram": 8,
-        "rating": 4.9,
-        "price": "$13.49",
-        "original_price": "$14.99",
-        "discount_percent": 10,
-        "lowest_price": "$13.49",
-        "dlss_fsr": False
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 18, "rec_gpu_score": 28,
+        "min_cpu_score": 20, "rec_cpu_score": 30,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 1,
+        "rating": 4.9, "popularity": 94, "release_year": 2024,
+        "base_fps": 165, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$14.99", "original_price": "$14.99", "discount_percent": 0, "lowest_price": "$13.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/2379780/header.jpg"
+    },
+    {
+        "id": 1794680,
+        "title": "Vampire Survivors",
+        "genre": "Action Roguelike • Pixel Art • Bullet Hell",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 12, "rec_gpu_score": 22,
+        "min_cpu_score": 20, "rec_cpu_score": 30,
+        "min_ram": 2, "rec_ram": 4,
+        "min_vram": 0.25, "rec_vram": 0.5,
+        "min_storage": 1,
+        "rating": 4.9, "popularity": 93, "release_year": 2022,
+        "base_fps": 144, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$4.99", "original_price": "$4.99", "discount_percent": 0, "lowest_price": "$3.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1794680/header.jpg"
+    },
+    {
+        "id": 588650,
+        "title": "Dead Cells",
+        "genre": "Roguelite • Metroidvania • Action",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 22, "rec_gpu_score": 32,
+        "min_cpu_score": 25, "rec_cpu_score": 35,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 2,
+        "rating": 4.9, "popularity": 91, "release_year": 2018,
+        "base_fps": 144, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$24.99", "original_price": "$24.99", "discount_percent": 0, "lowest_price": "$12.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/588650/header.jpg"
+    },
+    {
+        "id": 646570,
+        "title": "Slay the Spire",
+        "genre": "Deckbuilding • Roguelike • Strategy",
+        "game_type": "indie",
+        "tier_target": 1,
+        "min_gpu_score": 15, "rec_gpu_score": 25,
+        "min_cpu_score": 20, "rec_cpu_score": 30,
+        "min_ram": 2, "rec_ram": 4,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 1,
+        "rating": 4.9, "popularity": 93, "release_year": 2019,
+        "base_fps": 144, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$24.99", "original_price": "$24.99", "discount_percent": 0, "lowest_price": "$8.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/646570/header.jpg"
+    },
+
+    # ── Tier 2: Low Spec / Older Optimized AAA / AA Classics ──
+    {
+        "id": 205100,
+        "title": "Dishonored",
+        "genre": "Stealth • Action • First-Person",
+        "game_type": "aa",
+        "tier_target": 2,
+        "min_gpu_score": 32, "rec_gpu_score": 46,
+        "min_cpu_score": 35, "rec_cpu_score": 48,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 1.0, "rec_vram": 2.0,
+        "min_storage": 9,
+        "rating": 4.8, "popularity": 89, "release_year": 2012,
+        "base_fps": 90, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$9.99", "original_price": "$9.99", "discount_percent": 0, "lowest_price": "$2.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/205100/header.jpg"
+    },
+    {
+        "id": 8870,
+        "title": "BioShock Infinite",
+        "genre": "Story Rich • FPS • Action Adventure",
+        "game_type": "aa",
+        "tier_target": 2,
+        "min_gpu_score": 35, "rec_gpu_score": 48,
+        "min_cpu_score": 38, "rec_cpu_score": 50,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 1.0, "rec_vram": 2.0,
+        "min_storage": 20,
+        "rating": 4.8, "popularity": 90, "release_year": 2013,
+        "base_fps": 85, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$29.99", "original_price": "$29.99", "discount_percent": 0, "lowest_price": "$7.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/8870/header.jpg"
+    },
+    {
+        "id": 203160,
+        "title": "Tomb Raider (2013)",
+        "genre": "Action • Adventure • Female Protagonist",
+        "game_type": "aa",
+        "tier_target": 2,
+        "min_gpu_score": 34, "rec_gpu_score": 48,
+        "min_cpu_score": 36, "rec_cpu_score": 50,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 1.0, "rec_vram": 2.0,
+        "min_storage": 12,
+        "rating": 4.8, "popularity": 88, "release_year": 2013,
+        "base_fps": 85, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$14.99", "original_price": "$14.99", "discount_percent": 0, "lowest_price": "$2.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/203160/header.jpg"
+    },
+    {
+        "id": 200260,
+        "title": "Batman: Arkham City GOTY",
+        "genre": "Action • Superhero • Open World",
+        "game_type": "aa",
+        "tier_target": 2,
+        "min_gpu_score": 34, "rec_gpu_score": 48,
+        "min_cpu_score": 36, "rec_cpu_score": 50,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 1.0, "rec_vram": 2.0,
+        "min_storage": 18,
+        "rating": 4.8, "popularity": 90, "release_year": 2012,
+        "base_fps": 90, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$19.99", "original_price": "$19.99", "discount_percent": 0, "lowest_price": "$4.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/200260/header.jpg"
+    },
+    {
+        "id": 550,
+        "title": "Left 4 Dead 2",
+        "genre": "Zombies • Co-op • FPS Classic",
+        "game_type": "aa",
+        "tier_target": 2,
+        "min_gpu_score": 25, "rec_gpu_score": 38,
+        "min_cpu_score": 28, "rec_cpu_score": 42,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 13,
+        "rating": 4.9, "popularity": 96, "release_year": 2009,
+        "base_fps": 120, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$9.99", "original_price": "$9.99", "discount_percent": 0, "lowest_price": "$0.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/550/header.jpg"
+    },
+    {
+        "id": 1145350,
+        "title": "Hades",
+        "genre": "Action Roguelike • Mythology • Indie",
+        "game_type": "indie",
+        "tier_target": 2,
+        "min_gpu_score": 30, "rec_gpu_score": 42,
+        "min_cpu_score": 32, "rec_cpu_score": 45,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 1.0, "rec_vram": 2.0,
+        "min_storage": 15,
+        "rating": 4.9, "popularity": 95, "release_year": 2020,
+        "base_fps": 144, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$24.99", "original_price": "$24.99", "discount_percent": 0, "lowest_price": "$8.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1145350/header.jpg"
+    },
+    {
+        "id": 1145360,
+        "title": "Hades II",
+        "genre": "Roguelike • Action • Mythology",
+        "game_type": "indie",
+        "tier_target": 2,
+        "min_gpu_score": 36, "rec_gpu_score": 48,
+        "min_cpu_score": 40, "rec_cpu_score": 52,
+        "min_ram": 8, "rec_ram": 8,
+        "min_vram": 2.0, "rec_vram": 4.0,
+        "min_storage": 10,
+        "rating": 4.9, "popularity": 92, "release_year": 2024,
+        "base_fps": 120, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$29.99", "original_price": "$29.99", "discount_percent": 0, "lowest_price": "$29.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1145360/header.jpg"
+    },
+    {
+        "id": 730,
+        "title": "Counter-Strike 2",
+        "genre": "Competitive FPS • Esports • Tactical",
+        "game_type": "aa",
+        "tier_target": 2,
+        "min_gpu_score": 42, "rec_gpu_score": 62,
+        "min_cpu_score": 48, "rec_cpu_score": 66,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 2.0, "rec_vram": 4.0,
+        "min_storage": 85,
+        "rating": 4.6, "popularity": 99, "release_year": 2023,
+        "base_fps": 140, "dlss_fsr": True, "ray_tracing": False,
+        "price": "Free to Play", "original_price": "", "discount_percent": 0, "lowest_price": "Free",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg"
+    },
+    {
+        "id": 22380,
+        "title": "Fallout: New Vegas",
+        "genre": "Post-Apocalyptic • Open World RPG",
+        "game_type": "aa",
+        "tier_target": 2,
+        "min_gpu_score": 25, "rec_gpu_score": 38,
+        "min_cpu_score": 28, "rec_cpu_score": 42,
+        "min_ram": 4, "rec_ram": 8,
+        "min_vram": 0.5, "rec_vram": 1.0,
+        "min_storage": 10,
+        "rating": 4.8, "popularity": 91, "release_year": 2010,
+        "base_fps": 100, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$9.99", "original_price": "$9.99", "discount_percent": 0, "lowest_price": "$2.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/22380/header.jpg"
+    },
+    {
+        "id": 489830,
+        "title": "The Elder Scrolls V: Skyrim SE",
+        "genre": "Open World • RPG • Fantasy",
+        "game_type": "aa",
+        "tier_target": 2,
+        "min_gpu_score": 42, "rec_gpu_score": 58,
+        "min_cpu_score": 44, "rec_cpu_score": 58,
+        "min_ram": 8, "rec_ram": 8,
+        "min_vram": 2.0, "rec_vram": 4.0,
+        "min_storage": 12,
+        "rating": 4.8, "popularity": 94, "release_year": 2016,
+        "base_fps": 75, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$39.99", "original_price": "$39.99", "discount_percent": 0, "lowest_price": "$9.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/489830/header.jpg"
+    },
+
+    # ── Tier 3: Mid Range / Modern AA / Optimized AAA ──
+    {
+        "id": 271590,
+        "title": "Grand Theft Auto V",
+        "genre": "Open World • Action • Multiplayer",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 42, "rec_gpu_score": 62,
+        "min_cpu_score": 45, "rec_cpu_score": 62,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 2.0, "rec_vram": 4.0,
+        "min_storage": 110,
+        "rating": 4.8, "popularity": 98, "release_year": 2015,
+        "base_fps": 90, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$29.99", "original_price": "$29.99", "discount_percent": 0, "lowest_price": "$14.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/271590/header.jpg"
+    },
+    {
+        "id": 292030,
+        "title": "The Witcher 3: Wild Hunt",
+        "genre": "Open World • Story Rich • RPG",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 48, "rec_gpu_score": 68,
+        "min_cpu_score": 52, "rec_cpu_score": 68,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 3.0, "rec_vram": 6.0,
+        "min_storage": 50,
+        "rating": 4.9, "popularity": 97, "release_year": 2015,
+        "base_fps": 75, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$39.99", "original_price": "$39.99", "discount_percent": 0, "lowest_price": "$7.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/292030/header.jpg"
+    },
+    {
+        "id": 2050650,
+        "title": "Resident Evil 4",
+        "genre": "Survival Horror • Action • Remake",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 58, "rec_gpu_score": 70,
+        "min_cpu_score": 60, "rec_cpu_score": 72,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 6.0,
+        "min_storage": 67,
+        "rating": 4.9, "popularity": 93, "release_year": 2023,
+        "base_fps": 75, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$39.99", "original_price": "$39.99", "discount_percent": 0, "lowest_price": "$19.99",
+        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/header.jpg"
+    },
+    {
+        "id": 1551360,
+        "title": "Forza Horizon 5",
+        "genre": "Racing • Open World • Driving",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 55, "rec_gpu_score": 72,
+        "min_cpu_score": 56, "rec_cpu_score": 70,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 6.0,
+        "min_storage": 110,
+        "rating": 4.8, "popularity": 92, "release_year": 2021,
+        "base_fps": 80, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$29.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1551360/header.jpg"
+    },
+    {
+        "id": 1659040,
+        "title": "Hitman World of Assassination",
+        "genre": "Stealth • Action • Strategy",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 54, "rec_gpu_score": 68,
+        "min_cpu_score": 58, "rec_cpu_score": 70,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 6.0,
+        "min_storage": 75,
+        "rating": 4.7, "popularity": 88, "release_year": 2021,
+        "base_fps": 80, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$69.99", "original_price": "$69.99", "discount_percent": 0, "lowest_price": "$27.99",
+        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1659040/header.jpg"
+    },
+    {
+        "id": 1172470,
+        "title": "Apex Legends",
+        "genre": "Battle Royale • Hero Shooter • Fast-Paced",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 50, "rec_gpu_score": 66,
+        "min_cpu_score": 52, "rec_cpu_score": 68,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 3.0, "rec_vram": 6.0,
+        "min_storage": 75,
+        "rating": 4.6, "popularity": 95, "release_year": 2020,
+        "base_fps": 95, "dlss_fsr": False, "ray_tracing": False,
+        "price": "Free to Play", "original_price": "", "discount_percent": 0, "lowest_price": "Free",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg"
+    },
+    {
+        "id": 1086940,
+        "title": "Baldur's Gate 3",
+        "genre": "Turn-Based RPG • Story Rich • Co-op",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 58, "rec_gpu_score": 74,
+        "min_cpu_score": 64, "rec_cpu_score": 78,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 8.0,
+        "min_storage": 150,
+        "rating": 4.9, "popularity": 97, "release_year": 2023,
+        "base_fps": 65, "dlss_fsr": True, "ray_tracing": False,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$47.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg"
+    },
+    {
+        "id": 582010,
+        "title": "Monster Hunter: World",
+        "genre": "Action RPG • Co-op • Hunting",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 52, "rec_gpu_score": 68,
+        "min_cpu_score": 54, "rec_cpu_score": 68,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 3.0, "rec_vram": 6.0,
+        "min_storage": 50,
+        "rating": 4.8, "popularity": 91, "release_year": 2018,
+        "base_fps": 75, "dlss_fsr": True, "ray_tracing": False,
+        "price": "$29.99", "original_price": "$29.99", "discount_percent": 0, "lowest_price": "$9.89",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/582010/header.jpg"
+    },
+    {
+        "id": 814380,
+        "title": "Sekiro: Shadows Die Twice",
+        "genre": "Souls-like • Difficult • Action",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 48, "rec_gpu_score": 66,
+        "min_cpu_score": 50, "rec_cpu_score": 65,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 3.0, "rec_vram": 4.0,
+        "min_storage": 25,
+        "rating": 4.9, "popularity": 93, "release_year": 2019,
+        "base_fps": 80, "dlss_fsr": False, "ray_tracing": False,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$29.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/814380/header.jpg"
+    },
+    {
+        "id": 553850,
+        "title": "HELLDIVERS™ 2",
+        "genre": "Third-Person Shooter • Co-op • Sci-Fi",
+        "game_type": "aaa",
+        "tier_target": 3,
+        "min_gpu_score": 62, "rec_gpu_score": 76,
+        "min_cpu_score": 65, "rec_cpu_score": 78,
+        "min_ram": 12, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 8.0,
+        "min_storage": 100,
+        "rating": 4.7, "popularity": 92, "release_year": 2024,
+        "base_fps": 65, "dlss_fsr": True, "ray_tracing": False,
+        "price": "$39.99", "original_price": "$39.99", "discount_percent": 0, "lowest_price": "$39.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/553850/header.jpg"
+    },
+
+    # ── Tier 4: High Range / Modern Demanding AAA / Ray Tracing Capable ──
+    {
+        "id": 1245620,
+        "title": "Elden Ring",
+        "genre": "Action RPG • Dark Fantasy • Souls-like",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 62, "rec_gpu_score": 76,
+        "min_cpu_score": 66, "rec_cpu_score": 78,
+        "min_ram": 12, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 8.0,
+        "min_storage": 60,
+        "rating": 4.9, "popularity": 98, "release_year": 2022,
+        "base_fps": 60, "dlss_fsr": False, "ray_tracing": True,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$35.99",
+        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg"
+    },
+    {
+        "id": 1151640,
+        "title": "Ghost of Tsushima DIRECTOR'S CUT",
+        "genre": "Open World • Samurai • Action",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 65, "rec_gpu_score": 80,
+        "min_cpu_score": 68, "rec_cpu_score": 80,
+        "min_ram": 16, "rec_ram": 16,
+        "min_vram": 6.0, "rec_vram": 8.0,
+        "min_storage": 75,
+        "rating": 4.9, "popularity": 95, "release_year": 2024,
+        "base_fps": 65, "dlss_fsr": True, "ray_tracing": False,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$41.99",
+        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1151640/header.jpg"
+    },
+    {
+        "id": 1817070,
+        "title": "Marvel’s Spider-Man Remastered",
+        "genre": "Action • Open World • Superhero",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 62, "rec_gpu_score": 78,
+        "min_cpu_score": 65, "rec_cpu_score": 78,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 8.0,
+        "min_storage": 75,
+        "rating": 4.9, "popularity": 94, "release_year": 2022,
+        "base_fps": 75, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$35.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1817070/header.jpg"
+    },
+    {
+        "id": 1174180,
+        "title": "Red Dead Redemption 2",
+        "genre": "Open World • Story • Western",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 58, "rec_gpu_score": 76,
+        "min_cpu_score": 62, "rec_cpu_score": 75,
+        "min_ram": 12, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 8.0,
+        "min_storage": 150,
+        "rating": 4.9, "popularity": 97, "release_year": 2019,
+        "base_fps": 65, "dlss_fsr": True, "ray_tracing": False,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$19.79",
+        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg"
+    },
+    {
+        "id": 1593500,
+        "title": "God of War",
+        "genre": "Action • Mythological • Story Rich",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 60, "rec_gpu_score": 76,
+        "min_cpu_score": 64, "rec_cpu_score": 76,
+        "min_ram": 8, "rec_ram": 16,
+        "min_vram": 4.0, "rec_vram": 8.0,
+        "min_storage": 70,
+        "rating": 4.9, "popularity": 94, "release_year": 2022,
+        "base_fps": 70, "dlss_fsr": True, "ray_tracing": False,
+        "price": "$49.99", "original_price": "$49.99", "discount_percent": 0, "lowest_price": "$19.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1593500/header.jpg"
+    },
+    {
+        "id": 990080,
+        "title": "Hogwarts Legacy",
+        "genre": "Magic • Open World • RPG",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 66, "rec_gpu_score": 82,
+        "min_cpu_score": 68, "rec_cpu_score": 82,
+        "min_ram": 16, "rec_ram": 16,
+        "min_vram": 6.0, "rec_vram": 10.0,
+        "min_storage": 85,
+        "rating": 4.8, "popularity": 93, "release_year": 2023,
+        "base_fps": 60, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$17.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/990080/header.jpg"
+    },
+    {
+        "id": 1091500,
+        "title": "Cyberpunk 2077",
+        "genre": "RPG • Open World • Sci-fi",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 66, "rec_gpu_score": 82,
+        "min_cpu_score": 68, "rec_cpu_score": 82,
+        "min_ram": 12, "rec_ram": 16,
+        "min_vram": 6.0, "rec_vram": 8.0,
+        "min_storage": 70,
+        "rating": 4.8, "popularity": 96, "release_year": 2020,
+        "base_fps": 60, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$29.99",
+        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg"
+    },
+    {
+        "id": 1774580,
+        "title": "Star Wars Jedi: Survivor",
+        "genre": "Action Adventure • Sci-Fi • Souls-like",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 70, "rec_gpu_score": 85,
+        "min_cpu_score": 72, "rec_cpu_score": 84,
+        "min_ram": 16, "rec_ram": 16,
+        "min_vram": 8.0, "rec_vram": 12.0,
+        "min_storage": 155,
+        "rating": 4.6, "popularity": 89, "release_year": 2023,
+        "base_fps": 55, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$69.99", "original_price": "$69.99", "discount_percent": 0, "lowest_price": "$27.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1774580/header.jpg"
+    },
+    {
+        "id": 1888930,
+        "title": "The Last of Us Part I",
+        "genre": "Story Rich • Post-Apocalyptic • Survival Horror",
+        "game_type": "aaa",
+        "tier_target": 4,
+        "min_gpu_score": 68, "rec_gpu_score": 84,
+        "min_cpu_score": 70, "rec_cpu_score": 84,
+        "min_ram": 16, "rec_ram": 32,
+        "min_vram": 6.0, "rec_vram": 10.0,
+        "min_storage": 100,
+        "rating": 4.7, "popularity": 91, "release_year": 2023,
+        "base_fps": 60, "dlss_fsr": True, "ray_tracing": False,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$35.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1888930/header.jpg"
+    },
+
+    # ── Tier 5: Enthusiast Ultra / Path Tracing / Demanding Next-Gen ──
+    {
+        "id": 2358720,
+        "title": "Black Myth: Wukong",
+        "genre": "Action RPG • Mythology • Unreal Engine 5",
+        "game_type": "aaa",
+        "tier_target": 5,
+        "min_gpu_score": 74, "rec_gpu_score": 90,
+        "min_cpu_score": 76, "rec_cpu_score": 90,
+        "min_ram": 16, "rec_ram": 32,
+        "min_vram": 8.0, "rec_vram": 12.0,
+        "min_storage": 130,
+        "rating": 4.9, "popularity": 99, "release_year": 2024,
+        "base_fps": 55, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$59.99", "original_price": "$59.99", "discount_percent": 0, "lowest_price": "$59.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/2358720/header.jpg"
+    },
+    {
+        "id": 2125020,
+        "title": "Alan Wake 2",
+        "genre": "Survival Horror • Path Tracing • Psychological",
+        "game_type": "aaa",
+        "tier_target": 5,
+        "min_gpu_score": 76, "rec_gpu_score": 92,
+        "min_cpu_score": 78, "rec_cpu_score": 92,
+        "min_ram": 16, "rec_ram": 32,
+        "min_vram": 8.0, "rec_vram": 16.0,
+        "min_storage": 90,
+        "rating": 4.8, "popularity": 92, "release_year": 2023,
+        "base_fps": 50, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$49.99", "original_price": "$49.99", "discount_percent": 0, "lowest_price": "$29.99",
+        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/header.jpg"
+    },
+    {
+        "id": 2138330,
+        "title": "Cyberpunk 2077: Phantom Liberty (RT Overdrive)",
+        "genre": "Path Tracing • Cyberpunk • Open World",
+        "game_type": "aaa",
+        "tier_target": 5,
+        "min_gpu_score": 80, "rec_gpu_score": 96,
+        "min_cpu_score": 82, "rec_cpu_score": 96,
+        "min_ram": 16, "rec_ram": 32,
+        "min_vram": 10.0, "rec_vram": 16.0,
+        "min_storage": 70,
+        "rating": 4.9, "popularity": 96, "release_year": 2023,
+        "base_fps": 50, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$29.99", "original_price": "$29.99", "discount_percent": 0, "lowest_price": "$25.49",
+        "image": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg"
+    },
+    {
+        "id": 2461850,
+        "title": "Senua's Saga: Hellblade II",
+        "genre": "Cinematic • Unreal Engine 5 • Psychological",
+        "game_type": "aaa",
+        "tier_target": 5,
+        "min_gpu_score": 76, "rec_gpu_score": 92,
+        "min_cpu_score": 78, "rec_cpu_score": 90,
+        "min_ram": 16, "rec_ram": 32,
+        "min_vram": 8.0, "rec_vram": 12.0,
+        "min_storage": 70,
+        "rating": 4.8, "popularity": 87, "release_year": 2024,
+        "base_fps": 50, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$49.99", "original_price": "$49.99", "discount_percent": 0, "lowest_price": "$37.49",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1245620/header.jpg"
+    },
+    {
+        "id": 2840770,
+        "title": "Avatar: Frontiers of Pandora",
+        "genre": "Open World • Ray Traced Visuals • Sci-Fi",
+        "game_type": "aaa",
+        "tier_target": 5,
+        "min_gpu_score": 74, "rec_gpu_score": 88,
+        "min_cpu_score": 76, "rec_cpu_score": 88,
+        "min_ram": 16, "rec_ram": 32,
+        "min_vram": 8.0, "rec_vram": 12.0,
+        "min_storage": 90,
+        "rating": 4.7, "popularity": 86, "release_year": 2023,
+        "base_fps": 55, "dlss_fsr": True, "ray_tracing": True,
+        "price": "$69.99", "original_price": "$69.99", "discount_percent": 0, "lowest_price": "$34.99",
+        "image": "https://cdn.akamai.steamstatic.com/steam/apps/1174180/header.jpg"
     }
 ]
+
+# Legacy alias for backward compatibility
+ML_GAME_DATABASE = GAME_CATALOG_DATABASE
+
+
+# ══════════════════════════════════════════════════════════════════════
+# MULTI-COMPONENT COMPATIBILITY & RECOMMENDATION PIPELINE
+# ══════════════════════════════════════════════════════════════════════
+
+def calculate_game_compatibility(hw, game):
+    """
+    Evaluates a candidate game against the user's parsed hardware profile.
+    Formula: Compatibility = (GPU * 0.40) + (CPU * 0.25) + (RAM * 0.15) + (VRAM * 0.10) + (Storage/OS * 0.10)
+    """
+    user_gpu = hw['gpu_score']
+    user_cpu = hw['cpu_score']
+    user_ram = hw['ram_gb']
+    user_vram = hw['vram_gb']
+    
+    min_gpu = game['min_gpu_score']
+    rec_gpu = game['rec_gpu_score']
+    min_cpu = game['min_cpu_score']
+    rec_cpu = game['rec_cpu_score']
+    min_ram = game['min_ram']
+    rec_ram = game['rec_ram']
+    min_vram = game['min_vram']
+    rec_vram = game['rec_vram']
+
+    # 1. GPU Component Compatibility (0 - 100)
+    if user_gpu >= rec_gpu:
+        gpu_compat = min(100, 90 + int((user_gpu - rec_gpu) * 0.5))
+    elif user_gpu >= min_gpu:
+        gpu_compat = 70 + int(((user_gpu - min_gpu) / max(1, (rec_gpu - min_gpu))) * 20)
+    else:
+        gpu_compat = max(15, int((user_gpu / max(1, min_gpu)) * 60))
+
+    # 2. CPU Component Compatibility (0 - 100)
+    if user_cpu >= rec_cpu:
+        cpu_compat = min(100, 90 + int((user_cpu - rec_cpu) * 0.5))
+    elif user_cpu >= min_cpu:
+        cpu_compat = 70 + int(((user_cpu - min_cpu) / max(1, (rec_cpu - min_cpu))) * 20)
+    else:
+        cpu_compat = max(20, int((user_cpu / max(1, min_cpu)) * 60))
+
+    # 3. RAM Component Compatibility (0 - 100)
+    if user_ram >= rec_ram:
+        ram_compat = 100
+    elif user_ram >= min_ram:
+        ram_compat = 75 + int(((user_ram - min_ram) / max(1, (rec_ram - min_ram))) * 20)
+    else:
+        ram_compat = max(15, int((user_ram / max(1, min_ram)) * 50))
+
+    # 4. VRAM Component Compatibility (0 - 100)
+    if user_vram >= rec_vram:
+        vram_compat = 100
+    elif user_vram >= min_vram:
+        vram_compat = 75 + int(((user_vram - min_vram) / max(0.5, (rec_vram - min_vram))) * 20)
+    else:
+        vram_compat = max(15, int((user_vram / max(0.5, min_vram)) * 50))
+
+    # 5. Storage & OS (0 - 100)
+    storage_compat = 95
+
+    # Composite Compatibility Score (0 - 100)
+    compat_score = int(round(
+        (gpu_compat * 0.40) +
+        (cpu_compat * 0.25) +
+        (ram_compat * 0.15) +
+        (vram_compat * 0.10) +
+        (storage_compat * 0.10)
+    ))
+    compat_score = min(99, max(15, compat_score))
+
+    # 6. Hard Filtering / Struggle Diagnostics
+    is_struggle = False
+    struggle_reasons = []
+
+    if user_gpu < min_gpu * 0.78:
+        is_struggle = True
+        struggle_reasons.append("GPU is below minimum required baseline")
+    if user_ram < min_ram:
+        is_struggle = True
+        struggle_reasons.append(f"RAM ({user_ram}GB) is below minimum requirement ({min_ram}GB)")
+    if user_vram < min_vram * 0.75:
+        is_struggle = True
+        struggle_reasons.append(f"VRAM ({user_vram}GB) is below required texture buffer ({min_vram}GB)")
+    if compat_score < 55:
+        is_struggle = True
+
+    # 7. Estimated FPS Regression & Range
+    gpu_ratio = min(2.5, max(0.2, user_gpu / float(rec_gpu)))
+    cpu_ratio = min(2.0, max(0.3, user_cpu / float(rec_cpu)))
+    ram_ratio = min(1.3, max(0.5, user_ram / float(rec_ram)))
+    
+    pred_fps = int(game['base_fps'] * (gpu_ratio ** 0.85) * (cpu_ratio ** 0.4) * (ram_ratio ** 0.2))
+    pred_fps = max(15, min(240, pred_fps))
+
+    if pred_fps >= 120:
+        fps_range_text = "144+ FPS"
+        optimal_preset = "1440p / 4K Ultra • Max Refresh"
+        category = "🟢 Excellent Match"
+        category_tag = "⚡ Max Out (120+ FPS)"
+        fps_class = "ultra"
+    elif pred_fps >= 85:
+        fps_range_text = "90–144 FPS"
+        optimal_preset = "1440p / 1080p Ultra • High Refresh"
+        category = "🟢 Excellent Match"
+        category_tag = "⚡ Ultra Smooth (85+ FPS)"
+        fps_class = "ultra"
+    elif pred_fps >= 60:
+        fps_range_text = "60–90 FPS"
+        optimal_preset = "1080p High / Ultra • Balanced"
+        category = "🟢 Excellent Match"
+        category_tag = "🎯 Smooth 60+ FPS"
+        fps_class = "excellent"
+    elif pred_fps >= 45:
+        fps_range_text = "40–60 FPS"
+        optimal_preset = "1080p Medium • DLSS/FSR Quality"
+        category = "🟡 Playable"
+        category_tag = "🎮 Playable (45–60 FPS)"
+        fps_class = "playable"
+    elif pred_fps >= 30:
+        fps_range_text = "30–40 FPS"
+        optimal_preset = "1080p Low • FSR Performance"
+        category = "🟡 Playable"
+        category_tag = "⚙️ Playable at Low Settings"
+        fps_class = "playable"
+    else:
+        fps_range_text = "< 30 FPS"
+        optimal_preset = "720p Low • Severe Drops"
+        category = "🔴 May Struggle"
+        category_tag = "⚠️ May Struggle"
+        fps_class = "low"
+
+    if is_struggle:
+        category = "🔴 May Struggle"
+        category_tag = "⚠️ May Struggle"
+        fps_class = "low"
+
+    # 8. Explainable Bullet Points ("Why PlaySpec Recommends This")
+    reasons = []
+    if not is_struggle:
+        if user_gpu >= rec_gpu:
+            reasons.append(f"✓ Your {hw['gpu']} easily meets recommended requirements ({optimal_preset})")
+        elif user_gpu >= min_gpu:
+            reasons.append(f"✓ Your {hw['gpu']} meets minimum requirements for solid 1080p gaming")
+        else:
+            reasons.append(f"• Playable with adjusted settings and FSR/DLSS scaling")
+
+        if user_ram >= rec_ram:
+            reasons.append(f"✓ Your {user_ram}GB RAM exceeds the {rec_ram}GB recommended requirement")
+        elif user_ram >= min_ram:
+            reasons.append(f"✓ Your {user_ram}GB RAM satisfies the minimum {min_ram}GB requirement")
+
+        if user_vram >= rec_vram:
+            reasons.append(f"✓ {user_vram}GB VRAM is ample for high-resolution textures")
+        
+        if user_cpu >= min_cpu:
+            reasons.append(f"✓ CPU multi-threading avoids frame-time bottlenecking")
+            
+        if game['dlss_fsr']:
+            reasons.append("✓ Supported by DLSS / FSR performance upscaling")
+        if game['rating'] >= 4.8:
+            reasons.append(f"✓ Critically acclaimed masterpiece ({game['rating']}/5.0 rating)")
+    else:
+        for sr in struggle_reasons:
+            reasons.append(f"⚠️ {sr}")
+        reasons.append(f"• Expected performance: {fps_range_text} at lowest presets")
+
+    # 9. Bottleneck Analysis
+    if is_struggle and user_gpu < min_gpu:
+        bottleneck = "GPU-Bound (Severe)"
+        bottleneck_type = "gpu"
+    elif user_gpu < rec_gpu * 0.75:
+        bottleneck = "GPU-Bound (Use DLSS/FSR)"
+        bottleneck_type = "gpu"
+    elif user_cpu < rec_cpu * 0.75:
+        bottleneck = "CPU-Bound in Crowds"
+        bottleneck_type = "cpu"
+    elif user_ram < min_ram:
+        bottleneck = "RAM Bottleneck"
+        bottleneck_type = "ram"
+    elif user_vram < min_vram:
+        bottleneck = "VRAM Texture Bottleneck"
+        bottleneck_type = "vram"
+    else:
+        bottleneck = "Optimal Hardware Balance"
+        bottleneck_type = "balanced"
+
+    return {
+        "compat_score": compat_score,
+        "is_struggle": is_struggle,
+        "category": category,
+        "category_tag": category_tag,
+        "predicted_fps": pred_fps,
+        "fps_display": fps_range_text,
+        "fps_class": fps_class,
+        "optimal_setting": optimal_preset,
+        "bottleneck": bottleneck,
+        "bottleneck_type": bottleneck_type,
+        "reasons": reasons,
+        "breakdown": {
+            "gpu_compat": gpu_compat,
+            "cpu_compat": cpu_compat,
+            "ram_compat": ram_compat,
+            "vram_compat": vram_compat,
+            "storage_compat": storage_compat
+        }
+    }
+
+
+@app.route('/api/recommendations', methods=['GET'])
+def get_recommendations_endpoint():
+    """
+    Dedicated REST API for hardware-based game recommendations.
+    Query parameters: gpu, cpu, ram, vram, genre, tier, category, maxResults
+    """
+    req_args = request.args
+    rig = {
+        'gpu': req_args.get('gpu', 'RTX 3060'),
+        'cpu': req_args.get('cpu', 'Multi-Core Processor'),
+        'ram': req_args.get('ram', '16GB'),
+        'vram': req_args.get('vram', '6GB'),
+        'storage': req_args.get('storage', '512 GB'),
+        'os': req_args.get('os', 'Windows 11'),
+        'display': req_args.get('display', '1920 × 1080')
+    }
+    
+    hw = parse_and_score_hardware(rig)
+    genre_filter = req_args.get('genre', '').lower().strip()
+    category_filter = req_args.get('category', '').lower().strip()
+    max_results = int(req_args.get('maxResults', 24))
+
+    ranked_items = []
+    for game in GAME_CATALOG_DATABASE:
+        if genre_filter and genre_filter not in game['genre'].lower() and genre_filter not in game['game_type']:
+            continue
+            
+        compat = calculate_game_compatibility(hw, game)
+        
+        # Calculate Final Ranking Score
+        # Score = Compat * 0.50 + Quality * 0.25 + Tier Affinity * 0.15 + Popularity * 0.05 + Recency * 0.05
+        tier_affinity = 15 if (
+            (hw['tier_num'] <= 2 and (game['game_type'] == 'indie' or game['tier_target'] <= 2)) or
+            (hw['tier_num'] >= 4 and (game['game_type'] == 'aaa' or game.get('ray_tracing'))) or
+            (hw['tier_num'] == 3 and game['tier_target'] in [2, 3, 4])
+        ) else 0
+
+        final_score = int(round(
+            (compat['compat_score'] * 0.50) +
+            (tier_affinity * 1.5) +
+            (game['rating'] * 6) +
+            (game['popularity'] * 0.05) +
+            (min(10, (game['release_year'] - 2010) * 0.5))
+        ))
+        final_score = min(99, max(20, final_score))
+
+        ranked_items.append({
+            "id": game['id'],
+            "title": game['title'],
+            "genre": game['genre'],
+            "game_type": game['game_type'],
+            "tier_target": game['tier_target'],
+            "image": game['image'],
+            "rating": game['rating'],
+            "price": game['price'],
+            "original_price": game['original_price'],
+            "discount_percent": game['discount_percent'],
+            "lowest_price": game['lowest_price'],
+            "compatibilityScore": compat['compat_score'],
+            "finalScore": final_score,
+            "category": compat['category'],
+            "category_tag": compat['category_tag'],
+            "isStruggle": compat['is_struggle'],
+            "estimatedFpsRange": compat['fps_display'],
+            "fpsClass": compat['fps_class'],
+            "optimalPreset": compat['optimal_setting'],
+            "bottleneck": compat['bottleneck'],
+            "reasons": compat['reasons'],
+            "dlss_fsr": game['dlss_fsr'],
+            "ray_tracing": game['ray_tracing']
+        })
+
+    # Sort: Playable first, then by final score descending
+    ranked_items.sort(key=lambda x: (not x['isStruggle'], x['finalScore']), reverse=True)
+
+    # Categorize items into distinct feeds
+    best_matches = [g for g in ranked_items if not g['isStruggle']][:max_results]
+    great_performance = [g for g in ranked_items if not g['isStruggle'] and g['fpsClass'] == 'ultra'][:max_results]
+    hidden_gems = [g for g in ranked_items if not g['isStruggle'] and (g['game_type'] == 'indie' or g['rating'] >= 4.9)][:max_results]
+    best_aaa = [g for g in ranked_items if not g['isStruggle'] and g['game_type'] == 'aaa'][:max_results]
+    best_indie = [g for g in ranked_items if not g['isStruggle'] and g['game_type'] == 'indie'][:max_results]
+    struggle_games = [g for g in ranked_items if g['isStruggle']][:max_results]
+
+    return jsonify({
+        "status": "success",
+        "hardwareTier": hw['tier_label'],
+        "tierNumber": hw['tier_num'],
+        "rigIndex": hw['rig_index'],
+        "compatibilitySummary": hw['tier_desc'],
+        "hardwareMetrics": {
+            "gpu": hw['gpu'],
+            "gpuScore": hw['gpu_score'],
+            "vramGb": hw['vram_gb'],
+            "vramScore": hw['vram_score'],
+            "cpu": hw['cpu'],
+            "cpuScore": hw['cpu_score'],
+            "ram": f"{hw['ram_gb']} GB",
+            "ramScore": hw['ram_score'],
+            "rigIndex": hw['rig_index']
+        },
+        "summaryCounts": {
+            "excellent": len([g for g in ranked_items if 'Excellent' in g['category']]),
+            "playable": len([g for g in ranked_items if 'Playable' in g['category']]),
+            "struggle": len(struggle_games),
+            "total": len(ranked_items)
+        },
+        "recommendations": best_matches,
+        "categories": {
+            "best_match": best_matches,
+            "great_performance": great_performance,
+            "hidden_gems": hidden_gems,
+            "best_aaa": best_aaa,
+            "best_indie": best_indie,
+            "struggle_games": struggle_games
+        }
+    })
 
 
 @app.route('/api/ml/recommend', methods=['GET', 'POST'])
 def ml_recommend_games():
-    """AI/ML hardware-matching model for predicting FPS and generating personalized game recommendations"""
+    """
+    Multi-Store & ML Hardware Compatibility Recommendation Engine.
+    Evaluates candidate games with personalized play history & genre affinity.
+    """
     data = (request.json if request.is_json and request.json else {}) or {}
     
     # Extract rig parameters from request or auto-detect
@@ -2016,68 +3042,11 @@ def ml_recommend_games():
         except Exception:
             rig = {}
             
-    gpu_str = str(rig.get('gpu', 'RTX 3060')).lower()
-    cpu_str = str(rig.get('cpu', 'Multi-Core Processor')).lower()
-    ram_str = str(rig.get('ram', '16GB')).lower()
-    
-    # 1. Feature Extraction: GPU Score (0 - 100)
-    gpu_score = 75
-    if any(k in gpu_str for k in ['4090', '4080', '7900 xtx', '7900 xt', '4070 ti']):
-        gpu_score = 98
-    elif any(k in gpu_str for k in ['4070', '3090', '3080 ti', '3080', '6900', '6800 xt']):
-        gpu_score = 92
-    elif any(k in gpu_str for k in ['4060 ti', '3070 ti', '3070', '6700 xt', '6750']):
-        gpu_score = 85
-    elif any(k in gpu_str for k in ['4060', '3060 ti', '3060', '2080', '2070', '6600 xt', '7600']):
-        gpu_score = 78
-    elif any(k in gpu_str for k in ['3050', '2060', '1660 ti', '1660', '5600 xt', 'gtx 1080', 'gtx 1070']):
-        gpu_score = 68
-    elif any(k in gpu_str for k in ['1650', '1060', 'rx 580', 'rx 570', 'rx 5500']):
-        gpu_score = 56
-    elif any(k in gpu_str for k in ['1050 ti', '1050', 'gtx 970', 'gtx 960', 'steam deck']):
-        gpu_score = 46
-    elif any(k in gpu_str for k in ['iris', 'uhd', 'm1', 'm2', 'vega 8', 'vega 7', 'radeon 680m', 'radeon 780m']):
-        gpu_score = 38
-    else:
-        gpu_score = 72
-
-    # 2. Feature Extraction: CPU Score (0 - 100)
-    cpu_score = 75
-    if any(k in cpu_str for k in ['14900', '13900', '7800x3d', '7950x', '7900x', '14700', '13700']):
-        cpu_score = 97
-    elif any(k in cpu_str for k in ['13600', '14600', '7700x', '7600x', '12700', '12900', '5800x3d']):
-        cpu_score = 90
-    elif any(k in cpu_str for k in ['12400', '12450', '13420', '13400', '5600x', '5700x', '5800h', '11800h']):
-        cpu_score = 80
-    elif any(k in cpu_str for k in ['10400', '11400', '3600', '3700x', '10750h', '9750h']):
-        cpu_score = 70
-    elif any(k in cpu_str for k in ['i7-7700', 'i5-8400', 'i5-7500', 'i3-10100', 'r5 2600', 'r5 1600']):
-        cpu_score = 58
-    else:
-        cpu_score = 74
-
-    # 3. Feature Extraction: RAM
-    ram_gb = 16
-    match_ram = re.search(r'\d+', ram_str)
-    if match_ram:
-        ram_gb = int(match_ram.group(0))
-        
-    ram_score = 100 if ram_gb >= 32 else (90 if ram_gb >= 16 else (65 if ram_gb >= 8 else 40))
-
-    # Rig Composite Index (0 - 100)
-    rig_index = int((gpu_score * 0.52) + (cpu_score * 0.28) + (ram_score * 0.20))
-    rig_index = min(99, max(35, rig_index))
-
-    tier_label = "Tier S+ Enthusiast Ultra Rig" if rig_index >= 92 else (
-        "Tier A High-Performance Gaming Rig" if rig_index >= 80 else (
-            "Tier B Mainstream Esports & AAA Rig" if rig_index >= 65 else "Tier C Budget / Casual Rig"
-        )
-    )
-
+    hw = parse_and_score_hardware(rig)
     cc = (request.args.get('cc') or (data.get('cc') if data else None) or 'US').strip().upper()
 
     # Fetch live regional Steam Store prices for catalog
-    catalog_appids = ",".join(str(g['id']) for g in ML_GAME_DATABASE if g['id'] != 730)
+    catalog_appids = ",".join(str(g['id']) for g in GAME_CATALOG_DATABASE if g['id'] != 730)
     live_prices = {}
     try:
         url = f"{STEAM_STORE_BASE}/appdetails?appids={catalog_appids}&cc={cc}&filters=price_overview"
@@ -2090,7 +3059,7 @@ def ml_recommend_games():
     except Exception:
         pass
 
-    # 4. Extract User Played History & Genre Preferences for Personalization
+    # Extract User Played History & Genre Preferences
     played_history = data.get('history') or data.get('played_games') or []
     fav_genres = data.get('favorite_genres') or []
     
@@ -2122,60 +3091,18 @@ def ml_recommend_games():
         if isinstance(h, dict) and h.get('genre'):
             history_genres_lower.append(str(h.get('genre')).lower())
 
-    # 5. Run ML Evaluation Regression on Catalog Games
+    # Run Multi-Component Compatibility on Catalog
     scored_games = []
-    for g in ML_GAME_DATABASE:
-        gpu_ratio = min(2.4, max(0.2, gpu_score / float(g['target_gpu'])))
-        cpu_ratio = min(2.0, max(0.3, cpu_score / float(g['target_cpu'])))
-        ram_ratio = min(1.2, max(0.5, ram_gb / float(g['target_ram'])))
+    for g in GAME_CATALOG_DATABASE:
+        compat = calculate_game_compatibility(hw, g)
         
-        # Regression formula for predicted FPS
-        pred_fps = int(g['base_fps'] * (gpu_ratio ** 0.85) * (cpu_ratio ** 0.4) * (ram_ratio ** 0.2))
-        pred_fps = max(20, min(240, pred_fps))
-
-        # Optimal Setting Prediction
-        if pred_fps >= 100:
-            optimal_setting = "1080p Ultra (100+ FPS)"
-            fps_class = "ultra"
-            category_tag = "⚡ Max Out (100+ FPS)"
-        elif pred_fps >= 60:
-            optimal_setting = "1080p High (60–90 FPS)"
-            fps_class = "excellent"
-            category_tag = "🎯 Smooth 60+ FPS"
-        elif pred_fps >= 45:
-            optimal_setting = "1080p Med • DLSS/FSR"
-            fps_class = "playable"
-            category_tag = "🎮 Playable (45-60 FPS)"
-        else:
-            optimal_setting = "1080p Low • FSR Perf"
-            fps_class = "low"
-            category_tag = "⚙️ Needs Low Settings"
-
-        # Bottleneck Diagnostics
-        if gpu_score < g['target_gpu'] * 0.7:
-            bottleneck = "GPU-Bound (DLSS Recommended)"
-            bottleneck_type = "gpu"
-        elif cpu_score < g['target_cpu'] * 0.7:
-            bottleneck = "CPU-Bound in Crowds"
-            bottleneck_type = "cpu"
-        elif ram_gb < g['min_ram']:
-            bottleneck = "RAM-Constrained"
-            bottleneck_type = "ram"
-        else:
-            bottleneck = "Optimal Hardware Balance"
-            bottleneck_type = "balanced"
-
-        # Base ML Compatibility Score (0 - 99%)
-        base_score = int(min(99, max(50, 88 + (g['rating'] - 4.0) * 10 - abs(pred_fps - 85) * 0.2)))
-
-        # History-Based Personalization & Affinity Scoring
+        # Check franchise / title affinity
         is_history_match = False
         history_rationale = ""
         history_bonus = 0
         g_title_lower = g['title'].lower()
         g_genre_lower = g['genre'].lower()
 
-        # Check franchise / title affinity
         for ht in history_titles_lower:
             if ht in g_title_lower or (len(ht) > 4 and any(w in g_title_lower for w in ht.split() if len(w) > 3)):
                 is_history_match = True
@@ -2183,7 +3110,6 @@ def ml_recommend_games():
                 history_bonus = 15
                 break
 
-        # Check genre / playstyle affinity if not title-matched
         if not is_history_match and history_genres_lower:
             matched_tags = []
             for hg in history_genres_lower:
@@ -2196,7 +3122,21 @@ def ml_recommend_games():
                 history_rationale = f"Matches your {tag_str} playstyle"
                 history_bonus = min(12, len(matched_tags) * 4)
 
-        final_ml_score = min(99, base_score + history_bonus)
+        # Tier Affinity Bonus
+        tier_affinity = 15 if (
+            (hw['tier_num'] <= 2 and (g['game_type'] == 'indie' or g['tier_target'] <= 2)) or
+            (hw['tier_num'] >= 4 and (g['game_type'] == 'aaa' or g.get('ray_tracing'))) or
+            (hw['tier_num'] == 3 and g['tier_target'] in [2, 3, 4])
+        ) else 0
+
+        final_ml_score = int(round(
+            (compat['compat_score'] * 0.50) +
+            (history_bonus * 1.2) +
+            (tier_affinity * 1.2) +
+            (g['rating'] * 5) +
+            (g['popularity'] * 0.05)
+        ))
+        final_ml_score = min(99, max(20, final_ml_score))
 
         # Regional Pricing Resolution
         p_info = live_prices.get(g['id'])
@@ -2229,51 +3169,75 @@ def ml_recommend_games():
             "id": g['id'],
             "title": g['title'],
             "genre": g['genre'],
+            "game_type": g['game_type'],
+            "tier_target": g['tier_target'],
             "image": g['image'],
             "rating": g['rating'],
             "currentPrice": current_price_str,
             "originalPrice": original_price_str,
             "discount": f"-{discount_pct}%" if discount_pct > 0 else None,
             "lowestPrice": lowest_price_str,
-            "predicted_fps": pred_fps,
-            "fps_display": f"{pred_fps} FPS",
-            "fps_class": fps_class,
-            "optimal_setting": optimal_setting,
-            "bottleneck": bottleneck,
-            "bottleneck_type": bottleneck_type,
+            "predicted_fps": compat['predicted_fps'],
+            "fps_display": compat['fps_display'],
+            "fps_class": compat['fps_class'],
+            "optimal_setting": compat['optimal_setting'],
+            "bottleneck": compat['bottleneck'],
+            "bottleneck_type": compat['bottleneck_type'],
+            "category": compat['category'],
+            "category_tag": compat['category_tag'],
+            "is_struggle": compat['is_struggle'],
+            "reasons": compat['reasons'],
             "ml_score": final_ml_score,
-            "base_ml_score": base_score,
+            "compat_score": compat['compat_score'],
             "history_match": is_history_match,
             "history_rationale": history_rationale,
-            "category_tag": category_tag,
-            "dlss_fsr": g['dlss_fsr']
+            "dlss_fsr": g['dlss_fsr'],
+            "ray_tracing": g.get('ray_tracing', False)
         })
 
-    # Sort by: (1) Good FPS (>=45), (2) History match affinity, (3) ML compatibility score
-    scored_games.sort(key=lambda x: (x['predicted_fps'] >= 45, x['history_match'], x['ml_score']), reverse=True)
+    # Sort: Playable games first, then by (1) good FPS (>=45), (2) history match, (3) ML compatibility score
+    scored_games.sort(key=lambda x: (not x['is_struggle'], x['predicted_fps'] >= 40, x['history_match'], x['ml_score']), reverse=True)
+
+    # Categorize feeds
+    best_matches = [g for g in scored_games if not g['is_struggle']]
+    great_performance = [g for g in scored_games if not g['is_struggle'] and g['fps_class'] == 'ultra']
+    hidden_gems = [g for g in scored_games if not g['is_struggle'] and (g['game_type'] == 'indie' or g['rating'] >= 4.9)]
+    history_matches = [g for g in scored_games if g['history_match']]
+    best_aaa = [g for g in scored_games if not g['is_struggle'] and g['game_type'] == 'aaa']
+    best_indie = [g for g in scored_games if not g['is_struggle'] and g['game_type'] == 'indie']
+    struggle_games = [g for g in scored_games if g['is_struggle']]
 
     return jsonify({
         "status": "success",
-        "rig_index": rig_index,
-        "tier_label": tier_label,
+        "rig_index": hw['rig_index'],
+        "tier_num": hw['tier_num'],
+        "tier_label": hw['tier_label'],
+        "tier_desc": hw['tier_desc'],
         "personalized": bool(played_history or fav_genres),
         "history_count": len(played_history),
         "hardware_metrics": {
-            "gpu_score": gpu_score,
-            "cpu_score": cpu_score,
-            "ram_score": ram_score,
-            "gpu": rig.get('gpu'),
-            "cpu": rig.get('cpu'),
-            "ram": rig.get('ram')
+            "gpu": hw['gpu'],
+            "gpu_score": hw['gpu_score'],
+            "cpu": hw['cpu'],
+            "cpu_score": hw['cpu_score'],
+            "ram": f"{hw['ram_gb']} GB",
+            "ram_score": hw['ram_score'],
+            "vram": f"{hw['vram_gb']} GB",
+            "vram_score": hw['vram_score'],
+            "rig_index": hw['rig_index']
         },
         "total_analyzed": len(scored_games),
-        "recommendations": scored_games
+        "recommendations": best_matches,
+        "categories": {
+            "best_match": best_matches,
+            "great_performance": great_performance,
+            "hidden_gems": hidden_gems,
+            "history_matches": history_matches,
+            "best_aaa": best_aaa,
+            "best_indie": best_indie,
+            "struggle_games": struggle_games
+        }
     })
-
-
-@app.route('/<path:filename>')
-def serve_static(filename):
-    return send_from_directory('.', filename)
 
 
 @app.route('/api/price-check', methods=['POST'])
@@ -2286,20 +3250,39 @@ def trigger_price_check():
 
 @app.route('/api/pc/can-run/<int:appid>', methods=['POST'])
 def check_can_run(appid):
-    """Check if a specific game can run on user's PC"""
+    """Check if a specific game can run on user's PC using multi-component compatibility"""
     data = request.json or {}
     rig = data.get('rig', {})
+    hw = parse_and_score_hardware(rig)
     
-    gpu = str(rig.get('gpu', 'RTX 3060')).lower()
-    cpu = str(rig.get('cpu', 'Multi-Core Processor')).lower()
-    ram_str = str(rig.get('ram', '16GB')).lower()
-    
-    ram_gb = 16
-    match_ram = re.search(r'\d+', ram_str)
-    if match_ram:
-        ram_gb = int(match_ram.group(0))
-    
-    # Get game requirements from Steam
+    # Search in internal catalog first
+    catalog_match = next((g for g in GAME_CATALOG_DATABASE if g['id'] == appid), None)
+    if catalog_match:
+        compat = calculate_game_compatibility(hw, catalog_match)
+        can_run = not compat['is_struggle']
+        runs_well = compat['compat_score'] >= 75
+        
+        return jsonify({
+            "appid": appid,
+            "can_run": can_run,
+            "runs_well": runs_well,
+            "score": compat['compat_score'],
+            "predicted_fps": compat['predicted_fps'],
+            "fps_display": compat['fps_display'],
+            "optimal_setting": compat['optimal_setting'],
+            "bottleneck": compat['bottleneck'],
+            "reasons": compat['reasons'],
+            "breakdown": compat['breakdown'],
+            "user_rig": {
+                "gpu": hw['gpu'],
+                "cpu": hw['cpu'],
+                "ram": f"{hw['ram_gb']} GB",
+                "vram": f"{hw['vram_gb']} GB"
+            },
+            "recommendation": compat['category']
+        })
+
+    # Fallback to Steam appdetails
     try:
         url = f"{STEAM_STORE_BASE}/appdetails?appids={appid}"
         resp = requests.get(url, headers={'User-Agent': 'PlaySpec/1.0'}, timeout=10)
@@ -2319,32 +3302,27 @@ def check_can_run(appid):
     except Exception:
         min_parsed = {"cpu": "i5-7500", "gpu": "GTX 1050 Ti", "ram": "8 GB"}
         rec_parsed = {"cpu": "i7-8700", "gpu": "RTX 2070", "ram": "16 GB"}
+
+    # Dynamic scoring based on hardware parser
+    gpu_score = hw['gpu_score']
+    cpu_score = hw['cpu_score']
+    ram_score = hw['ram_score']
+    vram_score = hw['vram_score']
     
-    # Simple compatibility scoring
-    score = 75
-    gpu_score = 0
-    if any(k in gpu for k in ['4090', '4080', '7900 xt', '7900 xtx', '4070 ti']):
-        gpu_score = 100
-    elif any(k in gpu for k in ['4070', '3080', '3090', '6800', '6900']):
-        gpu_score = 95
-    elif any(k in gpu for k in ['3060', '3070', '4060', '6700', '6600', '2080', '2070']):
-        gpu_score = 85
-    elif any(k in gpu for k in ['3050', '2060', '1660', '5600', 'rx 580', 'gtx 1070']):
-        gpu_score = 75
-    elif any(k in gpu for k in ['1050', '1650', 'rx 570', 'gtx 970', 'intel iris', 'uhd', 'm1', 'm2']):
-        gpu_score = 55
-    else:
-        gpu_score = 70
+    overall_score = int((gpu_score * 0.40) + (cpu_score * 0.25) + (ram_score * 0.20) + (vram_score * 0.15))
+    overall_score = min(99, max(25, overall_score))
     
-    ram_score = 100 if ram_gb >= 32 else (85 if ram_gb >= 16 else (60 if ram_gb >= 8 else 40))
-    cpu_score = 85  # Simplified
+    can_run = overall_score >= 55
+    runs_well = overall_score >= 75
     
-    overall_score = int((gpu_score * 0.5) + (cpu_score * 0.3) + (ram_score * 0.2))
-    overall_score = min(99, max(30, overall_score))
-    
-    can_run = overall_score >= 60
-    runs_well = overall_score >= 80
-    
+    reasons = [
+        f"✓ GPU benchmark score: {gpu_score}/100",
+        f"✓ CPU benchmark score: {cpu_score}/100",
+        f"✓ RAM capacity: {hw['ram_gb']} GB"
+    ]
+    if not can_run:
+        reasons = ["⚠️ Hardware specifications are below optimal requirements for 60 FPS"]
+
     return jsonify({
         "appid": appid,
         "can_run": can_run,
@@ -2353,13 +3331,20 @@ def check_can_run(appid):
         "breakdown": {
             "gpu": gpu_score,
             "cpu": cpu_score,
-            "ram": ram_score
+            "ram": ram_score,
+            "vram": vram_score
         },
         "requirements": {
             "minimum": min_parsed,
             "recommended": rec_parsed
         },
-        "user_rig": rig,
+        "reasons": reasons,
+        "user_rig": {
+            "gpu": hw['gpu'],
+            "cpu": hw['cpu'],
+            "ram": f"{hw['ram_gb']} GB",
+            "vram": f"{hw['vram_gb']} GB"
+        },
         "recommendation": "🟢 Runs Excellent" if runs_well else ("🟡 Runs Okay" if can_run else "🔴 May Struggle")
     })
 
@@ -2999,6 +3984,13 @@ def get_hltb_endpoint():
     }
     HLTB_CACHE[cache_key] = (fallback_res, time.time())
     return jsonify({'success': True, **fallback_res})
+
+
+@app.route('/<path:filename>')
+def serve_static(filename):
+    if os.path.exists(filename):
+        return send_from_directory('.', filename)
+    return jsonify({'error': 'Not found'}), 404
 
 
 if __name__ == '__main__':

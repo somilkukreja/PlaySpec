@@ -40,8 +40,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
    Write-Host (' [v] Storage: ' + $specs.storageDetail) -ForegroundColor Cyan; ^
    Write-Host (' [v] OS:      ' + $specs.osDetail) -ForegroundColor Cyan; ^
    Write-Host ''; ^
-   Write-Host ' Hardware scan complete! Opening PlaySpec Intelligence Dashboard...' -ForegroundColor Green; ^
-   Start-Process ('https://play-spec-76ix.vercel.app/?specs=' + $token);"
+   $target = 'https://play-spec-76ix.vercel.app/?specs=' + $token; ^
+   try { $r = [System.Net.WebRequest]::Create('http://localhost:8000/api/health'); $r.Timeout = 800; $resp = $r.GetResponse(); $target = 'http://localhost:8000/?specs=' + $token; $resp.Close(); } catch {}; ^
+   Start-Process $target;"
 
 echo.
 echo ======================================================================

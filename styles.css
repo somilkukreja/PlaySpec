@@ -2897,6 +2897,76 @@ input, select, textarea {
   color: var(--color-purple);
 }
 
+/* ═══════════════════════ HARDWARE INTELLIGENCE & WHY RECOMMEND STYLES ═══════════════════════ */
 
+.badge-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
 
+.card-struggle {
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, var(--bg-card) 100%) !important;
+}
+.card-struggle:hover {
+  border-color: rgba(239, 68, 68, 0.6) !important;
+  box-shadow: 0 8px 24px -6px rgba(239, 68, 68, 0.25) !important;
+}
 
+.why-recommend-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--brand-blue);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 0;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+.why-recommend-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+.why-reasons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.why-reason-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-xs);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.why-reason-success {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #86efac;
+}
+
+.why-reason-warning {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+#headerTierBadge {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--brand-cyan);
+  font-weight: 600;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
