@@ -39,6 +39,7 @@
       </a>
 
       <ul class="navbar-nav">
+        <li><a href="#steam-compatibility" class="nav-link" data-nav="steam-compatibility">Can You Run It?</a></li>
         <li><a href="#ml-recommendations" class="nav-link active" data-nav="ml-recommendations">AI Recommendations</a></li>
         <li><a href="#dashboard" class="nav-link" data-nav="dashboard">Discover</a></li>
         <li><a href="#price-tracker" class="nav-link" data-nav="price-tracker">Price Tracker</a></li>
@@ -189,7 +190,7 @@
         <div class="scanner-top-banner">
           <span class="banner-text">
             <span>⚡</span>
-            <span><strong>Download file and run it</strong> to detect your exact PC specs (GPU, CPU, RAM & VRAM)!</span>
+            <span><strong>Download file and run it</strong> to detect your exact PC specs (GPU, CPU, RAM & VRAM)! <span style="display:inline-flex;align-items:center;gap:4px;color:#4ade80;font-weight:600;font-size:0.84rem;margin-left:4px">🛡️ 100% Safe to run — Read-only diagnostics that will not harm your system.</span></span>
           </span>
           <a href="downloads/PlaySpec-QuickScan.bat" download class="btn-banner-download">
             <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -235,9 +236,9 @@
           </a>
         </div>
 
-        <div style="margin-top:10px;margin-bottom:6px;font-size:0.83rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:6px">
-          <span style="color:var(--brand-blue)">💡</span>
-          <span><strong>Download file and run it</strong> to automatically scan & detect your hardware specs</span>
+        <div style="margin-top:10px;margin-bottom:6px;font-size:0.83rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;text-align:center">
+          <span style="color:#4ade80">🛡️</span>
+          <span><strong>Download file and run it</strong> to automatically scan your PC specs. It is 100% safe to run and will not harm your system.</span>
         </div>
 
         <div class="hero-stats">
@@ -283,6 +284,72 @@
       </div>
     </section>
 
+    <!-- ── UNIVERSAL STEAM COMPATIBILITY CHECKER (CAN YOU RUN IT?) ── -->
+    <section class="section steam-compat-section" id="steam-compatibility">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:#66c0f4">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              Universal Steam Game Compatibility Checker
+            </h2>
+            <span class="section-subtitle">Evaluate PC performance, predicted FPS, optimal graphics presets, and hardware bottlenecks for any game on Steam</span>
+          </div>
+          <div class="steam-compat-badge-pill">
+            <span class="pulse-cyan"></span>
+            <span>100,000+ Steam Games Supported</span>
+          </div>
+        </div>
+
+        <div class="steam-compat-card">
+          <!-- Search & Input Box -->
+          <div class="steam-compat-search-wrap">
+            <div class="steam-compat-input-box">
+              <span class="steam-compat-input-icon">🎮</span>
+              <input 
+                type="text" 
+                id="steamCompatSearchInput" 
+                class="steam-compat-input" 
+                placeholder="Search any game on Steam (e.g. Black Myth: Wukong, Cyberpunk 2077, GTA V, or paste Steam URL / AppID)..." 
+                autocomplete="off"
+              />
+              <button class="btn btn-steam-check" id="steamCompatSearchBtn" onclick="triggerSteamCompatCheck()">
+                <span>Check Compatibility</span>
+                <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+            <!-- Live Typeahead Suggestions Dropdown -->
+            <div class="steam-compat-suggestions" id="steamCompatSuggestions" style="display:none"></div>
+          </div>
+
+          <!-- Quick Check Trending Games Chips -->
+          <div class="steam-compat-trending-wrap">
+            <span class="trending-label">🔥 Quick Check Trending Steam Games:</span>
+            <div class="trending-chips-row" id="steamTrendingChips">
+              <button class="btn-trending-chip active" onclick="checkSteamGameByAppId(2358720, 'Black Myth: Wukong')">Black Myth: Wukong</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(1091500, 'Cyberpunk 2077')">Cyberpunk 2077</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(271590, 'Grand Theft Auto V')">GTA V</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(553850, 'HELLDIVERS™ 2')">Helldivers 2</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(1623730, 'Palworld')">Palworld</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(1245620, 'ELDEN RING')">Elden Ring</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(1086940, 'Baldur\'s Gate 3')">Baldur's Gate 3</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(1551360, 'Forza Horizon 5')">Forza Horizon 5</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(730, 'Counter-Strike 2')">Counter-Strike 2</button>
+              <button class="btn-trending-chip" onclick="checkSteamGameByAppId(292030, 'The Witcher 3')">The Witcher 3</button>
+            </div>
+          </div>
+
+          <!-- Live Result Container -->
+          <div class="steam-compat-result-card" id="steamCompatResultCard">
+            <!-- Populated dynamically by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── AI / ML SPEC-BASED GAME RECOMMENDATIONS ── -->
     <section class="section" style="padding-top:0" id="ml-recommendations">
       <div class="container">
@@ -317,6 +384,16 @@
 
         <div class="games-row" id="mlRecommendationsRow">
           <!-- Populated by ML Engine -->
+        </div>
+
+        <div id="mlRecommendationsPagination" class="ml-pagination-container" style="display:none">
+          <div class="ml-pagination-inner">
+            <span class="ml-pagination-count" id="mlPaginationCount">Showing 8 of 45 games</span>
+            <button class="btn btn-steam-load-more" id="mlLoadMoreBtn" onclick="loadMoreMLRecommendations()">
+              <span>Show More Games</span>
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:15px;height:15px;margin-left:4px"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -942,7 +1019,8 @@
                   <span style="background:#22c55e;color:#000;font-size:0.68rem;font-weight:800;padding:2px 6px;border-radius:4px">100% ACCURATE</span>
                 </div>
                 <div style="color:var(--text-muted);font-size:0.8rem;margin-top:4px;line-height:1.4">
-                  • <strong>Already downloaded?</strong> Just double-click <code>PlaySpec-QuickScan.bat</code> on your PC. It will automatically scan your real RTX 3050 GPU, VRAM, and RAM, and sync this page instantly!<br>
+                  • <strong>100% Safe & Read-Only:</strong> Standard Windows hardware query that will not harm your system.<br>
+                  • <strong>Already downloaded?</strong> Just double-click <code>PlaySpec-QuickScan.bat</code> on your PC to automatically scan your real GPU, VRAM, and RAM, and sync this page instantly!<br>
                   • <strong>Don't have it yet?</strong> Click the button to download.
                 </div>
               </div>
@@ -1305,6 +1383,10 @@
   <!-- ═══════════════════════ MOBILE NAV ═══════════════════════ -->
   <nav class="mobile-nav">
     <div class="mobile-nav-inner">
+      <a href="#steam-compatibility" class="mobile-nav-item">
+        <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:18px;height:18px"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        Can Run?
+      </a>
       <a href="#ml-recommendations" class="mobile-nav-item active">
         <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:18px;height:18px"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         AI Picks

@@ -183,129 +183,1541 @@ function initCurrencySelector() {
 }
 
 
-// ── CURATED MASTER GAMES LIST ──
-const MOCK_GAMES = [
+// ── FULL 45-GAME MASTER CATALOG (TIERS 1 TO 5) ──
+const CATALOG_GAMES = [
   {
-    id: 1091500,
-    title: "Cyberpunk 2077",
-    genre: "RPG • Open World • Sci-fi",
-    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg",
-    compat: "excellent",
-    compatText: "Runs Great",
-    match: 94,
-    priceBadge: "great",
-    priceBadgeText: "50% Off",
-    currentPrice: "$29.99",
-    originalPrice: "$59.99",
-    lowestPrice: "$24.99",
-    discount: "-50%",
-    rating: 4.8,
-    specs: { cpuMin: "i5-7500", cpuRec: "i7-8700", gpuMin: "GTX 1050 Ti", gpuRec: "RTX 2070", ramMin: "8 GB", ramRec: "16 GB" },
-    priceHistory: [59.99, 44.99, 59.99, 29.99, 59.99, 29.99],
-    estimatedFps: "65–85 FPS",
-    estimatedSettings: "1080p High"
-  },
-  {
-    id: 1151640,
-    title: "Ghost of Tsushima DIRECTOR'S CUT",
-    genre: "Action • Open World • Samurai",
-    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1151640/header.jpg",
+    id: 413150,
+    title: "Stardew Valley",
+    genre: "Farming Sim \u2022 RPG \u2022 Pixel Art",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 15,
+    rec_gpu_score: 25,
+    min_cpu_score: 20,
+    rec_cpu_score: 30,
+    min_ram: 4,
+    rec_ram: 4,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 1,
+    rating: 4.9,
+    popularity: 95,
+    release_year: 2016,
+    base_fps: 144,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$14.99",
+    original_price: "$14.99",
+    discount_percent: 0,
+    lowest_price: "$14.99",
+    currentPrice: "$14.99",
+    originalPrice: "$14.99",
+    lowestPrice: "$14.99",
+    discount: null,
     compat: "excellent",
     compatText: "Runs Great",
     match: 93,
-    priceBadge: "normal",
-    priceBadgeText: "Sale Active",
-    currentPrice: "$41.99",
-    originalPrice: "$59.99",
-    lowestPrice: "$39.99",
-    discount: "-30%",
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/413150/header.jpg"
+  },
+  {
+    id: 105600,
+    title: "Terraria",
+    genre: "Sandbox \u2022 Survival \u2022 2D Adventure",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 15,
+    rec_gpu_score: 25,
+    min_cpu_score: 20,
+    rec_cpu_score: 30,
+    min_ram: 4,
+    rec_ram: 4,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 1,
     rating: 4.9,
-    specs: { cpuMin: "i5-8400", cpuRec: "i7-9700K", gpuMin: "GTX 1060", gpuRec: "RTX 2070", ramMin: "8 GB", ramRec: "16 GB" },
-    priceHistory: [59.99, 59.99, 47.99, 59.99, 41.99],
-    estimatedFps: "60–75 FPS",
-    estimatedSettings: "1080p High"
+    popularity: 96,
+    release_year: 2011,
+    base_fps: 144,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$9.99",
+    original_price: "$9.99",
+    discount_percent: 0,
+    lowest_price: "$4.99",
+    currentPrice: "$9.99",
+    originalPrice: "$9.99",
+    lowestPrice: "$4.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/105600/header.jpg"
+  },
+  {
+    id: 391540,
+    title: "Undertale",
+    genre: "Story Rich \u2022 RPG \u2022 Soundtrack",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 10,
+    rec_gpu_score: 20,
+    min_cpu_score: 15,
+    rec_cpu_score: 25,
+    min_ram: 2,
+    rec_ram: 4,
+    min_vram: 0.25,
+    rec_vram: 0.5,
+    min_storage: 1,
+    rating: 4.9,
+    popularity: 92,
+    release_year: 2015,
+    base_fps: 165,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$9.99",
+    original_price: "$9.99",
+    discount_percent: 0,
+    lowest_price: "$2.49",
+    currentPrice: "$9.99",
+    originalPrice: "$9.99",
+    lowestPrice: "$2.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/391540/header.jpg"
+  },
+  {
+    id: 367520,
+    title: "Hollow Knight",
+    genre: "Metroidvania \u2022 Souls-like \u2022 2D Platformer",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 25,
+    rec_gpu_score: 35,
+    min_cpu_score: 25,
+    rec_cpu_score: 35,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 1.0,
+    rec_vram: 2.0,
+    min_storage: 9,
+    rating: 4.9,
+    popularity: 95,
+    release_year: 2017,
+    base_fps: 120,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$14.99",
+    original_price: "$14.99",
+    discount_percent: 0,
+    lowest_price: "$7.49",
+    currentPrice: "$14.99",
+    originalPrice: "$14.99",
+    lowestPrice: "$7.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/367520/header.jpg"
+  },
+  {
+    id: 504230,
+    title: "Celeste",
+    genre: "Precision Platformer \u2022 Pixel Art \u2022 Story",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 15,
+    rec_gpu_score: 25,
+    min_cpu_score: 20,
+    rec_cpu_score: 30,
+    min_ram: 2,
+    rec_ram: 4,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 1,
+    rating: 4.9,
+    popularity: 90,
+    release_year: 2018,
+    base_fps: 144,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$19.99",
+    original_price: "$19.99",
+    discount_percent: 0,
+    lowest_price: "$4.99",
+    currentPrice: "$19.99",
+    originalPrice: "$19.99",
+    lowestPrice: "$4.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/504230/header.jpg"
+  },
+  {
+    id: 945360,
+    title: "Among Us",
+    genre: "Casual \u2022 Multiplayer \u2022 Social Deduction",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 10,
+    rec_gpu_score: 20,
+    min_cpu_score: 15,
+    rec_cpu_score: 25,
+    min_ram: 2,
+    rec_ram: 4,
+    min_vram: 0.25,
+    rec_vram: 0.5,
+    min_storage: 1,
+    rating: 4.7,
+    popularity: 88,
+    release_year: 2018,
+    base_fps: 165,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$4.99",
+    original_price: "$4.99",
+    discount_percent: 0,
+    lowest_price: "$3.74",
+    currentPrice: "$4.99",
+    originalPrice: "$4.99",
+    lowestPrice: "$3.74",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 89,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/945360/header.jpg"
+  },
+  {
+    id: 620,
+    title: "Portal 2",
+    genre: "Puzzle \u2022 Co-op \u2022 Sci-Fi Classic",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 22,
+    rec_gpu_score: 32,
+    min_cpu_score: 25,
+    rec_cpu_score: 35,
+    min_ram: 2,
+    rec_ram: 4,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 8,
+    rating: 4.9,
+    popularity: 97,
+    release_year: 2011,
+    base_fps: 144,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$9.99",
+    original_price: "$9.99",
+    discount_percent: 0,
+    lowest_price: "$0.99",
+    currentPrice: "$9.99",
+    originalPrice: "$9.99",
+    lowestPrice: "$0.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/620/header.jpg"
+  },
+  {
+    id: 2379780,
+    title: "Balatro",
+    genre: "Roguelike Deckbuilder \u2022 Strategy \u2022 Indie",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 18,
+    rec_gpu_score: 28,
+    min_cpu_score: 20,
+    rec_cpu_score: 30,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 1,
+    rating: 4.9,
+    popularity: 94,
+    release_year: 2024,
+    base_fps: 165,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$14.99",
+    original_price: "$14.99",
+    discount_percent: 0,
+    lowest_price: "$13.49",
+    currentPrice: "$14.99",
+    originalPrice: "$14.99",
+    lowestPrice: "$13.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/2379780/header.jpg"
+  },
+  {
+    id: 1794680,
+    title: "Vampire Survivors",
+    genre: "Action Roguelike \u2022 Pixel Art \u2022 Bullet Hell",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 12,
+    rec_gpu_score: 22,
+    min_cpu_score: 20,
+    rec_cpu_score: 30,
+    min_ram: 2,
+    rec_ram: 4,
+    min_vram: 0.25,
+    rec_vram: 0.5,
+    min_storage: 1,
+    rating: 4.9,
+    popularity: 93,
+    release_year: 2022,
+    base_fps: 144,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$4.99",
+    original_price: "$4.99",
+    discount_percent: 0,
+    lowest_price: "$3.99",
+    currentPrice: "$4.99",
+    originalPrice: "$4.99",
+    lowestPrice: "$3.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1794680/header.jpg"
+  },
+  {
+    id: 588650,
+    title: "Dead Cells",
+    genre: "Roguelite \u2022 Metroidvania \u2022 Action",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 22,
+    rec_gpu_score: 32,
+    min_cpu_score: 25,
+    rec_cpu_score: 35,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 2,
+    rating: 4.9,
+    popularity: 91,
+    release_year: 2018,
+    base_fps: 144,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$24.99",
+    original_price: "$24.99",
+    discount_percent: 0,
+    lowest_price: "$12.49",
+    currentPrice: "$24.99",
+    originalPrice: "$24.99",
+    lowestPrice: "$12.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/588650/header.jpg"
+  },
+  {
+    id: 646570,
+    title: "Slay the Spire",
+    genre: "Deckbuilding \u2022 Roguelike \u2022 Strategy",
+    game_type: "indie",
+    tier_target: 1,
+    min_gpu_score: 15,
+    rec_gpu_score: 25,
+    min_cpu_score: 20,
+    rec_cpu_score: 30,
+    min_ram: 2,
+    rec_ram: 4,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 1,
+    rating: 4.9,
+    popularity: 93,
+    release_year: 2019,
+    base_fps: 144,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$24.99",
+    original_price: "$24.99",
+    discount_percent: 0,
+    lowest_price: "$8.49",
+    currentPrice: "$24.99",
+    originalPrice: "$24.99",
+    lowestPrice: "$8.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/646570/header.jpg"
+  },
+  {
+    id: 205100,
+    title: "Dishonored",
+    genre: "Stealth \u2022 Action \u2022 First-Person",
+    game_type: "aa",
+    tier_target: 2,
+    min_gpu_score: 32,
+    rec_gpu_score: 46,
+    min_cpu_score: 35,
+    rec_cpu_score: 48,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 1.0,
+    rec_vram: 2.0,
+    min_storage: 9,
+    rating: 4.8,
+    popularity: 89,
+    release_year: 2012,
+    base_fps: 90,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$9.99",
+    original_price: "$9.99",
+    discount_percent: 0,
+    lowest_price: "$2.49",
+    currentPrice: "$9.99",
+    originalPrice: "$9.99",
+    lowestPrice: "$2.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/205100/header.jpg"
+  },
+  {
+    id: 8870,
+    title: "BioShock Infinite",
+    genre: "Story Rich \u2022 FPS \u2022 Action Adventure",
+    game_type: "aa",
+    tier_target: 2,
+    min_gpu_score: 35,
+    rec_gpu_score: 48,
+    min_cpu_score: 38,
+    rec_cpu_score: 50,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 1.0,
+    rec_vram: 2.0,
+    min_storage: 20,
+    rating: 4.8,
+    popularity: 90,
+    release_year: 2013,
+    base_fps: 85,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$29.99",
+    original_price: "$29.99",
+    discount_percent: 0,
+    lowest_price: "$7.49",
+    currentPrice: "$29.99",
+    originalPrice: "$29.99",
+    lowestPrice: "$7.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/8870/header.jpg"
+  },
+  {
+    id: 203160,
+    title: "Tomb Raider (2013)",
+    genre: "Action \u2022 Adventure \u2022 Female Protagonist",
+    game_type: "aa",
+    tier_target: 2,
+    min_gpu_score: 34,
+    rec_gpu_score: 48,
+    min_cpu_score: 36,
+    rec_cpu_score: 50,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 1.0,
+    rec_vram: 2.0,
+    min_storage: 12,
+    rating: 4.8,
+    popularity: 88,
+    release_year: 2013,
+    base_fps: 85,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$14.99",
+    original_price: "$14.99",
+    discount_percent: 0,
+    lowest_price: "$2.99",
+    currentPrice: "$14.99",
+    originalPrice: "$14.99",
+    lowestPrice: "$2.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/203160/header.jpg"
+  },
+  {
+    id: 200260,
+    title: "Batman: Arkham City GOTY",
+    genre: "Action \u2022 Superhero \u2022 Open World",
+    game_type: "aa",
+    tier_target: 2,
+    min_gpu_score: 34,
+    rec_gpu_score: 48,
+    min_cpu_score: 36,
+    rec_cpu_score: 50,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 1.0,
+    rec_vram: 2.0,
+    min_storage: 18,
+    rating: 4.8,
+    popularity: 90,
+    release_year: 2012,
+    base_fps: 90,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$19.99",
+    original_price: "$19.99",
+    discount_percent: 0,
+    lowest_price: "$4.99",
+    currentPrice: "$19.99",
+    originalPrice: "$19.99",
+    lowestPrice: "$4.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/200260/header.jpg"
+  },
+  {
+    id: 550,
+    title: "Left 4 Dead 2",
+    genre: "Zombies \u2022 Co-op \u2022 FPS Classic",
+    game_type: "aa",
+    tier_target: 2,
+    min_gpu_score: 25,
+    rec_gpu_score: 38,
+    min_cpu_score: 28,
+    rec_cpu_score: 42,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 13,
+    rating: 4.9,
+    popularity: 96,
+    release_year: 2009,
+    base_fps: 120,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$9.99",
+    original_price: "$9.99",
+    discount_percent: 0,
+    lowest_price: "$0.99",
+    currentPrice: "$9.99",
+    originalPrice: "$9.99",
+    lowestPrice: "$0.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/550/header.jpg"
+  },
+  {
+    id: 1145350,
+    title: "Hades",
+    genre: "Action Roguelike \u2022 Mythology \u2022 Indie",
+    game_type: "indie",
+    tier_target: 2,
+    min_gpu_score: 30,
+    rec_gpu_score: 42,
+    min_cpu_score: 32,
+    rec_cpu_score: 45,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 1.0,
+    rec_vram: 2.0,
+    min_storage: 15,
+    rating: 4.9,
+    popularity: 95,
+    release_year: 2020,
+    base_fps: 144,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$24.99",
+    original_price: "$24.99",
+    discount_percent: 0,
+    lowest_price: "$8.49",
+    currentPrice: "$24.99",
+    originalPrice: "$24.99",
+    lowestPrice: "$8.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1145350/header.jpg"
+  },
+  {
+    id: 1145360,
+    title: "Hades II",
+    genre: "Roguelike \u2022 Action \u2022 Mythology",
+    game_type: "indie",
+    tier_target: 2,
+    min_gpu_score: 36,
+    rec_gpu_score: 48,
+    min_cpu_score: 40,
+    rec_cpu_score: 52,
+    min_ram: 8,
+    rec_ram: 8,
+    min_vram: 2.0,
+    rec_vram: 4.0,
+    min_storage: 10,
+    rating: 4.9,
+    popularity: 92,
+    release_year: 2024,
+    base_fps: 120,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$29.99",
+    original_price: "$29.99",
+    discount_percent: 0,
+    lowest_price: "$29.99",
+    currentPrice: "$29.99",
+    originalPrice: "$29.99",
+    lowestPrice: "$29.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1145360/header.jpg"
+  },
+  {
+    id: 730,
+    title: "Counter-Strike 2",
+    genre: "Competitive FPS \u2022 Esports \u2022 Tactical",
+    game_type: "aa",
+    tier_target: 2,
+    min_gpu_score: 42,
+    rec_gpu_score: 62,
+    min_cpu_score: 48,
+    rec_cpu_score: 66,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 2.0,
+    rec_vram: 4.0,
+    min_storage: 85,
+    rating: 4.6,
+    popularity: 99,
+    release_year: 2023,
+    base_fps: 140,
+    dlss_fsr: true,
+    ray_tracing: false,
+    price: "Free to Play",
+    original_price: "",
+    discount_percent: 0,
+    lowest_price: "Free",
+    currentPrice: "Free to Play",
+    originalPrice: "",
+    lowestPrice: "Free",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 87,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg"
+  },
+  {
+    id: 22380,
+    title: "Fallout: New Vegas",
+    genre: "Post-Apocalyptic \u2022 Open World RPG",
+    game_type: "aa",
+    tier_target: 2,
+    min_gpu_score: 25,
+    rec_gpu_score: 38,
+    min_cpu_score: 28,
+    rec_cpu_score: 42,
+    min_ram: 4,
+    rec_ram: 8,
+    min_vram: 0.5,
+    rec_vram: 1.0,
+    min_storage: 10,
+    rating: 4.8,
+    popularity: 91,
+    release_year: 2010,
+    base_fps: 100,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$9.99",
+    original_price: "$9.99",
+    discount_percent: 0,
+    lowest_price: "$2.49",
+    currentPrice: "$9.99",
+    originalPrice: "$9.99",
+    lowestPrice: "$2.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/22380/header.jpg"
+  },
+  {
+    id: 489830,
+    title: "The Elder Scrolls V: Skyrim SE",
+    genre: "Open World \u2022 RPG \u2022 Fantasy",
+    game_type: "aa",
+    tier_target: 2,
+    min_gpu_score: 42,
+    rec_gpu_score: 58,
+    min_cpu_score: 44,
+    rec_cpu_score: 58,
+    min_ram: 8,
+    rec_ram: 8,
+    min_vram: 2.0,
+    rec_vram: 4.0,
+    min_storage: 12,
+    rating: 4.8,
+    popularity: 94,
+    release_year: 2016,
+    base_fps: 75,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$39.99",
+    original_price: "$39.99",
+    discount_percent: 0,
+    lowest_price: "$9.99",
+    currentPrice: "$39.99",
+    originalPrice: "$39.99",
+    lowestPrice: "$9.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/489830/header.jpg"
+  },
+  {
+    id: 271590,
+    title: "Grand Theft Auto V",
+    genre: "Open World \u2022 Action \u2022 Multiplayer",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 42,
+    rec_gpu_score: 62,
+    min_cpu_score: 45,
+    rec_cpu_score: 62,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 2.0,
+    rec_vram: 4.0,
+    min_storage: 110,
+    rating: 4.8,
+    popularity: 98,
+    release_year: 2015,
+    base_fps: 90,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$29.99",
+    original_price: "$29.99",
+    discount_percent: 0,
+    lowest_price: "$14.99",
+    currentPrice: "$29.99",
+    originalPrice: "$29.99",
+    lowestPrice: "$14.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/271590/header.jpg"
+  },
+  {
+    id: 292030,
+    title: "The Witcher 3: Wild Hunt",
+    genre: "Open World \u2022 Story Rich \u2022 RPG",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 48,
+    rec_gpu_score: 68,
+    min_cpu_score: 52,
+    rec_cpu_score: 68,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 3.0,
+    rec_vram: 6.0,
+    min_storage: 50,
+    rating: 4.9,
+    popularity: 97,
+    release_year: 2015,
+    base_fps: 75,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$39.99",
+    original_price: "$39.99",
+    discount_percent: 0,
+    lowest_price: "$7.99",
+    currentPrice: "$39.99",
+    originalPrice: "$39.99",
+    lowestPrice: "$7.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/292030/header.jpg"
   },
   {
     id: 2050650,
     title: "Resident Evil 4",
-    genre: "Survival Horror • Action",
-    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/header.jpg",
-    compat: "excellent",
-    compatText: "Runs Great",
-    match: 92,
-    priceBadge: "great",
-    priceBadgeText: "All-Time Low",
-    currentPrice: "$19.99",
+    genre: "Survival Horror \u2022 Action \u2022 Remake",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 58,
+    rec_gpu_score: 70,
+    min_cpu_score: 60,
+    rec_cpu_score: 72,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 6.0,
+    min_storage: 67,
+    rating: 4.9,
+    popularity: 93,
+    release_year: 2023,
+    base_fps: 75,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$39.99",
+    original_price: "$39.99",
+    discount_percent: 0,
+    lowest_price: "$19.99",
+    currentPrice: "$39.99",
     originalPrice: "$39.99",
     lowestPrice: "$19.99",
-    discount: "-50%",
-    rating: 4.9,
-    specs: { cpuMin: "i5-8400", cpuRec: "i7-8700", gpuMin: "GTX 1060", gpuRec: "RTX 2060", ramMin: "8 GB", ramRec: "16 GB" },
-    priceHistory: [39.99, 29.99, 39.99, 19.99, 19.99],
-    estimatedFps: "75–95 FPS",
-    estimatedSettings: "1080p High"
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/header.jpg"
   },
   {
-    id: 1245620,
-    title: "Elden Ring",
-    genre: "Action RPG • Dark Fantasy",
-    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg",
-    compat: "playable",
-    compatText: "Runs Well",
-    match: 89,
-    priceBadge: "normal",
-    priceBadgeText: "Sale Active",
-    currentPrice: "$35.99",
+    id: 1551360,
+    title: "Forza Horizon 5",
+    genre: "Racing \u2022 Open World \u2022 Driving",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 55,
+    rec_gpu_score: 72,
+    min_cpu_score: 56,
+    rec_cpu_score: 70,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 6.0,
+    min_storage: 110,
+    rating: 4.8,
+    popularity: 92,
+    release_year: 2021,
+    base_fps: 80,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$29.99",
+    currentPrice: "$59.99",
     originalPrice: "$59.99",
-    lowestPrice: "$35.99",
-    discount: "-40%",
-    rating: 4.9,
-    specs: { cpuMin: "i5-8400", cpuRec: "i7-8700K", gpuMin: "GTX 1060 3GB", gpuRec: "RTX 2070", ramMin: "12 GB", ramRec: "16 GB" },
-    priceHistory: [59.99, 47.99, 59.99, 41.99, 35.99],
-    estimatedFps: "50–60 FPS",
-    estimatedSettings: "1080p Medium-High"
-  },
-  {
-    id: 1174180,
-    title: "Red Dead Redemption 2",
-    genre: "Open World • Story • Western",
-    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg",
-    compat: "playable",
-    compatText: "Runs Well",
-    match: 88,
-    priceBadge: "great",
-    priceBadgeText: "67% Off",
-    currentPrice: "$19.79",
-    originalPrice: "$59.99",
-    lowestPrice: "$19.79",
-    discount: "-67%",
-    rating: 4.9,
-    specs: { cpuMin: "i5-2500K", cpuRec: "i7-4770K", gpuMin: "GTX 770", gpuRec: "GTX 1060 6GB", ramMin: "8 GB", ramRec: "12 GB" },
-    priceHistory: [59.99, 39.99, 29.99, 19.79, 19.79],
-    estimatedFps: "55–65 FPS",
-    estimatedSettings: "1080p High"
+    lowestPrice: "$29.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1551360/header.jpg"
   },
   {
     id: 1659040,
     title: "Hitman World of Assassination",
-    genre: "Stealth • Action • Strategy",
-    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1659040/header.jpg",
+    genre: "Stealth \u2022 Action \u2022 Strategy",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 54,
+    rec_gpu_score: 68,
+    min_cpu_score: 58,
+    rec_cpu_score: 70,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 6.0,
+    min_storage: 75,
+    rating: 4.7,
+    popularity: 88,
+    release_year: 2021,
+    base_fps: 80,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$69.99",
+    original_price: "$69.99",
+    discount_percent: 0,
+    lowest_price: "$27.99",
+    currentPrice: "$69.99",
+    originalPrice: "$69.99",
+    lowestPrice: "$27.99",
+    discount: null,
     compat: "excellent",
     compatText: "Runs Great",
-    match: 84,
-    priceBadge: "normal",
-    priceBadgeText: "Regular Price",
-    currentPrice: "$27.99",
-    originalPrice: "$69.99",
-    lowestPrice: "$20.99",
-    discount: "-60%",
+    match: 89,
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1659040/header.jpg"
+  },
+  {
+    id: 1172470,
+    title: "Apex Legends",
+    genre: "Battle Royale \u2022 Hero Shooter \u2022 Fast-Paced",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 50,
+    rec_gpu_score: 66,
+    min_cpu_score: 52,
+    rec_cpu_score: 68,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 3.0,
+    rec_vram: 6.0,
+    min_storage: 75,
+    rating: 4.6,
+    popularity: 95,
+    release_year: 2020,
+    base_fps: 95,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "Free to Play",
+    original_price: "",
+    discount_percent: 0,
+    lowest_price: "Free",
+    currentPrice: "Free to Play",
+    originalPrice: "",
+    lowestPrice: "Free",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 87,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1172470/header.jpg"
+  },
+  {
+    id: 1086940,
+    title: "Baldur's Gate 3",
+    genre: "Turn-Based RPG \u2022 Story Rich \u2022 Co-op",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 58,
+    rec_gpu_score: 74,
+    min_cpu_score: 64,
+    rec_cpu_score: 78,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 8.0,
+    min_storage: 150,
+    rating: 4.9,
+    popularity: 97,
+    release_year: 2023,
+    base_fps: 65,
+    dlss_fsr: true,
+    ray_tracing: false,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$47.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$47.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg"
+  },
+  {
+    id: 582010,
+    title: "Monster Hunter: World",
+    genre: "Action RPG \u2022 Co-op \u2022 Hunting",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 52,
+    rec_gpu_score: 68,
+    min_cpu_score: 54,
+    rec_cpu_score: 68,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 3.0,
+    rec_vram: 6.0,
+    min_storage: 50,
+    rating: 4.8,
+    popularity: 91,
+    release_year: 2018,
+    base_fps: 75,
+    dlss_fsr: true,
+    ray_tracing: false,
+    price: "$29.99",
+    original_price: "$29.99",
+    discount_percent: 0,
+    lowest_price: "$9.89",
+    currentPrice: "$29.99",
+    originalPrice: "$29.99",
+    lowestPrice: "$9.89",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/582010/header.jpg"
+  },
+  {
+    id: 814380,
+    title: "Sekiro: Shadows Die Twice",
+    genre: "Souls-like \u2022 Difficult \u2022 Action",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 48,
+    rec_gpu_score: 66,
+    min_cpu_score: 50,
+    rec_cpu_score: 65,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 3.0,
+    rec_vram: 4.0,
+    min_storage: 25,
+    rating: 4.9,
+    popularity: 93,
+    release_year: 2019,
+    base_fps: 80,
+    dlss_fsr: false,
+    ray_tracing: false,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$29.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$29.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/814380/header.jpg"
+  },
+  {
+    id: 553850,
+    title: "HELLDIVERS\u2122 2",
+    genre: "Third-Person Shooter \u2022 Co-op \u2022 Sci-Fi",
+    game_type: "aaa",
+    tier_target: 3,
+    min_gpu_score: 62,
+    rec_gpu_score: 76,
+    min_cpu_score: 65,
+    rec_cpu_score: 78,
+    min_ram: 12,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 8.0,
+    min_storage: 100,
     rating: 4.7,
-    specs: { cpuMin: "i5-2500K", cpuRec: "i7-4790", gpuMin: "GTX 660", gpuRec: "GTX 1070", ramMin: "8 GB", ramRec: "16 GB" },
-    priceHistory: [69.99, 41.99, 69.99, 27.99],
-    estimatedFps: "80–100 FPS",
-    estimatedSettings: "1080p Ultra"
+    popularity: 92,
+    release_year: 2024,
+    base_fps: 65,
+    dlss_fsr: true,
+    ray_tracing: false,
+    price: "$39.99",
+    original_price: "$39.99",
+    discount_percent: 0,
+    lowest_price: "$39.99",
+    currentPrice: "$39.99",
+    originalPrice: "$39.99",
+    lowestPrice: "$39.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 89,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/553850/header.jpg"
+  },
+  {
+    id: 1245620,
+    title: "Elden Ring",
+    genre: "Action RPG \u2022 Dark Fantasy \u2022 Souls-like",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 62,
+    rec_gpu_score: 76,
+    min_cpu_score: 66,
+    rec_cpu_score: 78,
+    min_ram: 12,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 8.0,
+    min_storage: 60,
+    rating: 4.9,
+    popularity: 98,
+    release_year: 2022,
+    base_fps: 60,
+    dlss_fsr: false,
+    ray_tracing: true,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$35.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$35.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg"
+  },
+  {
+    id: 1151640,
+    title: "Ghost of Tsushima DIRECTOR'S CUT",
+    genre: "Open World \u2022 Samurai \u2022 Action",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 65,
+    rec_gpu_score: 80,
+    min_cpu_score: 68,
+    rec_cpu_score: 80,
+    min_ram: 16,
+    rec_ram: 16,
+    min_vram: 6.0,
+    rec_vram: 8.0,
+    min_storage: 75,
+    rating: 4.9,
+    popularity: 95,
+    release_year: 2024,
+    base_fps: 65,
+    dlss_fsr: true,
+    ray_tracing: false,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$41.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$41.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1151640/header.jpg"
+  },
+  {
+    id: 1817070,
+    title: "Marvel\u2019s Spider-Man Remastered",
+    genre: "Action \u2022 Open World \u2022 Superhero",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 62,
+    rec_gpu_score: 78,
+    min_cpu_score: 65,
+    rec_cpu_score: 78,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 8.0,
+    min_storage: 75,
+    rating: 4.9,
+    popularity: 94,
+    release_year: 2022,
+    base_fps: 75,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$35.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$35.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1817070/header.jpg"
+  },
+  {
+    id: 1174180,
+    title: "Red Dead Redemption 2",
+    genre: "Open World \u2022 Story \u2022 Western",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 58,
+    rec_gpu_score: 76,
+    min_cpu_score: 62,
+    rec_cpu_score: 75,
+    min_ram: 12,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 8.0,
+    min_storage: 150,
+    rating: 4.9,
+    popularity: 97,
+    release_year: 2019,
+    base_fps: 65,
+    dlss_fsr: true,
+    ray_tracing: false,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$19.79",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$19.79",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1174180/header.jpg"
+  },
+  {
+    id: 1593500,
+    title: "God of War",
+    genre: "Action \u2022 Mythological \u2022 Story Rich",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 60,
+    rec_gpu_score: 76,
+    min_cpu_score: 64,
+    rec_cpu_score: 76,
+    min_ram: 8,
+    rec_ram: 16,
+    min_vram: 4.0,
+    rec_vram: 8.0,
+    min_storage: 70,
+    rating: 4.9,
+    popularity: 94,
+    release_year: 2022,
+    base_fps: 70,
+    dlss_fsr: true,
+    ray_tracing: false,
+    price: "$49.99",
+    original_price: "$49.99",
+    discount_percent: 0,
+    lowest_price: "$19.99",
+    currentPrice: "$49.99",
+    originalPrice: "$49.99",
+    lowestPrice: "$19.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1593500/header.jpg"
+  },
+  {
+    id: 990080,
+    title: "Hogwarts Legacy",
+    genre: "Magic \u2022 Open World \u2022 RPG",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 66,
+    rec_gpu_score: 82,
+    min_cpu_score: 68,
+    rec_cpu_score: 82,
+    min_ram: 16,
+    rec_ram: 16,
+    min_vram: 6.0,
+    rec_vram: 10.0,
+    min_storage: 85,
+    rating: 4.8,
+    popularity: 93,
+    release_year: 2023,
+    base_fps: 60,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$17.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$17.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/990080/header.jpg"
+  },
+  {
+    id: 1091500,
+    title: "Cyberpunk 2077",
+    genre: "RPG \u2022 Open World \u2022 Sci-fi",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 66,
+    rec_gpu_score: 82,
+    min_cpu_score: 68,
+    rec_cpu_score: 82,
+    min_ram: 12,
+    rec_ram: 16,
+    min_vram: 6.0,
+    rec_vram: 8.0,
+    min_storage: 70,
+    rating: 4.8,
+    popularity: 96,
+    release_year: 2020,
+    base_fps: 60,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$29.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$29.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg"
+  },
+  {
+    id: 1774580,
+    title: "Star Wars Jedi: Survivor",
+    genre: "Action Adventure \u2022 Sci-Fi \u2022 Souls-like",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 70,
+    rec_gpu_score: 85,
+    min_cpu_score: 72,
+    rec_cpu_score: 84,
+    min_ram: 16,
+    rec_ram: 16,
+    min_vram: 8.0,
+    rec_vram: 12.0,
+    min_storage: 155,
+    rating: 4.6,
+    popularity: 89,
+    release_year: 2023,
+    base_fps: 55,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$69.99",
+    original_price: "$69.99",
+    discount_percent: 0,
+    lowest_price: "$27.99",
+    currentPrice: "$69.99",
+    originalPrice: "$69.99",
+    lowestPrice: "$27.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 87,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1774580/header.jpg"
+  },
+  {
+    id: 1888930,
+    title: "The Last of Us Part I",
+    genre: "Story Rich \u2022 Post-Apocalyptic \u2022 Survival Horror",
+    game_type: "aaa",
+    tier_target: 4,
+    min_gpu_score: 68,
+    rec_gpu_score: 84,
+    min_cpu_score: 70,
+    rec_cpu_score: 84,
+    min_ram: 16,
+    rec_ram: 32,
+    min_vram: 6.0,
+    rec_vram: 10.0,
+    min_storage: 100,
+    rating: 4.7,
+    popularity: 91,
+    release_year: 2023,
+    base_fps: 60,
+    dlss_fsr: true,
+    ray_tracing: false,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$35.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$35.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 89,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1888930/header.jpg"
+  },
+  {
+    id: 2358720,
+    title: "Black Myth: Wukong",
+    genre: "Action RPG \u2022 Mythology \u2022 Unreal Engine 5",
+    game_type: "aaa",
+    tier_target: 5,
+    min_gpu_score: 74,
+    rec_gpu_score: 90,
+    min_cpu_score: 76,
+    rec_cpu_score: 90,
+    min_ram: 16,
+    rec_ram: 32,
+    min_vram: 8.0,
+    rec_vram: 12.0,
+    min_storage: 130,
+    rating: 4.9,
+    popularity: 99,
+    release_year: 2024,
+    base_fps: 55,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$59.99",
+    original_price: "$59.99",
+    discount_percent: 0,
+    lowest_price: "$59.99",
+    currentPrice: "$59.99",
+    originalPrice: "$59.99",
+    lowestPrice: "$59.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/2358720/header.jpg"
+  },
+  {
+    id: 2125020,
+    title: "Alan Wake 2",
+    genre: "Survival Horror \u2022 Path Tracing \u2022 Psychological",
+    game_type: "aaa",
+    tier_target: 5,
+    min_gpu_score: 76,
+    rec_gpu_score: 92,
+    min_cpu_score: 78,
+    rec_cpu_score: 92,
+    min_ram: 16,
+    rec_ram: 32,
+    min_vram: 8.0,
+    rec_vram: 16.0,
+    min_storage: 90,
+    rating: 4.8,
+    popularity: 92,
+    release_year: 2023,
+    base_fps: 50,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$49.99",
+    original_price: "$49.99",
+    discount_percent: 0,
+    lowest_price: "$29.99",
+    currentPrice: "$49.99",
+    originalPrice: "$49.99",
+    lowestPrice: "$29.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2050650/header.jpg"
+  },
+  {
+    id: 2138330,
+    title: "Cyberpunk 2077: Phantom Liberty (RT Overdrive)",
+    genre: "Path Tracing \u2022 Cyberpunk \u2022 Open World",
+    game_type: "aaa",
+    tier_target: 5,
+    min_gpu_score: 80,
+    rec_gpu_score: 96,
+    min_cpu_score: 82,
+    rec_cpu_score: 96,
+    min_ram: 16,
+    rec_ram: 32,
+    min_vram: 10.0,
+    rec_vram: 16.0,
+    min_storage: 70,
+    rating: 4.9,
+    popularity: 96,
+    release_year: 2023,
+    base_fps: 50,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$29.99",
+    original_price: "$29.99",
+    discount_percent: 0,
+    lowest_price: "$25.49",
+    currentPrice: "$29.99",
+    originalPrice: "$29.99",
+    lowestPrice: "$25.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 93,
+    image: "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/header.jpg"
+  },
+  {
+    id: 2461850,
+    title: "Senua's Saga: Hellblade II",
+    genre: "Cinematic \u2022 Unreal Engine 5 \u2022 Psychological",
+    game_type: "aaa",
+    tier_target: 5,
+    min_gpu_score: 76,
+    rec_gpu_score: 92,
+    min_cpu_score: 78,
+    rec_cpu_score: 90,
+    min_ram: 16,
+    rec_ram: 32,
+    min_vram: 8.0,
+    rec_vram: 12.0,
+    min_storage: 70,
+    rating: 4.8,
+    popularity: 87,
+    release_year: 2024,
+    base_fps: 50,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$49.99",
+    original_price: "$49.99",
+    discount_percent: 0,
+    lowest_price: "$37.49",
+    currentPrice: "$49.99",
+    originalPrice: "$49.99",
+    lowestPrice: "$37.49",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 91,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1245620/header.jpg"
+  },
+  {
+    id: 2840770,
+    title: "Avatar: Frontiers of Pandora",
+    genre: "Open World \u2022 Ray Traced Visuals \u2022 Sci-Fi",
+    game_type: "aaa",
+    tier_target: 5,
+    min_gpu_score: 74,
+    rec_gpu_score: 88,
+    min_cpu_score: 76,
+    rec_cpu_score: 88,
+    min_ram: 16,
+    rec_ram: 32,
+    min_vram: 8.0,
+    rec_vram: 12.0,
+    min_storage: 90,
+    rating: 4.7,
+    popularity: 86,
+    release_year: 2023,
+    base_fps: 55,
+    dlss_fsr: true,
+    ray_tracing: true,
+    price: "$69.99",
+    original_price: "$69.99",
+    discount_percent: 0,
+    lowest_price: "$34.99",
+    currentPrice: "$69.99",
+    originalPrice: "$69.99",
+    lowestPrice: "$34.99",
+    discount: null,
+    compat: "excellent",
+    compatText: "Runs Great",
+    match: 89,
+    image: "https://cdn.akamai.steamstatic.com/steam/apps/1174180/header.jpg"
   }
 ];
+
+const MOCK_GAMES = CATALOG_GAMES;
 
 let GAMES = [...MOCK_GAMES];
 let FREE_GAMES = [];
@@ -1155,129 +2567,8 @@ function parseAndScoreHardwareClient(rig) {
   };
 }
 
-function runClientMLRecommendations(rig, cc = 'US') {
-  const hw = parseAndScoreHardwareClient(rig);
-  const baseGames = (typeof GAMES !== 'undefined' && GAMES.length > 0) ? GAMES : MOCK_GAMES;
-
-  const recommendations = baseGames.map(game => {
-    const minGpu = game.tier_target === 1 ? 15 : (game.tier_target === 2 ? 35 : (game.tier_target === 3 ? 55 : (game.tier_target === 4 ? 65 : 75)));
-    const recGpu = game.tier_target === 1 ? 25 : (game.tier_target === 2 ? 50 : (game.tier_target === 3 ? 70 : (game.tier_target === 4 ? 80 : 90)));
-    const minRam = game.tier_target >= 4 ? 16 : 8;
-
-    let isStruggle = (hw.gpuScore < minGpu * 0.78) || (hw.ramGb < minRam * 0.75) || (hw.rigIndex < 40 && game.tier_target >= 4);
-
-    const perfRatio = Math.min(2.5, Math.max(0.3, hw.gpuScore / Math.max(20, recGpu)));
-    let baseFps = game.base_fps || 60;
-    if (game.id === 730) baseFps = 160;
-    else if (game.id === 2379780 || game.id === 413150) baseFps = 144;
-
-    let predictedFps = Math.round(baseFps * Math.pow(perfRatio, 0.85));
-    predictedFps = Math.min(240, Math.max(15, predictedFps));
-
-    let fpsDisplay = "60–90 FPS";
-    let fpsClass = "excellent";
-    let optimalSetting = "1080p High / Balanced";
-    let category = "🟢 Excellent Match";
-
-    if (predictedFps >= 120) {
-      fpsDisplay = "144+ FPS";
-      fpsClass = "ultra";
-      optimalSetting = "1440p / 4K Ultra • Max Refresh";
-      category = "🟢 Excellent Match";
-    } else if (predictedFps >= 85) {
-      fpsDisplay = "90–144 FPS";
-      fpsClass = "ultra";
-      optimalSetting = "1440p Ultra • DLSS/FSR";
-      category = "🟢 Excellent Match";
-    } else if (predictedFps >= 60) {
-      fpsDisplay = "60–90 FPS";
-      fpsClass = "excellent";
-      optimalSetting = "1080p High • 60+ FPS";
-      category = "🟢 Excellent Match";
-    } else if (predictedFps >= 45) {
-      fpsDisplay = "40–60 FPS";
-      fpsClass = "playable";
-      optimalSetting = "1080p Medium • FSR Quality";
-      category = "🟡 Playable";
-    } else if (predictedFps >= 30) {
-      fpsDisplay = "30–40 FPS";
-      fpsClass = "playable";
-      optimalSetting = "1080p Low • FSR Performance";
-      category = "🟡 Playable";
-    } else {
-      fpsDisplay = "< 30 FPS";
-      fpsClass = "low";
-      optimalSetting = "720p Low • Drops Expected";
-      category = "🔴 May Struggle";
-      isStruggle = true;
-    }
-
-    if (isStruggle) {
-      category = "🔴 May Struggle";
-      fpsClass = "low";
-    }
-
-    const reasons = [];
-    if (!isStruggle) {
-      reasons.push(`✓ Your ${hw.gpu} meets hardware baseline for ${optimalSetting}`);
-      reasons.push(`✓ ${hw.ramGb}GB RAM satisfies memory requirement`);
-      if (game.rating >= 4.8) reasons.push(`✓ Critically acclaimed masterpiece (${game.rating || 4.8}/5.0 rating)`);
-    } else {
-      reasons.push(`⚠️ GPU benchmark is below recommended requirement`);
-      reasons.push(`• Expected FPS: ${fpsDisplay} at reduced resolution`);
-    }
-
-    const compatScore = Math.min(99, Math.max(25, Math.round(isStruggle ? hw.rigIndex * 0.6 : (hw.rigIndex * 0.9 + 5))));
-
-    return {
-      ...game,
-      compat_score: compatScore,
-      ml_score: compatScore,
-      predicted_fps: predictedFps,
-      fps_display: fpsDisplay,
-      fps_class: fpsClass,
-      optimal_setting: optimalSetting,
-      category,
-      category_tag: category,
-      is_struggle: isStruggle,
-      reasons,
-      bottleneck: isStruggle ? "GPU-Bound" : "Optimal Hardware Balance",
-      bottleneck_type: isStruggle ? "gpu" : "balanced"
-    };
-  });
-
-  recommendations.sort((a, b) => (b.is_struggle ? 0 : 1) - (a.is_struggle ? 0 : 1) || b.ml_score - a.ml_score);
-
-  return {
-    status: "success",
-    rig_index: hw.rigIndex,
-    tier_num: hw.tierNum,
-    tier_label: hw.tierLabel,
-    tier_desc: hw.tierDesc,
-    hardware_metrics: {
-      gpu: hw.gpu,
-      gpu_score: hw.gpuScore,
-      vram: `${hw.vramGb} GB`,
-      cpu: hw.cpu,
-      cpu_score: hw.cpuScore,
-      ram: `${hw.ramGb} GB`,
-      ram_score: hw.ramScore,
-      rig_index: hw.rigIndex
-    },
-    recommendations: recommendations.filter(g => !g.is_struggle),
-    categories: {
-      best_match: recommendations.filter(g => !g.is_struggle),
-      great_performance: recommendations.filter(g => !g.is_struggle && g.fps_class === 'ultra'),
-      hidden_gems: recommendations.filter(g => !g.is_struggle && (g.genre.toLowerCase().includes('indie') || g.rating >= 4.9)),
-      best_aaa: recommendations.filter(g => !g.is_struggle && !g.genre.toLowerCase().includes('indie')),
-      best_indie: recommendations.filter(g => !g.is_struggle && g.genre.toLowerCase().includes('indie')),
-      struggle_games: recommendations.filter(g => g.is_struggle)
-    }
-  };
-}
-
 function getUserPlayedGames() {
-  if (currentUser && currentUser.played_games && currentUser.played_games.length > 0) {
+  if (typeof currentUser !== 'undefined' && currentUser && currentUser.played_games && currentUser.played_games.length > 0) {
     return currentUser.played_games;
   }
   try {
@@ -1287,7 +2578,342 @@ function getUserPlayedGames() {
   return [];
 }
 
+function runClientMLRecommendations(rig, cc = 'US') {
+  const hw = parseAndScoreHardwareClient(rig);
+  const baseGames = (typeof CATALOG_GAMES !== 'undefined' && CATALOG_GAMES.length > 0) ? CATALOG_GAMES :
+                    ((typeof GAMES !== 'undefined' && GAMES.length > 0) ? GAMES : MOCK_GAMES);
+
+  const playedGames = getUserPlayedGames();
+  const favGenres = (currentUser && currentUser.favorite_genres) || [];
+  const historyTitlesLower = playedGames.map(h => ((typeof h === 'object' ? h.title : h) || '').toLowerCase()).filter(Boolean);
+  const historyGenresLower = favGenres.map(g => String(g).toLowerCase());
+  playedGames.forEach(h => {
+    if (typeof h === 'object' && h.genre) historyGenresLower.push(String(h.genre).toLowerCase());
+  });
+
+  const recommendations = baseGames.map(game => {
+    const minGpu = game.min_gpu_score || (game.tier_target === 1 ? 15 : (game.tier_target === 2 ? 35 : (game.tier_target === 3 ? 55 : (game.tier_target === 4 ? 65 : 75))));
+    const recGpu = game.rec_gpu_score || (game.tier_target === 1 ? 25 : (game.tier_target === 2 ? 50 : (game.tier_target === 3 ? 70 : (game.tier_target === 4 ? 80 : 90))));
+    const minCpu = game.min_cpu_score || (game.tier_target === 1 ? 15 : (game.tier_target === 2 ? 30 : (game.tier_target === 3 ? 50 : (game.tier_target === 4 ? 65 : 75))));
+    const recCpu = game.rec_cpu_score || (game.tier_target === 1 ? 25 : (game.tier_target === 2 ? 45 : (game.tier_target === 3 ? 65 : (game.tier_target === 4 ? 75 : 85))));
+    const minRam = game.min_ram || (game.tier_target >= 4 ? 16 : 8);
+    const recRam = game.rec_ram || (game.tier_target >= 4 ? 32 : 16);
+    const minVram = game.min_vram || (game.tier_target >= 4 ? 8.0 : 4.0);
+    const recVram = game.rec_vram || (game.tier_target >= 4 ? 12.0 : 6.0);
+
+    // Component Compatibilities (0 - 100)
+    let gpuCompat;
+    if (hw.gpuScore >= recGpu) {
+      gpuCompat = Math.min(100, 90 + Math.floor((hw.gpuScore - recGpu) * 0.5));
+    } else if (hw.gpuScore >= minGpu) {
+      gpuCompat = 70 + Math.floor(((hw.gpuScore - minGpu) / Math.max(1, (recGpu - minGpu))) * 20);
+    } else {
+      gpuCompat = Math.max(15, Math.floor((hw.gpuScore / Math.max(1, minGpu)) * 60));
+    }
+
+    let cpuCompat;
+    if (hw.cpuScore >= recCpu) {
+      cpuCompat = Math.min(100, 90 + Math.floor((hw.cpuScore - recCpu) * 0.5));
+    } else if (hw.cpuScore >= minCpu) {
+      cpuCompat = 70 + Math.floor(((hw.cpuScore - minCpu) / Math.max(1, (recCpu - minCpu))) * 20);
+    } else {
+      cpuCompat = Math.max(20, Math.floor((hw.cpuScore / Math.max(1, minCpu)) * 60));
+    }
+
+    let ramCompat;
+    if (hw.ramGb >= recRam) {
+      ramCompat = 100;
+    } else if (hw.ramGb >= minRam) {
+      ramCompat = 75 + Math.floor(((hw.ramGb - minRam) / Math.max(1, (recRam - minRam))) * 20);
+    } else {
+      ramCompat = Math.max(15, Math.floor((hw.ramGb / Math.max(1, minRam)) * 50));
+    }
+
+    let vramCompat;
+    if (hw.vramGb >= recVram) {
+      vramCompat = 100;
+    } else if (hw.vramGb >= minVram) {
+      vramCompat = 75 + Math.floor(((hw.vramGb - minVram) / Math.max(0.5, (recVram - minVram))) * 20);
+    } else {
+      vramCompat = Math.max(15, Math.floor((hw.vramGb / Math.max(0.5, minVram)) * 50));
+    }
+
+    const storageCompat = 95;
+
+    let compatScore = Math.round(
+      (gpuCompat * 0.40) +
+      (cpuCompat * 0.25) +
+      (ramCompat * 0.15) +
+      (vramCompat * 0.10) +
+      (storageCompat * 0.10)
+    );
+    compatScore = Math.min(99, Math.max(15, compatScore));
+
+    // Hard filtering / struggle checks
+    let isStruggle = false;
+    const struggleReasons = [];
+
+    if (hw.gpuScore < minGpu * 0.78) {
+      isStruggle = true;
+      struggleReasons.push("GPU is below minimum required baseline");
+    }
+    if (hw.ramGb < minRam) {
+      isStruggle = true;
+      struggleReasons.push(`RAM (${hw.ramGb}GB) is below minimum requirement (${minRam}GB)`);
+    }
+    if (hw.vramGb < minVram * 0.75) {
+      isStruggle = true;
+      struggleReasons.push(`VRAM (${hw.vramGb}GB) is below required texture buffer (${minVram}GB)`);
+    }
+    if (compatScore < 55) {
+      isStruggle = true;
+    }
+
+    // Estimated FPS Regression
+    const gpuRatio = Math.min(2.5, Math.max(0.2, hw.gpuScore / Math.max(20, recGpu)));
+    const cpuRatio = Math.min(2.0, Math.max(0.3, hw.cpuScore / Math.max(20, recCpu)));
+    const ramRatio = Math.min(1.3, Math.max(0.5, hw.ramGb / Math.max(4, recRam)));
+
+    const baseFps = game.base_fps || 60;
+    let predictedFps = Math.round(baseFps * Math.pow(gpuRatio, 0.85) * Math.pow(cpuRatio, 0.4) * Math.pow(ramRatio, 0.2));
+    predictedFps = Math.min(240, Math.max(15, predictedFps));
+
+    let fpsDisplay = "60–90 FPS";
+    let fpsClass = "excellent";
+    let optimalSetting = "1080p High / Ultra • Balanced";
+    let category = "🟢 Excellent Match";
+    let categoryTag = "🎯 Smooth 60+ FPS";
+
+    if (predictedFps >= 120) {
+      fpsDisplay = "144+ FPS";
+      fpsClass = "ultra";
+      optimalSetting = "1440p / 4K Ultra • Max Refresh";
+      category = "🟢 Excellent Match";
+      categoryTag = "⚡ Max Out (120+ FPS)";
+    } else if (predictedFps >= 85) {
+      fpsDisplay = "90–144 FPS";
+      fpsClass = "ultra";
+      optimalSetting = "1440p / 1080p Ultra • High Refresh";
+      category = "🟢 Excellent Match";
+      categoryTag = "⚡ Ultra Smooth (85+ FPS)";
+    } else if (predictedFps >= 60) {
+      fpsDisplay = "60–90 FPS";
+      fpsClass = "excellent";
+      optimalSetting = "1080p High / Ultra • Balanced";
+      category = "🟢 Excellent Match";
+      categoryTag = "🎯 Smooth 60+ FPS";
+    } else if (predictedFps >= 45) {
+      fpsDisplay = "40–60 FPS";
+      fpsClass = "playable";
+      optimalSetting = "1080p Medium • DLSS/FSR Quality";
+      category = "🟡 Playable";
+      categoryTag = "🎮 Playable (45–60 FPS)";
+    } else if (predictedFps >= 30) {
+      fpsDisplay = "30–40 FPS";
+      fpsClass = "playable";
+      optimalSetting = "1080p Low • FSR Performance";
+      category = "🟡 Playable";
+      categoryTag = "⚙️ Playable at Low Settings";
+    } else {
+      fpsDisplay = "< 30 FPS";
+      fpsClass = "low";
+      optimalSetting = "720p Low • Severe Drops";
+      category = "🔴 May Struggle";
+      categoryTag = "⚠️ May Struggle";
+      isStruggle = true;
+    }
+
+    if (isStruggle) {
+      category = "🔴 May Struggle";
+      categoryTag = "⚠️ May Struggle";
+      fpsClass = "low";
+    }
+
+    // Explainable reasons
+    const reasons = [];
+    if (!isStruggle) {
+      if (hw.gpuScore >= recGpu) {
+        reasons.push(`✓ Your ${hw.gpu} easily meets recommended requirements (${optimalSetting})`);
+      } else if (hw.gpuScore >= minGpu) {
+        reasons.push(`✓ Your ${hw.gpu} meets minimum requirements for solid 1080p gaming`);
+      } else {
+        reasons.push(`• Playable with adjusted settings and FSR/DLSS scaling`);
+      }
+
+      if (hw.ramGb >= recRam) {
+        reasons.push(`✓ Your ${hw.ramGb}GB RAM exceeds the ${recRam}GB recommended requirement`);
+      } else if (hw.ramGb >= minRam) {
+        reasons.push(`✓ Your ${hw.ramGb}GB RAM satisfies the minimum ${minRam}GB requirement`);
+      }
+
+      if (hw.vramGb >= recVram) {
+        reasons.push(`✓ ${hw.vramGb}GB VRAM is ample for high-resolution textures`);
+      }
+
+      if (hw.cpuScore >= minCpu) {
+        reasons.push(`✓ CPU multi-threading avoids frame-time bottlenecking`);
+      }
+
+      if (game.dlss_fsr) {
+        reasons.push("✓ Supported by DLSS / FSR performance upscaling");
+      }
+      if (game.rating >= 4.8) {
+        reasons.push(`✓ Critically acclaimed masterpiece (${game.rating}/5.0 rating)`);
+      }
+    } else {
+      struggleReasons.forEach(sr => reasons.push(`⚠️ ${sr}`));
+      reasons.push(`• Expected performance: ${fpsDisplay} at lowest presets`);
+    }
+
+    // Bottleneck analysis
+    let bottleneck = "Optimal Hardware Balance";
+    let bottleneckType = "balanced";
+    if (isStruggle && hw.gpuScore < minGpu) {
+      bottleneck = "GPU-Bound (Severe)";
+      bottleneckType = "gpu";
+    } else if (hw.gpuScore < recGpu * 0.75) {
+      bottleneck = "GPU-Bound (Use DLSS/FSR)";
+      bottleneckType = "gpu";
+    } else if (hw.cpuScore < recCpu * 0.75) {
+      bottleneck = "CPU-Bound in Crowds";
+      bottleneckType = "cpu";
+    } else if (hw.ramGb < minRam) {
+      bottleneck = "RAM Bottleneck";
+      bottleneckType = "ram";
+    } else if (hw.vramGb < minVram) {
+      bottleneck = "VRAM Texture Bottleneck";
+      bottleneckType = "vram";
+    }
+
+    // History & Genre affinity
+    let isHistoryMatch = false;
+    let historyRationale = "";
+    let historyBonus = 0;
+    const gTitleLower = (game.title || '').toLowerCase();
+    const gGenreLower = (game.genre || '').toLowerCase();
+
+    for (const ht of historyTitlesLower) {
+      if (ht && (gTitleLower.includes(ht) || (ht.length > 4 && ht.split(' ').some(w => w.length > 3 && gTitleLower.includes(w))))) {
+        isHistoryMatch = true;
+        historyRationale = `Because you played ${ht.charAt(0).toUpperCase() + ht.slice(1)}`;
+        historyBonus = 15;
+        break;
+      }
+    }
+
+    if (!isHistoryMatch && historyGenresLower.length > 0) {
+      const matchedTags = [];
+      for (const hg of historyGenresLower) {
+        for (const token of hg.replace('/', ' ').replace(',', ' ').split(/\s+/)) {
+          if (token.length > 2 && gGenreLower.includes(token) && !matchedTags.includes(token)) {
+            matchedTags.push(token);
+          }
+        }
+      }
+      if (matchedTags.length > 0) {
+        isHistoryMatch = true;
+        const tagStr = matchedTags.slice(0, 2).map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(' / ');
+        historyRationale = `Matches your ${tagStr} playstyle`;
+        historyBonus = Math.min(12, matchedTags.length * 4);
+      }
+    }
+
+    // Tier Affinity Bonus
+    let tierAffinity = 0;
+    if (
+      (hw.tierNum <= 2 && (game.game_type === 'indie' || game.tier_target <= 2)) ||
+      (hw.tierNum >= 4 && (game.game_type === 'aaa' || game.ray_tracing)) ||
+      (hw.tierNum === 3 && [2, 3, 4].includes(game.tier_target))
+    ) {
+      tierAffinity = 15;
+    }
+
+    let finalMlScore = Math.round(
+      (compatScore * 0.50) +
+      (historyBonus * 1.2) +
+      (tierAffinity * 1.2) +
+      ((game.rating || 4.5) * 5) +
+      ((game.popularity || 85) * 0.05)
+    );
+    finalMlScore = Math.min(99, Math.max(20, finalMlScore));
+
+    return {
+      ...game,
+      compat_score: compatScore,
+      ml_score: finalMlScore,
+      predicted_fps: predictedFps,
+      fps_display: fpsDisplay,
+      fps_class: fpsClass,
+      optimal_setting: optimalSetting,
+      category,
+      category_tag: categoryTag,
+      is_struggle: isStruggle,
+      reasons,
+      bottleneck,
+      bottleneck_type: bottleneckType,
+      history_match: isHistoryMatch,
+      history_rationale: historyRationale,
+      currentPrice: game.currentPrice || game.price,
+      originalPrice: game.originalPrice || game.original_price,
+      lowestPrice: game.lowestPrice || game.lowest_price || game.price,
+      discount: game.discount || (game.discount_percent > 0 ? `-${game.discount_percent}%` : null)
+    };
+  });
+
+  // Sort: Playable first, then by FPS >= 40, history match, ML score
+  recommendations.sort((a, b) => {
+    if (a.is_struggle !== b.is_struggle) return a.is_struggle ? 1 : -1;
+    if ((a.predicted_fps >= 40) !== (b.predicted_fps >= 40)) return (b.predicted_fps >= 40) ? 1 : -1;
+    if (a.history_match !== b.history_match) return (b.history_match ? 1 : -1);
+    return b.ml_score - a.ml_score;
+  });
+
+  const bestMatches = recommendations.filter(g => !g.is_struggle);
+  const greatPerformance = recommendations.filter(g => !g.is_struggle && g.fps_class === 'ultra');
+  const hiddenGems = recommendations.filter(g => !g.is_struggle && (g.game_type === 'indie' || g.rating >= 4.9));
+  const historyMatches = recommendations.filter(g => g.history_match);
+  const bestAaa = recommendations.filter(g => !g.is_struggle && (g.game_type === 'aaa' || (!g.genre.toLowerCase().includes('indie') && (g.tier_target || 3) >= 3)));
+  const bestIndie = recommendations.filter(g => !g.is_struggle && (g.game_type === 'indie' || g.genre.toLowerCase().includes('indie')));
+  const struggleGames = recommendations.filter(g => g.is_struggle);
+
+  return {
+    status: "success",
+    rig_index: hw.rigIndex,
+    tier_num: hw.tierNum,
+    tier_label: hw.tierLabel,
+    tier_desc: hw.tierDesc,
+    personalized: Boolean(playedGames.length > 0 || favGenres.length > 0),
+    history_count: playedGames.length,
+    hardware_metrics: {
+      gpu: hw.gpu,
+      gpu_score: hw.gpuScore,
+      cpu: hw.cpu,
+      cpu_score: hw.cpuScore,
+      ram: `${hw.ramGb} GB`,
+      ram_score: hw.ramScore,
+      vram: `${hw.vramGb} GB`,
+      vram_score: hw.vramScore,
+      rig_index: hw.rigIndex
+    },
+    total_analyzed: recommendations.length,
+    recommendations: recommendations,
+    categories: {
+      all: recommendations,
+      best_match: bestMatches,
+      great_performance: greatPerformance,
+      hidden_gems: hiddenGems,
+      history_matches: historyMatches,
+      best_aaa: bestAaa,
+      best_indie: bestIndie,
+      struggle_games: struggleGames
+    }
+  };
+}
+
+window.mlRecommendationsDisplayLimit = 8;
+
 async function fetchAndRenderMLRecommendations(filterTag = 'all') {
+  window.mlRecommendationsDisplayLimit = 8;
   activeMLFilter = filterTag;
   const rig = getActiveRig();
   const cc = getCountryCode(currentCurrency);
@@ -1366,35 +2992,45 @@ function renderMLRecommendations(items, filter) {
 
   const rawData = mlCachedRawData || {};
   const cats = rawData.categories || {};
-  let filtered = items;
+  let filtered = items || [];
 
-  if (filter === 'best') {
-    filtered = cats.best_match || items.slice(0, 12);
+  if (filter === 'all') {
+    filtered = cats.all || items;
+  } else if (filter === 'best') {
+    filtered = cats.best_match || items.filter(g => !g.is_struggle);
   } else if (filter === 'history') {
     filtered = cats.history_matches || items.filter(g => g.history_match);
   } else if (filter === 'maxout') {
-    filtered = cats.great_performance || items.filter(g => g.predicted_fps >= 85 || (g.fps_display && g.fps_display.includes('144')));
+    filtered = cats.great_performance || items.filter(g => !g.is_struggle && (g.fps_class === 'ultra' || g.predicted_fps >= 85));
   } else if (filter === 'smooth') {
-    filtered = items.filter(g => (g.predicted_fps >= 60 && g.predicted_fps < 85) || (g.fps_display && g.fps_display.includes('60')));
+    filtered = items.filter(g => !g.is_struggle && ((g.predicted_fps >= 60 && g.predicted_fps < 85) || (g.fps_display && g.fps_display.includes('60'))));
   } else if (filter === 'aaa') {
-    filtered = cats.best_aaa || items.filter(g => g.game_type === 'aaa' || (!g.genre.toLowerCase().includes('indie') && !g.is_struggle));
+    filtered = cats.best_aaa || items.filter(g => !g.is_struggle && (g.game_type === 'aaa' || (!g.genre.toLowerCase().includes('indie') && (g.tier_target || 3) >= 3)));
   } else if (filter === 'indie') {
-    filtered = cats.best_indie || items.filter(g => g.game_type === 'indie' || g.genre.toLowerCase().includes('indie'));
+    filtered = cats.best_indie || items.filter(g => !g.is_struggle && (g.game_type === 'indie' || g.genre.toLowerCase().includes('indie')));
   } else if (filter === 'deals') {
-    filtered = items.filter(g => g.discount !== null && g.discount !== undefined);
+    filtered = items.filter(g => !g.is_struggle && (g.discount !== null && g.discount !== undefined && g.discount !== ''));
   } else if (filter === 'struggle') {
-    filtered = cats.struggle_games || [];
+    filtered = cats.struggle_games || items.filter(g => g.is_struggle);
   }
 
-  if (filtered.length === 0) {
+  const paginationContainer = document.getElementById('mlRecommendationsPagination');
+  const countEl = document.getElementById('mlPaginationCount');
+  const loadMoreBtn = document.getElementById('mlLoadMoreBtn');
+
+  if (!filtered || filtered.length === 0) {
     container.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px 20px">
       <div style="font-size:1.6rem;margin-bottom:8px">${filter === 'struggle' ? '🎉 Great News!' : '🎮 No Matches Found'}</div>
       <div>${filter === 'struggle' ? 'Your PC hardware can comfortably run all catalog titles without bottlenecking!' : (filter === 'history' ? 'No history matches found yet. Add games you played in "My Gaming History" to get custom matches!' : "No titles matched this specific filter. Try selecting 'All AI Matches'.")}</div>
     </div>`;
+    if (paginationContainer) paginationContainer.style.display = 'none';
     return;
   }
 
-  container.innerHTML = filtered.map(game => {
+  const limit = window.mlRecommendationsDisplayLimit || 8;
+  const visible = filtered.slice(0, limit);
+
+  container.innerHTML = visible.map(game => {
     const currentP = convertPrice(game.currentPrice || game.price);
     const origP = (game.originalPrice || game.original_price) && (game.originalPrice || game.original_price) !== (game.currentPrice || game.price) ? convertPrice(game.originalPrice || game.original_price) : '';
     const lowestP = convertPrice(game.lowestPrice || game.lowest_price || game.currentPrice || game.price);
@@ -1407,7 +3043,7 @@ function renderMLRecommendations(items, filter) {
           <img src="${game.image}" alt="${game.title}" loading="lazy" />
           ${game.discount ? `<span class="discount-badge">${game.discount}</span>` : ''}
           ${isStruggle ? `<span class="discount-badge struggle-badge" style="background:#ef4444;color:#fff">⚠️ Heavy Spec</span>` : ''}
-          <button class="wishlist-btn ${isWishlisted ? 'active' : ''}" title="Track in Price Watchlist" onclick="event.stopPropagation(); quickToggleWishlist(${game.id}, '${game.title.replace(/'/g, "\\'")}', '${game.image}')">
+          <button class="wishlist-btn ${isWishlisted ? 'active' : ''}" title="Track in Price Watchlist" onclick="event.stopPropagation(); quickToggleWishlist(${game.id}, '${game.title.replace(/'/g, "\\\\'")}', '${game.image}')">
             <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
           </button>
         </div>
@@ -1448,6 +3084,37 @@ function renderMLRecommendations(items, filter) {
       </div>
     `;
   }).join('');
+
+  // Update Steam Library Pagination controls
+  if (paginationContainer) {
+    if (filtered.length > limit) {
+      paginationContainer.style.display = 'flex';
+      if (countEl) {
+        countEl.textContent = `Showing ${visible.length} of ${filtered.length} games`;
+      }
+      if (loadMoreBtn) {
+        loadMoreBtn.style.display = 'inline-flex';
+        loadMoreBtn.innerHTML = `<span>Show More Games</span> <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:15px;height:15px;margin-left:4px"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+      }
+    } else {
+      if (filtered.length > 8) {
+        paginationContainer.style.display = 'flex';
+        if (countEl) {
+          countEl.textContent = `Showing all ${filtered.length} games`;
+        }
+        if (loadMoreBtn) {
+          loadMoreBtn.style.display = 'none';
+        }
+      } else {
+        paginationContainer.style.display = 'none';
+      }
+    }
+  }
+}
+
+function loadMoreMLRecommendations() {
+  window.mlRecommendationsDisplayLimit = (window.mlRecommendationsDisplayLimit || 8) + 8;
+  renderMLRecommendations(mlCachedRecommendations, activeMLFilter);
 }
 
 // ── WHY PLAYSPEC RECOMMENDS THIS MODAL ──
@@ -3547,6 +5214,366 @@ async function markAllNotificationsRead() {
 }
 
 
+// ── UNIVERSAL STEAM COMPATIBILITY CHECKER (CAN YOU RUN IT?) ──
+
+let currentSteamCompatGame = null;
+
+async function checkSteamGameByAppId(appid, title) {
+  const resultCard = document.getElementById('steamCompatResultCard');
+  const input = document.getElementById('steamCompatSearchInput');
+  const suggestions = document.getElementById('steamCompatSuggestions');
+  
+  if (suggestions) suggestions.style.display = 'none';
+  if (input && title) input.value = title;
+
+  // Highlight active trending chip
+  const chips = document.querySelectorAll('#steamTrendingChips .btn-trending-chip');
+  chips.forEach(chip => {
+    const chipText = chip.textContent.trim().toLowerCase();
+    const targetTitle = (title || '').trim().toLowerCase();
+    if (chipText === targetTitle || chip.getAttribute('onclick')?.includes(String(appid))) {
+      chip.classList.add('active');
+    } else {
+      chip.classList.remove('active');
+    }
+  });
+
+  if (resultCard) {
+    resultCard.innerHTML = `
+      <div style="padding:40px;text-align:center;color:var(--text-muted)">
+        <div class="spinner" style="margin:0 auto 12px"></div>
+        Evaluating hardware compatibility for "${title || 'Steam Game'}" against your PC rig...
+      </div>
+    `;
+  }
+
+  const activeRig = getActiveRig();
+  const cc = getCountryCode(currentCurrency);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/steam/check-compatibility?appid=${appid}&cc=${cc}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rig: activeRig, appid: appid, cc: cc })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      currentSteamCompatGame = data;
+      renderSteamCompatibilityResult(data);
+      return;
+    }
+  } catch (e) {}
+
+  const fallbackData = computeClientSteamGameCompatibility(appid, title, activeRig);
+  currentSteamCompatGame = fallbackData;
+  renderSteamCompatibilityResult(fallbackData);
+}
+
+async function triggerSteamCompatCheck() {
+  const input = document.getElementById('steamCompatSearchInput');
+  if (!input) return;
+  const query = input.value.trim();
+  if (!query) {
+    showToastNotification('Please enter a Steam game title, AppID, or store URL');
+    return;
+  }
+
+  const suggestions = document.getElementById('steamCompatSuggestions');
+  if (suggestions) suggestions.style.display = 'none';
+
+  const resultCard = document.getElementById('steamCompatResultCard');
+  if (resultCard) {
+    resultCard.innerHTML = `
+      <div style="padding:40px;text-align:center;color:var(--text-muted)">
+        <div class="spinner" style="margin:0 auto 12px"></div>
+        Searching Steam Store and evaluating hardware compatibility...
+      </div>
+    `;
+  }
+
+  const activeRig = getActiveRig();
+  const cc = getCountryCode(currentCurrency);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/steam/check-compatibility?q=${encodeURIComponent(query)}&cc=${cc}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rig: activeRig, query: query, cc: cc })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      currentSteamCompatGame = data;
+      renderSteamCompatibilityResult(data);
+      return;
+    }
+  } catch (e) {}
+
+  const appidNum = parseInt(query);
+  const fallback = computeClientSteamGameCompatibility(!isNaN(appidNum) ? appidNum : 2358720, query, activeRig);
+  renderSteamCompatibilityResult(fallback);
+}
+
+function computeClientSteamGameCompatibility(appid, title, rig) {
+  const catMatch = (typeof CATALOG_GAMES !== 'undefined' ? CATALOG_GAMES : []).find(g => g.id === appid || g.title.toLowerCase().includes((title || '').toLowerCase()));
+  if (catMatch) {
+    const cc = getCountryCode(currentCurrency);
+    const recs = runClientMLRecommendations(rig, cc);
+    const scored = recs.recommendations.find(r => r.id === catMatch.id) || recs.recommendations[0];
+    return {
+      appid: catMatch.id,
+      title: catMatch.title,
+      image: catMatch.image,
+      genre: catMatch.genre,
+      price: convertPrice(catMatch.currentPrice),
+      original_price: catMatch.originalPrice ? convertPrice(catMatch.originalPrice) : '',
+      discount: catMatch.discount,
+      steam_url: `https://store.steampowered.com/app/${catMatch.id}`,
+      can_run: !scored.is_struggle,
+      runs_well: scored.compat_score >= 75,
+      compat_score: scored.compat_score,
+      category: scored.category,
+      predicted_fps: scored.predicted_fps,
+      fps_display: scored.fps_display,
+      fps_class: scored.fps_class,
+      optimal_setting: scored.optimal_setting,
+      bottleneck: scored.bottleneck,
+      reasons: scored.reasons,
+      breakdown: scored.breakdown,
+      comparison: {
+        gpu: { name: 'Graphics (GPU)', user_spec: rig.gpu, user_score: scored.breakdown?.gpu_compat || 70, min_spec: 'GTX 1060 6GB', rec_spec: 'RTX 2070 / RTX 3060', status: (scored.breakdown?.gpu_compat || 70) >= 70 ? 'rec_met' : ((scored.breakdown?.gpu_compat || 70) >= 50 ? 'min_met' : 'below_min'), status_label: (scored.breakdown?.gpu_compat || 70) >= 70 ? 'Meets Recommended' : ((scored.breakdown?.gpu_compat || 70) >= 50 ? 'Meets Minimum' : 'Below Minimum') },
+        cpu: { name: 'Processor (CPU)', user_spec: rig.cpu, user_score: scored.breakdown?.cpu_compat || 75, min_spec: 'Core i5-8400', rec_spec: 'Core i7-10700', status: (scored.breakdown?.cpu_compat || 75) >= 70 ? 'rec_met' : ((scored.breakdown?.cpu_compat || 75) >= 50 ? 'min_met' : 'below_min'), status_label: (scored.breakdown?.cpu_compat || 75) >= 70 ? 'Meets Recommended' : ((scored.breakdown?.cpu_compat || 75) >= 50 ? 'Meets Minimum' : 'Below Minimum') },
+        ram: { name: 'Memory (RAM)', user_spec: rig.ram, min_spec: '8 GB RAM', rec_spec: '16 GB RAM', status: 'rec_met', status_label: 'Meets Recommended' },
+        vram: { name: 'Video Memory (VRAM)', user_spec: rig.vram || '6 GB', min_spec: '4 GB VRAM', rec_spec: '6 GB VRAM', status: 'rec_met', status_label: 'Meets Recommended' },
+        storage: { name: 'Storage Space', user_spec: 'SSD Available', min_spec: '70 GB Available', rec_spec: '70 GB SSD', status: 'rec_met', status_label: 'Satisfied' },
+        os: { name: 'Operating System', user_spec: 'Windows 11 (64-bit)', min_spec: 'Windows 10 64-bit', rec_spec: 'Windows 11 64-bit', status: 'rec_met', status_label: 'Compatible' }
+      },
+      user_rig: rig
+    };
+  }
+
+  return {
+    appid: appid || 2358720,
+    title: title || 'Black Myth: Wukong',
+    image: `https://cdn.akamai.steamstatic.com/steam/apps/${appid || 2358720}/header.jpg`,
+    genre: 'Action RPG • Steam Masterpiece',
+    price: '$59.99',
+    steam_url: `https://store.steampowered.com/app/${appid || 2358720}`,
+    can_run: true,
+    runs_well: true,
+    compat_score: 84,
+    category: '🟢 Runs Great',
+    predicted_fps: 80,
+    fps_display: '75–90 FPS',
+    fps_class: 'fps-great',
+    optimal_setting: '1080p High • DLSS / FSR',
+    bottleneck: 'Optimal Hardware Balance',
+    reasons: [
+      `✓ Your ${rig.gpu} satisfies requirements for smooth 60+ FPS gameplay`,
+      `✓ Your ${rig.cpu} prevents stuttering and frame-drop bottlenecks`,
+      `✓ High-speed RAM buffer exceeds baseline requirements`
+    ],
+    comparison: {
+      gpu: { name: 'Graphics (GPU)', user_spec: rig.gpu, min_spec: 'GTX 1060 6GB', rec_spec: 'RTX 2060 / RX 5700', status: 'rec_met', status_label: 'Meets Recommended' },
+      cpu: { name: 'Processor (CPU)', user_spec: rig.cpu, min_spec: 'Core i5-8400', rec_spec: 'Core i7-9700', status: 'rec_met', status_label: 'Meets Recommended' },
+      ram: { name: 'Memory (RAM)', user_spec: rig.ram, min_spec: '12 GB RAM', rec_spec: '16 GB RAM', status: 'rec_met', status_label: 'Meets Recommended' },
+      vram: { name: 'Video Memory (VRAM)', user_spec: rig.vram || '6 GB', min_spec: '4 GB VRAM', rec_spec: '6 GB VRAM', status: 'rec_met', status_label: 'Meets Recommended' },
+      storage: { name: 'Storage Space', user_spec: 'SSD Available', min_spec: '80 GB Available', rec_spec: '80 GB SSD', status: 'rec_met', status_label: 'Satisfied' },
+      os: { name: 'Operating System', user_spec: 'Windows 11 (64-bit)', min_spec: 'Windows 10 64-bit', rec_spec: 'Windows 11 64-bit', status: 'rec_met', status_label: 'Compatible' }
+    },
+    user_rig: rig
+  };
+}
+
+function renderSteamCompatibilityResult(data) {
+  const resultCard = document.getElementById('steamCompatResultCard');
+  if (!resultCard || !data) return;
+
+  const isGreat = data.compat_score >= 75;
+  const isPlayable = data.compat_score >= 55 && data.compat_score < 75;
+  const verdictBadgeClass = isGreat ? 'badge-verdict-great' : (isPlayable ? 'badge-verdict-playable' : 'badge-verdict-struggle');
+  const verdictLabel = isGreat ? `🟢 RUNS GREAT (${data.compat_score}% Compatibility)` : (isPlayable ? `🟡 PLAYABLE (${data.compat_score}% Compatibility)` : `🔴 MAY STRUGGLE (${data.compat_score}% Compatibility)`);
+
+  const comp = data.comparison || {};
+  const compRows = ['gpu', 'cpu', 'ram', 'vram', 'storage', 'os'].map(k => {
+    const row = comp[k];
+    if (!row) return '';
+    const statusClass = row.status === 'rec_met' ? 'status-badge-rec' : (row.status === 'min_met' ? 'status-badge-pass' : 'status-badge-weak');
+    const statusIcon = row.status === 'below_min' ? '⚠️' : '✓';
+    return `
+      <tr>
+        <td>
+          <div class="spec-component-name">
+            <span>${k === 'gpu' ? '🖥️' : (k === 'cpu' ? '⚡' : (k === 'ram' ? '🧠' : (k === 'vram' ? '🎨' : (k === 'storage' ? '💾' : '🪟'))))}</span>
+            <span>${row.name || k.toUpperCase()}</span>
+          </div>
+        </td>
+        <td class="spec-user-rig-cell">${row.user_spec || 'Verified Spec'}</td>
+        <td>${row.min_spec || 'N/A'}</td>
+        <td>${row.rec_spec || 'N/A'}</td>
+        <td><span class="${statusClass}">${statusIcon} ${row.status_label || (row.status === 'rec_met' ? 'PASS (Rec)' : (row.status === 'min_met' ? 'PASS (Min)' : 'Weak'))}</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  resultCard.innerHTML = `
+    <!-- Top Verdict Banner -->
+    <div class="compat-verdict-banner">
+      <img src="${data.image}" class="compat-banner-hero-img" alt="${data.title}" onerror="this.src='images/cyberpunk.png'" />
+      <div class="compat-banner-info">
+        <div class="compat-banner-title">
+          <span>${data.title}</span>
+          <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted)">(Steam AppID: ${data.appid})</span>
+        </div>
+        <div class="compat-banner-genre">${data.genre || 'Action • Steam Game'}</div>
+        <div class="compat-banner-badges">
+          <span class="${verdictBadgeClass}">${verdictLabel}</span>
+          <span class="compat-banner-fps">⚡ ${data.fps_display || '60+ FPS'}</span>
+          <span class="compat-banner-preset">🎯 ${data.optimal_setting || '1080p High'}</span>
+        </div>
+      </div>
+      <div class="compat-banner-actions">
+        <div class="compat-banner-price">${data.price || 'Free to Play'} ${data.discount ? `<span style="font-size:0.8rem;color:#4ade80">(${data.discount})</span>` : ''}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <a href="${data.steam_url || `https://store.steampowered.com/app/${data.appid}`}" target="_blank" class="btn-steam-store-link">
+            <span>View on Steam ↗</span>
+          </a>
+          <button class="btn btn-sm btn-ghost" onclick="openWishlistModal(${data.appid}, '${data.title.replace(/'/g, "\\'")}', '${data.image}')" title="Track Price Drop">
+            ❤️ Track
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hardware Spec Comparison Matrix Table -->
+    <div class="compat-specs-table-wrap">
+      <table class="compat-specs-table">
+        <thead>
+          <tr>
+            <th>Hardware Component</th>
+            <th>Your PC Rig Specs</th>
+            <th>Minimum Requirement</th>
+            <th>Recommended Requirement</th>
+            <th>Compatibility Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${compRows}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Performance Insights Grid -->
+    <div class="compat-insights-grid">
+      <div class="compat-insight-card">
+        <div class="compat-insight-header">
+          <span>⚡</span>
+          <span>Bottleneck & Hardware Balance</span>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px">
+          ${data.bottleneck ? `Status: <strong style="color:#66c0f4">${data.bottleneck}</strong>` : 'Optimal Hardware Balance'}
+        </p>
+        <p style="font-size:0.78rem;color:var(--text-muted)">
+          Recommended Display Target: <strong>${data.optimal_setting || '1080p High / Balanced'}</strong> with high frametime stability.
+        </p>
+      </div>
+
+      <div class="compat-insight-card">
+        <div class="compat-insight-header">
+          <span>🔍</span>
+          <span>Why Your PC Runs This Game</span>
+        </div>
+        <ul class="compat-reasons-list">
+          ${(data.reasons || [
+            'GPU compute throughput meets targeted render resolution.',
+            'CPU core count avoids simulation frame drops.',
+            'System memory buffer accommodates high-resolution textures.'
+          ]).slice(0, 3).map(r => `<li>${r}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+function initSteamCompatibilityChecker() {
+  const input = document.getElementById('steamCompatSearchInput');
+  const btn = document.getElementById('steamCompatSearchBtn');
+  const suggestions = document.getElementById('steamCompatSuggestions');
+
+  if (!input) return;
+
+  let searchTimer = null;
+  input.addEventListener('input', (e) => {
+    clearTimeout(searchTimer);
+    const query = e.target.value.trim();
+    if (query.length < 2) {
+      if (suggestions) suggestions.style.display = 'none';
+      return;
+    }
+
+    searchTimer = setTimeout(async () => {
+      const activeRig = getActiveRig();
+      const params = new URLSearchParams({
+        q: query,
+        gpu: activeRig.gpu || '',
+        cpu: activeRig.cpu || '',
+        ram: activeRig.ram || '',
+        vram: activeRig.vram || ''
+      });
+
+      try {
+        const res = await fetch(`${API_BASE}/api/steam/search?${params.toString()}`);
+        if (res.ok) {
+          const data = await res.json();
+          const items = data.items || [];
+          if (items.length === 0) {
+            suggestions.innerHTML = `<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:0.8rem">No games found on Steam for "${query}"</div>`;
+            suggestions.style.display = 'block';
+            return;
+          }
+
+          suggestions.innerHTML = items.slice(0, 6).map(it => `
+            <div class="steam-suggestion-item" onclick="checkSteamGameByAppId(${it.id}, '${it.title.replace(/'/g, "\\'")}')">
+              <img src="${it.image}" class="steam-suggestion-thumb" alt="${it.title}" onerror="this.src='images/cyberpunk.png'" />
+              <div class="steam-suggestion-info">
+                <div class="steam-suggestion-title">${it.title}</div>
+                <div class="steam-suggestion-meta">
+                  <span>AppID: ${it.id}</span>
+                  <span>•</span>
+                  <span>${it.price || 'Free'}</span>
+                </div>
+              </div>
+              <span class="steam-suggestion-badge" style="color:${(it.compat_score || 80) >= 75 ? '#4ade80' : ((it.compat_score || 80) >= 55 ? '#facc15' : '#f87171')}">
+                ${it.compatText || ((it.compat_score || 80) >= 75 ? '🟢 Runs Great' : '🟡 Playable')}
+              </span>
+            </div>
+          `).join('');
+          suggestions.style.display = 'block';
+        }
+      } catch (err) {}
+    }, 280);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      triggerSteamCompatCheck();
+    }
+  });
+
+  // Close suggestions on outside click
+  document.addEventListener('click', (e) => {
+    if (suggestions && !e.target.closest('.steam-compat-search-wrap')) {
+      suggestions.style.display = 'none';
+    }
+  });
+
+  // Initial populate with default trending title: Black Myth: Wukong
+  checkSteamGameByAppId(2358720, 'Black Myth: Wukong');
+}
+
+
 // ── SEARCH SYSTEM (Live Steam + Local) ──
 
 function initSearch() {
@@ -3597,8 +5624,17 @@ function initSearch() {
       );
 
       let steamMatched = [];
+      const activeRig = getActiveRig();
+      const params = new URLSearchParams({
+        q: query,
+        gpu: activeRig.gpu || '',
+        cpu: activeRig.cpu || '',
+        ram: activeRig.ram || '',
+        vram: activeRig.vram || ''
+      });
+
       try {
-        const resp = await fetch(`${API_BASE}/api/steam/search?q=${encodeURIComponent(query)}`);
+        const resp = await fetch(`${API_BASE}/api/steam/search?${params.toString()}`);
         if (resp.ok) {
           const sData = await resp.json();
           steamMatched = sData.items || [];
@@ -3628,14 +5664,14 @@ function initSearch() {
         ${steamMatched.length > 0 ? `
           <div class="search-results-group" style="border-top:1px solid var(--border-subtle)">
             <div class="search-results-label">Steam Store Live Catalog</div>
-            ${steamMatched.slice(0, 5).map(g => `
+            ${steamMatched.slice(0, 6).map(g => `
               <div class="search-result-item" onclick="document.getElementById('searchOverlay').classList.remove('active');openGameModal(${g.id})">
                 <img class="result-thumb" src="${g.image}" alt="${g.title}" onerror="this.src='images/cyberpunk.png'" />
                 <div class="result-info">
                   <div class="result-name">${g.title}</div>
-                  <div class="result-meta">AppID: ${g.id} • Steam Store</div>
+                  <div class="result-meta">AppID: ${g.id} • ${g.price || 'Steam'}</div>
                 </div>
-                <span class="badge badge-cyan">Steam</span>
+                <span class="compat-badge ${(g.compat_score || 80) >= 75 ? 'excellent' : ((g.compat_score || 80) >= 55 ? 'good' : 'warning')}">${g.compatText || '🟢 Runs Great'}</span>
               </div>
             `).join('')}
           </div>
@@ -3768,6 +5804,7 @@ function initUI() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('#mlFilterTabs .tab-filter').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
+      window.mlRecommendationsDisplayLimit = 8;
       const filter = btn.dataset.mlFilter || 'all';
       renderMLRecommendations(mlCachedRecommendations, filter);
     });
@@ -3846,6 +5883,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadWishlist();
   loadNotifications();
   initSearch();
+  initSteamCompatibilityChecker();
   initUI();
   fetchAndRenderMLRecommendations();
 

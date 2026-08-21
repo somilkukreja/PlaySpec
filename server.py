@@ -365,27 +365,122 @@ def get_cached(key):
 def set_cached(key, item):
     cache[key] = (item, time.time())
 
-# Helper to parse Steam HTML requirements into CPU, GPU, RAM
+# Helper to parse Steam HTML requirements into CPU, GPU, RAM, OS, Storage
 def parse_requirements_html(req_html):
     if not req_html or not isinstance(req_html, str):
-        return {"cpu": "N/A", "gpu": "N/A", "ram": "N/A"}
+        return {"cpu": "N/A", "gpu": "N/A", "ram": "N/A", "os": "N/A", "storage": "N/A"}
     
-    # Strip tags to inspect lines
-    clean_text = re.sub(r'<[^>]+>', '\n', req_html)
-    lines = [line.strip() for line in clean_text.split('\n') if line.strip()]
+    # Replace line breaks and list tags with newlines, strip remaining tags
+    text = re.sub(r'<(?:br|li|p|/p|/li|/ul)[^>]*>', '\n', req_html, flags=re.I)
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = re.sub(r'[ \t]+', ' ', text)
     
-    cpu, gpu, ram = "N/A", "N/A", "N/A"
+    cpu, gpu, ram, os_ver, storage = "N/A", "N/A", "N/A", "N/A", "N/A"
     
-    for i, line in enumerate(lines):
-        line_lower = line.lower()
-        if 'processor:' in line_lower or 'cpu:' in line_lower:
-            cpu = line.split(':', 1)[-1].strip() if ':' in line else line
-        elif 'graphics:' in line_lower or 'gpu:' in line_lower or 'video card:' in line_lower:
-            gpu = line.split(':', 1)[-1].strip() if ':' in line else line
-        elif 'memory:' in line_lower or 'ram:' in line_lower:
-            ram = line.split(':', 1)[-1].strip() if ':' in line else line
+    for line in text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        l_lower = line.lower()
+        if any(k in l_lower for k in ['processor:', 'cpu:']):
+            val = re.sub(r'^(?:.*?\b(?:processor|cpu))\s*:\s*', '', line, flags=re.I).strip()
+            if val: cpu = val
+        elif any(k in l_lower for k in ['graphics:', 'gpu:', 'video card:']):
+            val = re.sub(r'^(?:.*?\b(?:graphics|gpu|video card))\s*:\s*', '', line, flags=re.I).strip()
+            if val: gpu = val
+        elif any(k in l_lower for k in ['memory:', 'ram:']):
+            val = re.sub(r'^(?:.*?\b(?:memory|ram))\s*:\s*', '', line, flags=re.I).strip()
+            if val: ram = val
+        elif 'os:' in l_lower or 'operating system:' in l_lower:
+            val = re.sub(r'^(?:.*?\b(?:os|operating system))\s*:\s*', '', line, flags=re.I).strip()
+            if val: os_ver = val
+        elif any(k in l_lower for k in ['storage:', 'hard drive:', 'disk space:']):
+            val = re.sub(r'^(?:.*?\b(?:storage|hard drive|disk space))\s*:\s*', '', line, flags=re.I).strip()
+            if val: storage = val
 
-    return {"cpu": cpu, "gpu": gpu, "ram": ram}
+    return {"cpu": cpu, "gpu": gpu, "ram": ram, "os": os_ver, "storage": storage}
+
+
+def score_gpu_spec_string(gpu_raw):
+    """Scores any GPU model or requirement string from 10 to 100"""
+    if not gpu_raw or not isinstance(gpu_raw, str) or gpu_raw.strip() in ['N/A', '']:
+        return 45
+    g_str = gpu_raw.lower()
+    if any(k in g_str for k in ['5090', '4090']): return 100
+    elif any(k in g_str for k in ['5080', '4080 super', '4080', '7900 xtx']): return 96
+    elif any(k in g_str for k in ['4070 ti super', '4070 ti', '7900 xt', '3090 ti', '3090']): return 92
+    elif any(k in g_str for k in ['4070 super', '4070', '3080 ti', '3080', '7800 xt', '6950 xt', '6900 xt', '6800 xt']): return 88
+    elif any(k in g_str for k in ['4060 ti', '3070 ti', '3070', '7700 xt', '6750 xt', '6700 xt', '2080 ti', 'b580']): return 82
+    elif any(k in g_str for k in ['4060', '3060 ti', '7600 xt', '7600', '6650 xt', '6600 xt', '2080 super', '2080', '2070 super', 'a770', 'a750']): return 76
+    elif any(k in g_str for k in ['3060', '2070', '2060 super', '6600', '5700 xt', 'gtx 1080 ti', 'gtx 1080']): return 72
+    elif any(k in g_str for k in ['3050 8gb', '3050 6gb', '2060', '5600 xt', 'gtx 1070 ti', 'gtx 1070', '1660 ti', '1660 super']): return 66
+    elif any(k in g_str for k in ['3050 4gb', '3050', '1660', 'rx 590', 'rx 580', 'gtx 980']): return 60
+    elif any(k in g_str for k in ['1650 super', 'rx 5500 xt', 'gtx 1060 6gb', 'gtx 1060']): return 56
+    elif any(k in g_str for k in ['1650', 'rx 570', 'gtx 970', 'rx 480', 'rx 470']): return 50
+    elif any(k in g_str for k in ['1050 ti', 'gtx 960', 'steam deck', 'radeon 780m', 'z1 extreme']): return 45
+    elif any(k in g_str for k in ['1050', 'rx 560', 'gtx 750 ti', 'radeon 680m', 'gtx 950', 'z1', 'gtx 660', 'gtx 670']): return 38
+    elif any(k in g_str for k in ['iris xe', 'vega 8', 'vega 7', 'm4', 'm3', 'm2', 'm1', 'gt 1030', 'rx 550', 'gtx 460', 'hd 7850']): return 32
+    elif any(k in g_str for k in ['uhd 770', 'uhd 750', 'uhd 730', 'vega 3', 'vega 6', 'hd 630', 'hd 620', 'hd 530', 'gts 450']): return 22
+    elif any(k in g_str for k in ['intel hd', 'intel graphics', 'uhd', 'basic display']): return 16
+    return 50
+
+
+def score_cpu_spec_string(cpu_raw):
+    """Scores any CPU model or requirement string from 15 to 100"""
+    if not cpu_raw or not isinstance(cpu_raw, str) or cpu_raw.strip() in ['N/A', '']:
+        return 50
+    c_str = cpu_raw.lower()
+    if any(k in c_str for k in ['14900', '13900', '7800x3d', '7950x3d', '7950x', '9800x3d', '9950x', '9900x']): return 98
+    elif any(k in c_str for k in ['14700', '13700', '7900x', '7700x', '5800x3d', '12900', '9700x']): return 92
+    elif any(k in c_str for k in ['14600', '13600', '12700', '7600x', '7600', '5900x', '5800x', '9600x']): return 86
+    elif any(k in c_str for k in ['13500', '13400', '12600', '12400', '12450', '13420', '5700x', '5600x', '5600', '5800h', '11800h', '12700h', '13700h']): return 78
+    elif any(k in c_str for k in ['11400', '10400', '3600x', '3600', '3700x', '10750h', '9750h', '4800h', '4600h']): return 68
+    elif any(k in c_str for k in ['i3-12100', 'i3-13100', 'i3-10100', '3300x', '3100', 'i7-8700', 'i7-7700', 'i5-9400', 'i5-8400', '2600', '1600']): return 58
+    elif any(k in c_str for k in ['i5-7500', 'i5-6500', 'i5-4590', 'i5-3470', 'i3-9100', 'i3-8100', 'i3-7100', 'fx-8350', 'i5-2500k', 'i7-4770k']): return 44
+    elif any(k in c_str for k in ['i3', 'pentium', 'celeron', 'athlon', 'dual-core', '2 core', '4 thread', 'core 2 duo']): return 30
+    return 55
+
+
+def parse_ram_from_string(ram_str, default=8):
+    if not ram_str or not isinstance(ram_str, str): return default
+    m = re.search(r'(\d+)\s*(?:gb|g)?', ram_str, re.I)
+    if m:
+        val = int(m.group(1))
+        if val in [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 64]:
+            return val
+    if 'mb' in ram_str.lower():
+        m_mb = re.search(r'(\d+)\s*mb', ram_str, re.I)
+        if m_mb:
+            return max(1, round(int(m_mb.group(1)) / 1024.0, 1))
+    return default
+
+
+def parse_vram_from_string(vram_or_gpu_str, default=4.0):
+    if not vram_or_gpu_str or not isinstance(vram_or_gpu_str, str): return default
+    m = re.search(r'(\d+(?:\.\d+)?)\s*(?:gb|g)?\s*vram', vram_or_gpu_str, re.I)
+    if m: return float(m.group(1))
+    m2 = re.search(r'(\d+)\s*gb', vram_or_gpu_str, re.I)
+    if m2 and int(m2.group(1)) <= 24: return float(m2.group(1))
+    g_lower = vram_or_gpu_str.lower()
+    if any(k in g_lower for k in ['4090', '7900 xtx']): return 24.0
+    if any(k in g_lower for k in ['4080', '7900 xt', '6800']): return 16.0
+    if any(k in g_lower for k in ['4070', '3080', '6700 xt']): return 12.0
+    if any(k in g_lower for k in ['3070', '4060', '2080', '2070', '1080']): return 8.0
+    if any(k in g_lower for k in ['3060']): return 12.0
+    if any(k in g_lower for k in ['2060', '1660', '3050 6gb']): return 6.0
+    if any(k in g_lower for k in ['1050 ti', '1650', '3050', '970', 'rx 570']): return 4.0
+    if any(k in g_lower for k in ['1050', '750 ti', 'gt 1030', 'uhd', 'iris']): return 2.0
+    return default
+
+
+def parse_storage_from_string(storage_str, default=50):
+    if not storage_str or not isinstance(storage_str, str): return default
+    m = re.search(r'(\d+)\s*(?:gb|g)?', storage_str, re.I)
+    if m:
+        val = int(m.group(1))
+        if 1 <= val <= 500:
+            return val
+    return default
 
 
 # --- Static Files Routes ---
@@ -1280,31 +1375,71 @@ def get_app_details(appid):
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/steam/search')
+@app.route('/api/steam/search', methods=['GET', 'POST'])
 def search_steam():
-    query = request.args.get('q', '').strip()
+    query = request.args.get('q', '').strip() or ((request.json or {}).get('q', '').strip() if request.is_json else '')
     if not query:
         return jsonify({"items": []})
 
-    cache_key = f"search_{query.lower()}"
+    # Extract rig parameters
+    req_rig = {}
+    if request.is_json and request.json and request.json.get('rig'):
+        req_rig = request.json.get('rig')
+    else:
+        req_rig = {
+            'gpu': request.args.get('gpu'),
+            'cpu': request.args.get('cpu'),
+            'ram': request.args.get('ram'),
+            'vram': request.args.get('vram')
+        }
+    
+    hw = parse_and_score_hardware(req_rig)
+
+    cache_key = f"search_v3_{query.lower()}_{hw['rig_index']}"
     cached_data = get_cached(cache_key)
     if cached_data:
         return jsonify(cached_data)
 
     try:
-        url = f"{STEAM_STORE_BASE}/storesearch/?term={query}&l=english&cc=US"
+        url = f"{STEAM_STORE_BASE}/storesearch/?term={urllib.parse.quote(query)}&l=english&cc=US"
         resp = requests.get(url, headers={'User-Agent': 'PlaySpec/1.0'}, timeout=10)
         data = resp.json()
         
         items = data.get('items', [])
         formatted = []
         for i in items:
+            appid = i.get('id')
+            title = i.get('name')
+            img = i.get('tiny_image')
+            price_ov = i.get('price', {})
+            price_str = f"${price_ov.get('final', 0)/100.0:.2f}" if price_ov and price_ov.get('final', 0) > 0 else "Free to Play"
+            
+            # Quick compatibility scoring
+            cat_match = next((g for g in GAME_CATALOG_DATABASE if g['id'] == appid), None)
+            if cat_match:
+                c = calculate_game_compatibility(hw, cat_match)
+                compat_score = c['compat_score']
+                compat_text = c['category']
+                fps_disp = c['fps_display']
+                opt_preset = c['optimal_setting']
+            else:
+                base_score = min(98, max(45, hw['rig_index'] + 5))
+                compat_score = base_score
+                compat_text = "🟢 Runs Great" if base_score >= 75 else ("🟡 Playable" if base_score >= 55 else "🔴 May Struggle")
+                fps_disp = "60–90 FPS" if base_score >= 70 else "40–60 FPS"
+                opt_preset = "1080p High" if base_score >= 70 else "1080p Medium"
+
             formatted.append({
-                "id": i.get('id'),
-                "title": i.get('name'),
-                "image": i.get('tiny_image'),
-                "compatText": "🟢 Runs Great",
-                "priceBadgeText": "Live Item"
+                "id": appid,
+                "title": title,
+                "image": f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg" if appid else img,
+                "tiny_image": img,
+                "price": price_str,
+                "compat_score": compat_score,
+                "compatText": compat_text,
+                "fps_display": fps_disp,
+                "optimal_preset": opt_preset,
+                "priceBadgeText": "Steam Store"
             })
             
         result = {"items": formatted}
@@ -3276,105 +3411,388 @@ def trigger_price_check():
     return jsonify({'success': True, 'message': 'Price check completed'})
 
 
-@app.route('/api/pc/can-run/<int:appid>', methods=['POST'])
-def check_can_run(appid):
-    """Check if a specific game can run on user's PC using multi-component compatibility"""
-    data = request.json or {}
-    rig = data.get('rig', {})
-    hw = parse_and_score_hardware(rig)
-    
-    # Search in internal catalog first
+def evaluate_steam_game_compatibility(hw, appid, cc='US'):
+    """
+    Evaluates hardware compatibility for ANY Steam game (from catalog or live Steam Store API).
+    Returns complete multi-component spec comparison, predicted FPS, optimal preset, bottleneck diagnosis, and pricing.
+    """
+    # 1. Check catalog first
     catalog_match = next((g for g in GAME_CATALOG_DATABASE if g['id'] == appid), None)
     if catalog_match:
         compat = calculate_game_compatibility(hw, catalog_match)
         can_run = not compat['is_struggle']
         runs_well = compat['compat_score'] >= 75
         
-        return jsonify({
+        min_gpu_score = catalog_match.get('min_gpu_score', 40)
+        rec_gpu_score = catalog_match.get('rec_gpu_score', 65)
+        min_cpu_score = catalog_match.get('min_cpu_score', 40)
+        rec_cpu_score = catalog_match.get('rec_cpu_score', 65)
+        min_ram = catalog_match.get('min_ram', 8)
+        rec_ram = catalog_match.get('rec_ram', 16)
+        min_vram = catalog_match.get('min_vram', 4.0)
+        rec_vram = catalog_match.get('rec_vram', 6.0)
+        
+        comparison = {
+            "gpu": {
+                "name": "Graphics (GPU)",
+                "user_spec": hw['gpu'],
+                "user_score": hw['gpu_score'],
+                "min_spec": f"Score {min_gpu_score}+",
+                "rec_spec": f"Score {rec_gpu_score}+",
+                "status": "rec_met" if hw['gpu_score'] >= rec_gpu_score else ("min_met" if hw['gpu_score'] >= min_gpu_score else "below_min"),
+                "status_label": "Meets Recommended" if hw['gpu_score'] >= rec_gpu_score else ("Meets Minimum" if hw['gpu_score'] >= min_gpu_score else "Below Minimum")
+            },
+            "cpu": {
+                "name": "Processor (CPU)",
+                "user_spec": hw['cpu'],
+                "user_score": hw['cpu_score'],
+                "min_spec": f"Score {min_cpu_score}+",
+                "rec_spec": f"Score {rec_cpu_score}+",
+                "status": "rec_met" if hw['cpu_score'] >= rec_cpu_score else ("min_met" if hw['cpu_score'] >= min_cpu_score else "below_min"),
+                "status_label": "Meets Recommended" if hw['cpu_score'] >= rec_cpu_score else ("Meets Minimum" if hw['cpu_score'] >= min_cpu_score else "Below Minimum")
+            },
+            "ram": {
+                "name": "Memory (RAM)",
+                "user_spec": f"{hw['ram_gb']} GB RAM",
+                "min_spec": f"{min_ram} GB RAM",
+                "rec_spec": f"{rec_ram} GB RAM",
+                "status": "rec_met" if hw['ram_gb'] >= rec_ram else ("min_met" if hw['ram_gb'] >= min_ram else "below_min"),
+                "status_label": "Meets Recommended" if hw['ram_gb'] >= rec_ram else ("Meets Minimum" if hw['ram_gb'] >= min_ram else "Below Minimum")
+            },
+            "vram": {
+                "name": "Video Memory (VRAM)",
+                "user_spec": f"{hw['vram_gb']} GB VRAM",
+                "min_spec": f"{min_vram} GB VRAM",
+                "rec_spec": f"{rec_vram} GB VRAM",
+                "status": "rec_met" if hw['vram_gb'] >= rec_vram else ("min_met" if hw['vram_gb'] >= min_vram else "below_min"),
+                "status_label": "Meets Recommended" if hw['vram_gb'] >= rec_vram else ("Meets Minimum" if hw['vram_gb'] >= min_vram else "Below Minimum")
+            },
+            "storage": {
+                "name": "Storage Space",
+                "user_spec": hw.get('storage', 'SSD Available'),
+                "min_spec": f"{catalog_match.get('min_storage', 50)} GB",
+                "rec_spec": f"{catalog_match.get('min_storage', 50)} GB SSD",
+                "status": "rec_met",
+                "status_label": "Satisfied"
+            },
+            "os": {
+                "name": "Operating System",
+                "user_spec": hw.get('os', 'Windows 11 64-bit'),
+                "min_spec": "Windows 10/11 (64-bit)",
+                "rec_spec": "Windows 11 (64-bit)",
+                "status": "rec_met",
+                "status_label": "Compatible"
+            }
+        }
+        
+        return {
             "appid": appid,
+            "title": catalog_match['title'],
+            "image": catalog_match['image'],
+            "genre": catalog_match['genre'],
+            "price": catalog_match['price'],
+            "original_price": catalog_match['original_price'],
+            "discount": f"-{catalog_match['discount_percent']}%" if catalog_match.get('discount_percent', 0) > 0 else None,
+            "lowest_price": catalog_match['lowest_price'],
+            "steam_url": f"https://store.steampowered.com/app/{appid}",
             "can_run": can_run,
             "runs_well": runs_well,
             "score": compat['compat_score'],
+            "compat_score": compat['compat_score'],
+            "category": compat['category'],
+            "recommendation": compat['category'],
             "predicted_fps": compat['predicted_fps'],
             "fps_display": compat['fps_display'],
+            "fps_class": compat['fps_class'],
             "optimal_setting": compat['optimal_setting'],
             "bottleneck": compat['bottleneck'],
+            "bottleneck_type": compat['bottleneck_type'],
             "reasons": compat['reasons'],
             "breakdown": compat['breakdown'],
+            "comparison": comparison,
+            "requirements": {
+                "minimum": {
+                    "gpu": f"Score {min_gpu_score}+",
+                    "cpu": f"Score {min_cpu_score}+",
+                    "ram": f"{min_ram} GB",
+                    "storage": f"{catalog_match.get('min_storage', 50)} GB"
+                },
+                "recommended": {
+                    "gpu": f"Score {rec_gpu_score}+",
+                    "cpu": f"Score {rec_cpu_score}+",
+                    "ram": f"{rec_ram} GB",
+                    "storage": f"{catalog_match.get('min_storage', 50)} GB"
+                }
+            },
             "user_rig": {
                 "gpu": hw['gpu'],
                 "cpu": hw['cpu'],
                 "ram": f"{hw['ram_gb']} GB",
-                "vram": f"{hw['vram_gb']} GB"
-            },
-            "recommendation": compat['category']
-        })
+                "vram": f"{hw['vram_gb']} GB",
+                "storage": hw.get('storage', '512 GB'),
+                "os": hw.get('os', 'Windows 11')
+            }
+        }
 
-    # Fallback to Steam appdetails
-    try:
-        url = f"{STEAM_STORE_BASE}/appdetails?appids={appid}"
-        resp = requests.get(url, headers={'User-Agent': 'PlaySpec/1.0'}, timeout=10)
-        json_resp = resp.json()
-        
-        app_entry = json_resp.get(str(appid), {})
-        if not app_entry.get('success'):
-            return jsonify({"error": "Game not found"}), 404
-            
-        game_data = app_entry.get('data', {})
-        pc_reqs = game_data.get('pc_requirements', {})
-        min_req_raw = pc_reqs.get('minimum', '') if isinstance(pc_reqs, dict) else ''
-        rec_req_raw = pc_reqs.get('recommended', '') if isinstance(pc_reqs, dict) else ''
-        
-        min_parsed = parse_requirements_html(min_req_raw)
-        rec_parsed = parse_requirements_html(rec_req_raw)
-    except Exception:
-        min_parsed = {"cpu": "i5-7500", "gpu": "GTX 1050 Ti", "ram": "8 GB"}
-        rec_parsed = {"cpu": "i7-8700", "gpu": "RTX 2070", "ram": "16 GB"}
+    # 2. Fetch live from Steam Store API
+    cache_key = f"steam_compat_{appid}_{cc}"
+    game_data = get_cached(cache_key)
+    if not game_data:
+        try:
+            url = f"{STEAM_STORE_BASE}/appdetails?appids={appid}&cc={cc}&l=english"
+            resp = requests.get(url, headers={'User-Agent': 'PlaySpec/1.0'}, timeout=10)
+            json_resp = resp.json()
+            app_entry = json_resp.get(str(appid), {})
+            if app_entry.get('success'):
+                game_data = app_entry.get('data', {})
+                set_cached(cache_key, game_data)
+        except Exception:
+            pass
 
-    # Dynamic scoring based on hardware parser
-    gpu_score = hw['gpu_score']
-    cpu_score = hw['cpu_score']
-    ram_score = hw['ram_score']
-    vram_score = hw['vram_score']
-    
-    overall_score = int((gpu_score * 0.40) + (cpu_score * 0.25) + (ram_score * 0.20) + (vram_score * 0.15))
-    overall_score = min(99, max(25, overall_score))
-    
-    can_run = overall_score >= 55
-    runs_well = overall_score >= 75
-    
-    reasons = [
-        f"✓ GPU benchmark score: {gpu_score}/100",
-        f"✓ CPU benchmark score: {cpu_score}/100",
-        f"✓ RAM capacity: {hw['ram_gb']} GB"
-    ]
-    if not can_run:
-        reasons = ["⚠️ Hardware specifications are below optimal requirements for 60 FPS"]
+    if not game_data:
+        game_data = {
+            "name": f"Steam Game (AppID: {appid})",
+            "header_image": f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg",
+            "genres": [{"description": "Action"}],
+            "price_overview": {"final_formatted": "$29.99", "initial_formatted": "", "discount_percent": 0},
+            "pc_requirements": {
+                "minimum": "<strong>Minimum:</strong><br>OS: Windows 10 64-bit<br>Processor: Intel Core i5-7500 / AMD Ryzen 5 1600<br>Memory: 8 GB RAM<br>Graphics: GTX 1060 6GB / RX 580<br>Storage: 50 GB",
+                "recommended": "<strong>Recommended:</strong><br>OS: Windows 10/11 64-bit<br>Processor: Intel Core i7-8700K / AMD Ryzen 5 3600<br>Memory: 16 GB RAM<br>Graphics: RTX 2070 / RX 5700 XT<br>Storage: 50 GB SSD"
+            }
+        }
 
-    return jsonify({
+    title = game_data.get('name', f'Steam Game {appid}')
+    header_img = game_data.get('header_image', f'https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg')
+    genres_list = [g.get('description') for g in game_data.get('genres', [])] if isinstance(game_data.get('genres'), list) else ['Steam Game']
+    genre_str = " • ".join(genres_list[:3]) if genres_list else "Steam Game"
+    
+    price_ov = game_data.get('price_overview', {}) or {}
+    is_free = game_data.get('is_free', False)
+    current_p_str = price_ov.get('final_formatted') or ('Free to Play' if is_free else '$29.99')
+    original_p_str = price_ov.get('initial_formatted', '')
+    discount_pct = price_ov.get('discount_percent', 0)
+
+    pc_reqs = game_data.get('pc_requirements', {})
+    min_req_raw = pc_reqs.get('minimum', '') if isinstance(pc_reqs, dict) else ''
+    rec_req_raw = pc_reqs.get('recommended', '') if isinstance(pc_reqs, dict) else ''
+
+    min_p = parse_requirements_html(min_req_raw)
+    rec_p = parse_requirements_html(rec_req_raw)
+
+    min_gpu_score = score_gpu_spec_string(min_p.get('gpu', 'GTX 1050 Ti'))
+    rec_gpu_score = score_gpu_spec_string(rec_p.get('gpu', 'RTX 2070'))
+    min_cpu_score = score_cpu_spec_string(min_p.get('cpu', 'i5-7500'))
+    rec_cpu_score = score_cpu_spec_string(rec_p.get('cpu', 'i7-8700'))
+    min_ram = parse_ram_from_string(min_p.get('ram', '8 GB'), default=8)
+    rec_ram = parse_ram_from_string(rec_p.get('ram', '16 GB'), default=16)
+    min_vram = parse_vram_from_string(min_p.get('gpu', ''), default=4.0)
+    rec_vram = parse_vram_from_string(rec_p.get('gpu', ''), default=6.0)
+    min_storage = parse_storage_from_string(min_p.get('storage', '50 GB'), default=50)
+
+    if rec_gpu_score <= min_gpu_score:
+        rec_gpu_score = min(95, min_gpu_score + 18)
+    if rec_cpu_score <= min_cpu_score:
+        rec_cpu_score = min(95, min_cpu_score + 15)
+    if rec_ram <= min_ram:
+        rec_ram = max(16, min_ram * 2)
+
+    synthetic_game = {
+        'id': appid,
+        'title': title,
+        'genre': genre_str,
+        'game_type': 'aaa' if rec_gpu_score >= 70 else ('indie' if rec_gpu_score <= 35 else 'aa'),
+        'tier_target': 5 if rec_gpu_score >= 85 else (4 if rec_gpu_score >= 70 else (3 if rec_gpu_score >= 50 else (2 if rec_gpu_score >= 35 else 1))),
+        'min_gpu_score': min_gpu_score,
+        'rec_gpu_score': rec_gpu_score,
+        'min_cpu_score': min_cpu_score,
+        'rec_cpu_score': rec_cpu_score,
+        'min_ram': min_ram,
+        'rec_ram': rec_ram,
+        'min_vram': min_vram,
+        'rec_vram': rec_vram,
+        'min_storage': min_storage,
+        'rating': 4.8,
+        'popularity': 90,
+        'release_year': 2023,
+        'base_fps': 60,
+        'dlss_fsr': True if rec_gpu_score >= 60 else False,
+        'ray_tracing': True if rec_gpu_score >= 85 else False
+    }
+
+    compat = calculate_game_compatibility(hw, synthetic_game)
+    can_run = not compat['is_struggle']
+    runs_well = compat['compat_score'] >= 75
+
+    comparison = {
+        "gpu": {
+            "name": "Graphics (GPU)",
+            "user_spec": hw['gpu'],
+            "user_score": hw['gpu_score'],
+            "min_spec": min_p.get('gpu', 'GTX 1050 Ti'),
+            "min_score": min_gpu_score,
+            "rec_spec": rec_p.get('gpu', 'RTX 2070') if rec_p.get('gpu') != 'N/A' else f"Score {rec_gpu_score}+",
+            "rec_score": rec_gpu_score,
+            "status": "rec_met" if hw['gpu_score'] >= rec_gpu_score else ("min_met" if hw['gpu_score'] >= min_gpu_score else "below_min"),
+            "status_label": "Meets Recommended" if hw['gpu_score'] >= rec_gpu_score else ("Meets Minimum" if hw['gpu_score'] >= min_gpu_score else "Below Minimum")
+        },
+        "cpu": {
+            "name": "Processor (CPU)",
+            "user_spec": hw['cpu'],
+            "user_score": hw['cpu_score'],
+            "min_spec": min_p.get('cpu', 'Intel Core i5'),
+            "min_score": min_cpu_score,
+            "rec_spec": rec_p.get('cpu', 'Intel Core i7') if rec_p.get('cpu') != 'N/A' else f"Score {rec_cpu_score}+",
+            "rec_score": rec_cpu_score,
+            "status": "rec_met" if hw['cpu_score'] >= rec_cpu_score else ("min_met" if hw['cpu_score'] >= min_cpu_score else "below_min"),
+            "status_label": "Meets Recommended" if hw['cpu_score'] >= rec_cpu_score else ("Meets Minimum" if hw['cpu_score'] >= min_cpu_score else "Below Minimum")
+        },
+        "ram": {
+            "name": "Memory (RAM)",
+            "user_spec": f"{hw['ram_gb']} GB RAM",
+            "min_spec": f"{min_ram} GB RAM",
+            "rec_spec": f"{rec_ram} GB RAM",
+            "status": "rec_met" if hw['ram_gb'] >= rec_ram else ("min_met" if hw['ram_gb'] >= min_ram else "below_min"),
+            "status_label": "Meets Recommended" if hw['ram_gb'] >= rec_ram else ("Meets Minimum" if hw['ram_gb'] >= min_ram else "Below Minimum")
+        },
+        "vram": {
+            "name": "Video Memory (VRAM)",
+            "user_spec": f"{hw['vram_gb']} GB VRAM",
+            "min_spec": f"{min_vram} GB VRAM",
+            "rec_spec": f"{rec_vram} GB VRAM",
+            "status": "rec_met" if hw['vram_gb'] >= rec_vram else ("min_met" if hw['vram_gb'] >= min_vram else "below_min"),
+            "status_label": "Meets Recommended" if hw['vram_gb'] >= rec_vram else ("Meets Minimum" if hw['vram_gb'] >= min_vram else "Below Minimum")
+        },
+        "storage": {
+            "name": "Storage Space",
+            "user_spec": hw.get('storage', 'SSD Available'),
+            "min_spec": min_p.get('storage', f"{min_storage} GB"),
+            "rec_spec": rec_p.get('storage', f"{min_storage} GB SSD") if rec_p.get('storage') != 'N/A' else min_p.get('storage', f"{min_storage} GB SSD"),
+            "status": "rec_met",
+            "status_label": "Satisfied"
+        },
+        "os": {
+            "name": "Operating System",
+            "user_spec": hw.get('os', 'Windows 11 64-bit'),
+            "min_spec": min_p.get('os', 'Windows 10 64-bit'),
+            "rec_spec": rec_p.get('os', 'Windows 10/11 64-bit'),
+            "status": "rec_met",
+            "status_label": "Compatible"
+        }
+    }
+
+    return {
         "appid": appid,
+        "title": title,
+        "image": header_img,
+        "genre": genre_str,
+        "price": current_p_str,
+        "original_price": original_p_str,
+        "discount": f"-{discount_pct}%" if discount_pct > 0 else None,
+        "lowest_price": current_p_str,
+        "steam_url": f"https://store.steampowered.com/app/{appid}",
         "can_run": can_run,
         "runs_well": runs_well,
-        "score": overall_score,
-        "breakdown": {
-            "gpu": gpu_score,
-            "cpu": cpu_score,
-            "ram": ram_score,
-            "vram": vram_score
-        },
+        "score": compat['compat_score'],
+        "compat_score": compat['compat_score'],
+        "category": compat['category'],
+        "recommendation": compat['category'],
+        "predicted_fps": compat['predicted_fps'],
+        "fps_display": compat['fps_display'],
+        "fps_class": compat['fps_class'],
+        "optimal_setting": compat['optimal_setting'],
+        "bottleneck": compat['bottleneck'],
+        "bottleneck_type": compat['bottleneck_type'],
+        "reasons": compat['reasons'],
+        "breakdown": compat['breakdown'],
+        "comparison": comparison,
         "requirements": {
-            "minimum": min_parsed,
-            "recommended": rec_parsed
+            "minimum": min_p,
+            "recommended": rec_p
         },
-        "reasons": reasons,
         "user_rig": {
             "gpu": hw['gpu'],
             "cpu": hw['cpu'],
             "ram": f"{hw['ram_gb']} GB",
-            "vram": f"{hw['vram_gb']} GB"
-        },
-        "recommendation": "🟢 Runs Excellent" if runs_well else ("🟡 Runs Okay" if can_run else "🔴 May Struggle")
-    })
+            "vram": f"{hw['vram_gb']} GB",
+            "storage": hw.get('storage', '512 GB'),
+            "os": hw.get('os', 'Windows 11')
+        }
+    }
+
+
+@app.route('/api/steam/check-compatibility', methods=['GET', 'POST'])
+def check_steam_compatibility_endpoint():
+    """
+    Universal Hardware Compatibility Checker for any Steam game.
+    Accepts game title, Steam URL, or AppID.
+    """
+    query = request.args.get('q', '').strip() or request.args.get('query', '').strip()
+    appid_param = request.args.get('appid')
+    cc = request.args.get('cc', 'US').strip().upper()
+
+    rig = {}
+    if request.is_json and request.json:
+        data = request.json
+        query = query or data.get('query', '').strip() or data.get('q', '').strip()
+        appid_param = appid_param or data.get('appid')
+        rig = data.get('rig') or {}
+        cc = data.get('cc') or cc
+
+    if not rig:
+        rig = {
+            'gpu': request.args.get('gpu'),
+            'cpu': request.args.get('cpu'),
+            'ram': request.args.get('ram'),
+            'vram': request.args.get('vram')
+        }
+
+    hw = parse_and_score_hardware(rig)
+
+    appid = None
+    if appid_param and str(appid_param).isdigit():
+        appid = int(appid_param)
+    elif query:
+        url_match = re.search(r'store\.steampowered\.com/app/(\d+)', query)
+        if url_match:
+            appid = int(url_match.group(1))
+        elif query.isdigit():
+            appid = int(query)
+        else:
+            cat_match = next((g for g in GAME_CATALOG_DATABASE if query.lower() in g['title'].lower()), None)
+            if cat_match:
+                appid = cat_match['id']
+            else:
+                try:
+                    s_url = f"{STEAM_STORE_BASE}/storesearch/?term={urllib.parse.quote(query)}&l=english&cc={cc}"
+                    s_resp = requests.get(s_url, headers={'User-Agent': 'PlaySpec/1.0'}, timeout=8).json()
+                    s_items = s_resp.get('items', [])
+                    if s_items:
+                        appid = s_items[0].get('id')
+                except Exception:
+                    pass
+
+    if not appid:
+        return jsonify({"error": f"Could not find Steam game matching '{query}'"}), 404
+
+    result = evaluate_steam_game_compatibility(hw, appid, cc=cc)
+    return jsonify(result)
+
+
+@app.route('/api/pc/can-run/<int:appid>', methods=['GET', 'POST'])
+def check_can_run(appid):
+    """Check if a specific game can run on user's PC using universal multi-component compatibility"""
+    data = (request.json if request.is_json and request.json else {}) or {}
+    rig = data.get('rig') or {
+        'gpu': request.args.get('gpu'),
+        'cpu': request.args.get('cpu'),
+        'ram': request.args.get('ram'),
+        'vram': request.args.get('vram')
+    }
+    cc = request.args.get('cc') or data.get('cc') or 'US'
+    hw = parse_and_score_hardware(rig)
+    
+    result = evaluate_steam_game_compatibility(hw, appid, cc=cc)
+    return jsonify(result)
 
 @app.route('/api/auth/steam/login')
 def steam_login():

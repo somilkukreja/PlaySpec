@@ -63,7 +63,7 @@ def test_static_and_downloads():
     print("\n--- 3. Testing Static Assets & Scanner Download Links ---")
     r_bat = requests.get(f"{BASE_URL}/downloads/PlaySpec-QuickScan.bat")
     assert r_bat.status_code == 200, f"Failed to fetch PlaySpec-QuickScan.bat: {r_bat.status_code}"
-    assert "PlaySpec Hardware Diagnostics Scanner" in r_bat.text, "Invalid .bat content"
+    assert "PlaySpec Universal Hardware Diagnostics Scanner" in r_bat.text or "PlaySpec Hardware Diagnostics Scanner" in r_bat.text, "Invalid .bat content"
     print("[PASS] PlaySpec-QuickScan.bat is accessible and valid")
 
     r_html = requests.get(f"{BASE_URL}/")
