@@ -50,6 +50,125 @@
       </ul>
 
       <div class="navbar-actions">
+        <!-- Gaming Theme Studio Trigger & Dropdown -->
+        <div class="gaming-theme-dropdown-wrap">
+          <button class="btn-gaming-theme-trigger" id="gamingThemeTriggerBtn" onclick="toggleGamingThemeMenu(event)" title="Gaming Theme Studio (Cyberpunk, ROG Red, Razer Matrix, Synthwave)">
+            <span class="gaming-theme-icon">🎮</span>
+            <span style="font-size:0.75rem">Theme</span>
+            <span class="gaming-theme-dot" id="gamingThemeActiveDot"></span>
+          </button>
+
+          <!-- Floating Theme Studio Dropdown -->
+          <div class="gaming-theme-panel" id="gamingThemePanel">
+            <div class="gaming-theme-panel-header">
+              <div class="gaming-theme-panel-title">
+                <span>🎮</span>
+                <span>Gaming Theme Studio</span>
+              </div>
+              <span class="gaming-theme-panel-subtitle">Select visual aesthetic preset</span>
+            </div>
+            <div class="gaming-theme-grid">
+              <!-- Steam Dark -->
+              <button class="gaming-theme-card active" data-theme-val="dark" onclick="selectGamingTheme('dark')">
+                <div class="theme-card-header">
+                  <span class="theme-name">Steam Dark (Classic)</span>
+                  <span class="theme-active-indicator">✓ Active</span>
+                </div>
+                <div class="theme-swatches">
+                  <span class="swatch" style="background:#66c0f4"></span>
+                  <span class="swatch" style="background:#1b2838"></span>
+                  <span class="swatch" style="background:#090b10"></span>
+                </div>
+                <span class="theme-desc">Valve Iconic Cyan & Obsidian Navy</span>
+              </button>
+
+              <!-- Cyberpunk Neon -->
+              <button class="gaming-theme-card" data-theme-val="cyberpunk" onclick="selectGamingTheme('cyberpunk')">
+                <div class="theme-card-header">
+                  <span class="theme-name">Cyberpunk 2077</span>
+                  <span class="theme-active-indicator">✓ Active</span>
+                </div>
+                <div class="theme-swatches">
+                  <span class="swatch" style="background:#00f0ff"></span>
+                  <span class="swatch" style="background:#ff007f"></span>
+                  <span class="swatch" style="background:#06070d"></span>
+                </div>
+                <span class="theme-desc">Electric Cyan & Neon Magenta</span>
+              </button>
+
+              <!-- ROG Crimson -->
+              <button class="gaming-theme-card" data-theme-val="rog" onclick="selectGamingTheme('rog')">
+                <div class="theme-card-header">
+                  <span class="theme-name">ROG Crimson Red</span>
+                  <span class="theme-active-indicator">✓ Active</span>
+                </div>
+                <div class="theme-swatches">
+                  <span class="swatch" style="background:#ff1e42"></span>
+                  <span class="swatch" style="background:#ff4757"></span>
+                  <span class="swatch" style="background:#090a0d"></span>
+                </div>
+                <span class="theme-desc">Republic of Gamers Red & Carbon</span>
+              </button>
+
+              <!-- Razer Matrix -->
+              <button class="gaming-theme-card" data-theme-val="matrix" onclick="selectGamingTheme('matrix')">
+                <div class="theme-card-header">
+                  <span class="theme-name">Matrix Emerald</span>
+                  <span class="theme-active-indicator">✓ Active</span>
+                </div>
+                <div class="theme-swatches">
+                  <span class="swatch" style="background:#00ff66"></span>
+                  <span class="swatch" style="background:#10b981"></span>
+                  <span class="swatch" style="background:#040805"></span>
+                </div>
+                <span class="theme-desc">Razer Poison Green & Matrix Dark</span>
+              </button>
+
+              <!-- Chroma Synthwave -->
+              <button class="gaming-theme-card" data-theme-val="synthwave" onclick="selectGamingTheme('synthwave')">
+                <div class="theme-card-header">
+                  <span class="theme-name">Chroma Synthwave</span>
+                  <span class="theme-active-indicator">✓ Active</span>
+                </div>
+                <div class="theme-swatches">
+                  <span class="swatch" style="background:#c084fc"></span>
+                  <span class="swatch" style="background:#ec4899"></span>
+                  <span class="swatch" style="background:#0a0614"></span>
+                </div>
+                <span class="theme-desc">Arcade Violet & Sunset Pink</span>
+              </button>
+
+              <!-- Stealth OLED -->
+              <button class="gaming-theme-card" data-theme-val="stealth" onclick="selectGamingTheme('stealth')">
+                <div class="theme-card-header">
+                  <span class="theme-name">Stealth OLED</span>
+                  <span class="theme-active-indicator">✓ Active</span>
+                </div>
+                <div class="theme-swatches">
+                  <span class="swatch" style="background:#38bdf8"></span>
+                  <span class="swatch" style="background:#282828"></span>
+                  <span class="swatch" style="background:#000000"></span>
+                </div>
+                <span class="theme-desc">Pitch Black & Tactical Ice Blue</span>
+              </button>
+
+              <!-- Titanium Light -->
+              <button class="gaming-theme-card" data-theme-val="light" onclick="selectGamingTheme('light')">
+                <div class="theme-card-header">
+                  <span class="theme-name">Titanium Light</span>
+                  <span class="theme-active-indicator">✓ Active</span>
+                </div>
+                <div class="theme-swatches">
+                  <span class="swatch" style="background:#0284c7"></span>
+                  <span class="swatch" style="background:#cbd5e1"></span>
+                  <span class="swatch" style="background:#f0f4f9"></span>
+                </div>
+                <span class="theme-desc">High Contrast Platinum Daylight</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Gamer Theme Toggle Switch -->
         <button class="theme-toggle-btn" id="themeToggleBtn" role="switch" aria-checked="false" aria-label="Toggle Dark / Light Theme" title="Toggle Light / Dark Gamer Theme">
           <div class="theme-toggle-track">

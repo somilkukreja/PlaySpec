@@ -5704,24 +5704,89 @@ function playThemeSwitchSound() {
   } catch (e) {}
 }
 
+// ── GAMING THEME STUDIO & TOGGLE ENGINE ──
+
+const THEME_NAMES = {
+  'dark': 'Steam Dark (Classic)',
+  'cyberpunk': 'Cyberpunk 2077 Neon',
+  'rog': 'ROG Crimson Red',
+  'matrix': 'Matrix Emerald',
+  'synthwave': 'Chroma Synthwave',
+  'stealth': 'Stealth OLED',
+  'light': 'Titanium Light'
+};
+
+const THEME_DOT_COLORS = {
+  'dark': '#66c0f4',
+  'cyberpunk': '#00f0ff',
+  'rog': '#ff1e42',
+  'matrix': '#00ff66',
+  'synthwave': '#c084fc',
+  'stealth': '#38bdf8',
+  'light': '#0284c7'
+};
+
+function toggleGamingThemeMenu(e) {
+  if (e) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  const panel = document.getElementById('gamingThemePanel');
+  if (panel) {
+    panel.classList.toggle('active');
+  }
+}
+
+function selectGamingTheme(themeName) {
+  if (!THEME_NAMES[themeName]) themeName = 'dark';
+  document.documentElement.setAttribute('data-theme', themeName);
+  localStorage.setItem('playspec_theme', themeName);
+
+  // Update theme studio cards
+  const cards = document.querySelectorAll('.gaming-theme-card');
+  cards.forEach(c => {
+    if (c.getAttribute('data-theme-val') === themeName) {
+      c.classList.add('active');
+    } else {
+      c.classList.remove('active');
+    }
+  });
+
+  // Update trigger button dot color
+  const dot = document.getElementById('gamingThemeActiveDot');
+  if (dot) {
+    dot.style.background = THEME_DOT_COLORS[themeName] || '#66c0f4';
+    dot.style.boxShadow = `0 0 8px ${THEME_DOT_COLORS[themeName] || '#66c0f4'}`;
+  }
+
+  // Update toggle button accessibility
+  const toggleBtn = document.getElementById('themeToggleBtn');
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-checked', themeName === 'light' ? 'true' : 'false');
+    toggleBtn.setAttribute('title', `Active Theme: ${THEME_NAMES[themeName]}`);
+  }
+
+  playThemeSwitchSound();
+  showToastNotification(`🎮 ${THEME_NAMES[themeName]} Theme Activated!`);
+
+  // Auto-close menu after short delay
+  setTimeout(() => {
+    const panel = document.getElementById('gamingThemePanel');
+    if (panel) panel.classList.remove('active');
+  }, 220);
+}
+
 function initThemeToggle() {
   const toggleBtn = document.getElementById('themeToggleBtn');
-  const currentTheme = localStorage.getItem('playspec_theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', currentTheme);
+  const savedTheme = localStorage.getItem('playspec_theme') || 'dark';
+  selectGamingTheme(savedTheme);
 
   if (toggleBtn) {
-    toggleBtn.setAttribute('aria-checked', currentTheme === 'light' ? 'true' : 'false');
-    toggleBtn.setAttribute('title', currentTheme === 'light' ? 'Switch to Dark Mode (Cyber Ops)' : 'Switch to Light Mode (Solar Matrix)');
-
-    toggleBtn.addEventListener('click', () => {
-      playThemeSwitchSound();
-      const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-      const newTheme = activeTheme === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', newTheme);
-      localStorage.setItem('playspec_theme', newTheme);
-      toggleBtn.setAttribute('aria-checked', newTheme === 'light' ? 'true' : 'false');
-      toggleBtn.setAttribute('title', newTheme === 'light' ? 'Switch to Dark Mode (Cyber Ops)' : 'Switch to Light Mode (Solar Matrix)');
-      showToastNotification(newTheme === 'light' ? '☀️ Solar Matrix (Light Theme) Activated' : '🌙 Cyber Ops (Dark Theme) Activated');
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'light' ? 'dark' : (current === 'dark' ? 'cyberpunk' : (current === 'cyberpunk' ? 'rog' : (current === 'rog' ? 'matrix' : (current === 'matrix' ? 'synthwave' : (current === 'synthwave' ? 'stealth' : 'dark')))));
+      selectGamingTheme(next);
     });
 
     toggleBtn.addEventListener('keydown', (e) => {
@@ -5731,6 +5796,24 @@ function initThemeToggle() {
       }
     });
   }
+
+  // Close gaming theme panel on outside click
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('gamingThemePanel');
+    const trigger = document.getElementById('gamingThemeTriggerBtn');
+    if (panel && panel.classList.contains('active')) {
+      if (!panel.contains(e.target) && (!trigger || !trigger.contains(e.target))) {
+        panel.classList.remove('active');
+      }
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const panel = document.getElementById('gamingThemePanel');
+      if (panel) panel.classList.remove('active');
+    }
+  });
 }
 
 // ── TOAST NOTIFICATIONS HELPER ──
@@ -5892,3 +5975,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     connectSteamUser(currentUser.steam_id);
   }
 });
+
+window.toggleGamingThemeMenu = toggleGamingThemeMenu;
+window.selectGamingTheme = selectGamingTheme;
+window.THEME_NAMES = THEME_NAMES;

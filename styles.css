@@ -152,6 +152,241 @@
   --shadow-glow: 0 0 24px rgba(2, 132, 199, 0.16);
 }
 
+/* ── Theme 1: Cyberpunk Neon (Night City Edition) ── */
+[data-theme="cyberpunk"] {
+  --bg-base: #06070d;
+  --bg-surface: #0c0d18;
+  --bg-card: #121422;
+  --bg-card-hover: #191c2f;
+  --bg-elevated: #1f233b;
+  --bg-subtle: #2b304f;
+  --bg-overlay: rgba(6, 7, 13, 0.9);
+  --bg-glass: rgba(12, 13, 24, 0.88);
+  --bg-glass-card: rgba(18, 20, 34, 0.72);
+
+  --brand-blue: #00f0ff;
+  --brand-blue-hover: #38f4ff;
+  --brand-blue-glow: rgba(0, 240, 255, 0.3);
+  --brand-indigo: #ff007f;
+  --steam-blue: #00f0ff;
+  --steam-dark: #0c0d18;
+  --steam-navy: #191c2f;
+  --steam-hover: #272c4a;
+
+  --color-success: #00ff9f;
+  --color-success-bg: rgba(0, 255, 159, 0.12);
+  --color-success-border: rgba(0, 255, 159, 0.35);
+  --color-warning: #ffe600;
+  --color-warning-bg: rgba(255, 230, 0, 0.12);
+  --color-warning-border: rgba(255, 230, 0, 0.35);
+  --color-danger: #ff0055;
+  --color-danger-bg: rgba(255, 0, 85, 0.12);
+  --color-danger-border: rgba(255, 0, 85, 0.35);
+  --color-purple: #d946ef;
+  --color-purple-bg: rgba(217, 70, 239, 0.12);
+  --color-cyan: #00f0ff;
+  --color-cyan-bg: rgba(0, 240, 255, 0.15);
+
+  --text-primary: #ffffff;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --border-subtle: rgba(0, 240, 255, 0.15);
+  --border-medium: rgba(255, 0, 127, 0.28);
+  --border-strong: rgba(0, 240, 255, 0.4);
+  --border-brand: rgba(0, 240, 255, 0.55);
+  --shadow-glow: 0 0 32px rgba(0, 240, 255, 0.22);
+}
+
+/* ── Theme 2: ROG Crimson (Republic of Gamers) ── */
+[data-theme="rog"] {
+  --bg-base: #090a0d;
+  --bg-surface: #0f1116;
+  --bg-card: #151820;
+  --bg-card-hover: #1d212c;
+  --bg-elevated: #242937;
+  --bg-subtle: #2f3547;
+  --bg-overlay: rgba(9, 10, 13, 0.92);
+  --bg-glass: rgba(15, 17, 22, 0.88);
+  --bg-glass-card: rgba(21, 24, 32, 0.72);
+
+  --brand-blue: #ff1e42;
+  --brand-blue-hover: #ff4765;
+  --brand-blue-glow: rgba(255, 30, 66, 0.35);
+  --brand-indigo: #ff4757;
+  --steam-blue: #ff2a4b;
+  --steam-dark: #0f1116;
+  --steam-navy: #221417;
+  --steam-hover: #361a20;
+
+  --color-success: #2ed573;
+  --color-success-bg: rgba(46, 213, 115, 0.12);
+  --color-success-border: rgba(46, 213, 115, 0.35);
+  --color-warning: #ffa502;
+  --color-warning-bg: rgba(255, 165, 2, 0.12);
+  --color-warning-border: rgba(255, 165, 2, 0.35);
+  --color-danger: #ff1e42;
+  --color-danger-bg: rgba(255, 30, 66, 0.15);
+  --color-danger-border: rgba(255, 30, 66, 0.4);
+  --color-purple: #ff4757;
+  --color-purple-bg: rgba(255, 71, 87, 0.12);
+  --color-cyan: #ff6b81;
+  --color-cyan-bg: rgba(255, 107, 129, 0.12);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+
+  --border-subtle: rgba(255, 30, 66, 0.14);
+  --border-medium: rgba(255, 30, 66, 0.28);
+  --border-strong: rgba(255, 30, 66, 0.45);
+  --border-brand: rgba(255, 30, 66, 0.6);
+  --shadow-glow: 0 0 32px rgba(255, 30, 66, 0.25);
+}
+
+/* ── Theme 3: Razer Emerald (Matrix Venom) ── */
+[data-theme="matrix"] {
+  --bg-base: #040805;
+  --bg-surface: #08100a;
+  --bg-card: #0d1a10;
+  --bg-card-hover: #132417;
+  --bg-elevated: #1a301f;
+  --bg-subtle: #224029;
+  --bg-overlay: rgba(4, 8, 5, 0.92);
+  --bg-glass: rgba(8, 16, 10, 0.88);
+  --bg-glass-card: rgba(13, 26, 16, 0.72);
+
+  --brand-blue: #00ff66;
+  --brand-blue-hover: #33ff85;
+  --brand-blue-glow: rgba(0, 255, 102, 0.32);
+  --brand-indigo: #10b981;
+  --steam-blue: #00ff66;
+  --steam-dark: #08100a;
+  --steam-navy: #0b1f11;
+  --steam-hover: #12331c;
+
+  --color-success: #00ff66;
+  --color-success-bg: rgba(0, 255, 102, 0.15);
+  --color-success-border: rgba(0, 255, 102, 0.4);
+  --color-warning: #facc15;
+  --color-warning-bg: rgba(250, 204, 21, 0.12);
+  --color-warning-border: rgba(250, 204, 21, 0.35);
+  --color-danger: #ef4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.12);
+  --color-danger-border: rgba(239, 68, 68, 0.35);
+  --color-purple: #10b981;
+  --color-purple-bg: rgba(16, 185, 129, 0.12);
+  --color-cyan: #00ffcc;
+  --color-cyan-bg: rgba(0, 255, 204, 0.15);
+
+  --text-primary: #f0fdf4;
+  --text-secondary: #bbf7d0;
+  --text-muted: #86efac;
+  --text-dim: #4ade80;
+
+  --border-subtle: rgba(0, 255, 102, 0.15);
+  --border-medium: rgba(0, 255, 102, 0.28);
+  --border-strong: rgba(0, 255, 102, 0.45);
+  --border-brand: rgba(0, 255, 102, 0.6);
+  --shadow-glow: 0 0 32px rgba(0, 255, 102, 0.25);
+}
+
+/* ── Theme 4: Chroma Synthwave (Neon Violet & Sunset Pink) ── */
+[data-theme="synthwave"] {
+  --bg-base: #0a0614;
+  --bg-surface: #100a20;
+  --bg-card: #170e2d;
+  --bg-card-hover: #20133d;
+  --bg-elevated: #28184d;
+  --bg-subtle: #352166;
+  --bg-overlay: rgba(10, 6, 20, 0.9);
+  --bg-glass: rgba(16, 10, 32, 0.88);
+  --bg-glass-card: rgba(23, 14, 45, 0.72);
+
+  --brand-blue: #c084fc;
+  --brand-blue-hover: #d8b4fe;
+  --brand-blue-glow: rgba(192, 132, 252, 0.35);
+  --brand-indigo: #ec4899;
+  --steam-blue: #e879f9;
+  --steam-dark: #100a20;
+  --steam-navy: #1f0f35;
+  --steam-hover: #311854;
+
+  --color-success: #34d399;
+  --color-success-bg: rgba(52, 211, 153, 0.12);
+  --color-success-border: rgba(52, 211, 153, 0.35);
+  --color-warning: #fbbf24;
+  --color-warning-bg: rgba(251, 191, 36, 0.12);
+  --color-warning-border: rgba(251, 191, 36, 0.35);
+  --color-danger: #f43f5e;
+  --color-danger-bg: rgba(244, 63, 94, 0.15);
+  --color-danger-border: rgba(244, 63, 94, 0.4);
+  --color-purple: #c084fc;
+  --color-purple-bg: rgba(192, 132, 252, 0.15);
+  --color-cyan: #38bdf8;
+  --color-cyan-bg: rgba(56, 189, 248, 0.15);
+
+  --text-primary: #faf5ff;
+  --text-secondary: #e9d5ff;
+  --text-muted: #c084fc;
+  --text-dim: #a855f7;
+
+  --border-subtle: rgba(192, 132, 252, 0.16);
+  --border-medium: rgba(236, 72, 153, 0.28);
+  --border-strong: rgba(192, 132, 252, 0.45);
+  --border-brand: rgba(192, 132, 252, 0.6);
+  --shadow-glow: 0 0 32px rgba(192, 132, 252, 0.28);
+}
+
+/* ── Theme 5: Stealth OLED (Pitch Black & Ice Tactical Blue) ── */
+[data-theme="stealth"] {
+  --bg-base: #000000;
+  --bg-surface: #070707;
+  --bg-card: #0e0e0e;
+  --bg-card-hover: #161616;
+  --bg-elevated: #1e1e1e;
+  --bg-subtle: #282828;
+  --bg-overlay: rgba(0, 0, 0, 0.96);
+  --bg-glass: rgba(7, 7, 7, 0.92);
+  --bg-glass-card: rgba(14, 14, 14, 0.88);
+
+  --brand-blue: #38bdf8;
+  --brand-blue-hover: #7dd3fc;
+  --brand-blue-glow: rgba(56, 189, 248, 0.28);
+  --brand-indigo: #818cf8;
+  --steam-blue: #38bdf8;
+  --steam-dark: #070707;
+  --steam-navy: #111111;
+  --steam-hover: #1e1e1e;
+
+  --color-success: #22c55e;
+  --color-success-bg: rgba(34, 197, 94, 0.12);
+  --color-success-border: rgba(34, 197, 94, 0.35);
+  --color-warning: #eab308;
+  --color-warning-bg: rgba(234, 179, 8, 0.12);
+  --color-warning-border: rgba(234, 179, 8, 0.35);
+  --color-danger: #ef4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.12);
+  --color-danger-border: rgba(239, 68, 68, 0.35);
+  --color-purple: #a855f7;
+  --color-purple-bg: rgba(168, 85, 247, 0.12);
+  --color-cyan: #38bdf8;
+  --color-cyan-bg: rgba(56, 189, 248, 0.12);
+
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --text-dim: #52525b;
+
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-medium: rgba(255, 255, 255, 0.2);
+  --border-strong: rgba(255, 255, 255, 0.32);
+  --border-brand: rgba(56, 189, 248, 0.5);
+  --shadow-glow: 0 0 28px rgba(56, 189, 248, 0.2);
+}
+
 /* ── Base Reset ── */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -3622,6 +3857,199 @@ input, select, textarea {
   color: var(--text-secondary);
   line-height: 1.4;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   GAMING THEME STUDIO & CONTROLLER
+   ══════════════════════════════════════════════════════════════════════ */
+
+.gaming-theme-dropdown-wrap {
+  position: relative;
+}
+
+.btn-gaming-theme-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 5px 10px;
+  border-radius: var(--radius-xs);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.btn-gaming-theme-trigger:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-brand);
+  color: var(--text-primary);
+  box-shadow: 0 0 12px var(--brand-blue-glow);
+}
+
+.gaming-theme-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.gaming-theme-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand-blue);
+  box-shadow: 0 0 8px var(--brand-blue);
+}
+
+/* Floating Gaming Theme Studio Panel */
+.gaming-theme-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  z-index: 1000;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 0 0 24px var(--brand-blue-glow);
+  backdrop-filter: blur(24px);
+  display: none;
+  animation: themePanelFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gaming-theme-panel.active {
+  display: block;
+}
+
+@keyframes themePanelFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.gaming-theme-panel-header {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.gaming-theme-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.gaming-theme-panel-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 2px;
+}
+
+.gaming-theme-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.gaming-theme-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.gaming-theme-grid::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 4px;
+}
+
+.gaming-theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+  outline: none;
+  color: var(--text-primary);
+}
+
+.gaming-theme-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-brand);
+  transform: translateX(2px);
+}
+
+.gaming-theme-card.active {
+  background: var(--bg-elevated);
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 14px var(--brand-blue-glow);
+}
+
+.theme-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.theme-name {
+  font-weight: 600;
+  font-size: 0.84rem;
+  color: var(--text-primary);
+}
+
+.theme-active-indicator {
+  display: none;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--brand-blue);
+  background: var(--brand-blue-glow);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.gaming-theme-card.active .theme-active-indicator {
+  display: inline-block;
+}
+
+.theme-swatches {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.theme-swatches .swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: inline-block;
+}
+
+.theme-desc {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
 
 
 

@@ -38,12 +38,20 @@ const mockElements = {
 };
 
 const mockDocument = {
+  documentElement: {
+    attributes: {},
+    setAttribute(k, v) { this.attributes[k] = v; },
+    getAttribute(k) { return this.attributes[k]; }
+  },
+  body: {
+    appendChild: () => {}
+  },
   getElementById: (id) => mockElements[id] || null,
   querySelectorAll: (selector) => {
     if (selector.includes('steamTrendingChips')) return mockElements.steamTrendingChips.querySelectorAll();
     return [];
   },
-  createElement: () => ({ getContext: () => null }),
+  createElement: () => ({ style: {}, classList: { add: () => {}, remove: () => {} }, remove: () => {}, getContext: () => null }),
   addEventListener: () => {}
 };
 
@@ -64,6 +72,9 @@ const mockWindow = {
     removeItem: () => {}
   },
   addEventListener: () => {},
+  requestAnimationFrame: (cb) => setTimeout(cb, 0),
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout,
   fetch: () => Promise.reject(new Error("offline mock")),
   currentUser: null,
   authToken: null,
@@ -144,8 +155,20 @@ async function runTests() {
   }
   console.log('[PASS] Recommendation pagination verified.');
 
+  console.log('\n--- 4. Gaming Theme Studio Verification ---');
+  const themes = ['dark', 'cyberpunk', 'rog', 'matrix', 'synthwave', 'stealth', 'light'];
+  for (const t of themes) {
+    vm.runInContext(`selectGamingTheme('${t}')`, context);
+    const activeDataTheme = vm.runInContext(`document.documentElement.getAttribute('data-theme')`, context);
+    console.log(`[+] Tested Gaming Theme: "${t}" -> Active Attribute: "${activeDataTheme}"`);
+    if (activeDataTheme !== t) {
+      throw new Error(`Expected data-theme="${t}", got "${activeDataTheme}"`);
+    }
+  }
+  console.log('[PASS] All 7 Gaming Themes (Cyberpunk, ROG, Razer Matrix, Synthwave, Stealth OLED, Steam Dark, Titanium Light) verified 100%!');
+
   console.log('\n' + '='.repeat(60));
-  console.log('ALL CLIENT-SIDE & STEAM COMPATIBILITY TESTS PASSED 100%!');
+  console.log('ALL CLIENT-SIDE & GAMING THEME TESTS PASSED 100%!');
   console.log('='.repeat(60));
 }
 
