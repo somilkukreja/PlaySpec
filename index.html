@@ -24,39 +24,43 @@
 </head>
 <body>
 
-  <!-- ═══════════════════════ NAVBAR ═══════════════════════ -->
+  <!-- ═══════════════════════ NAVBAR (2-LINE SPACIOUS LAYOUT) ═══════════════════════ -->
   <nav class="navbar" id="navbar">
-    <div class="navbar-inner">
-      <a href="#" class="navbar-brand">
-        <div class="navbar-logo-glyph">
-          <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-            <polyline points="2 17 12 22 22 17"></polyline>
-            <polyline points="2 12 12 17 22 12"></polyline>
-          </svg>
-        </div>
-        <span>PlaySpec</span>
-      </a>
+    <div class="navbar-inner-two-line">
+      <!-- Line 1: Brand on Left • Quick Launch Action Buttons on Right -->
+      <div class="navbar-top-row">
+        <a href="#" class="navbar-brand">
+          <div class="navbar-logo-glyph">
+            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+              <polyline points="2 17 12 22 22 17"></polyline>
+              <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+          </div>
+          <span>PlaySpec</span>
+          <span class="badge badge-cyan" style="font-size:0.68rem;padding:2px 6px;margin-left:2px">v2.0</span>
+        </a>
 
-      <ul class="navbar-nav">
-        <li><a href="#steam-compatibility" class="nav-link" data-nav="steam-compatibility">Can You Run It?</a></li>
-        <li><a href="#ml-recommendations" class="nav-link active" data-nav="ml-recommendations">AI Recommendations</a></li>
-        <li><a href="#dashboard" class="nav-link" data-nav="dashboard">Discover</a></li>
-        <li><a href="#price-tracker" class="nav-link" data-nav="price-tracker">Price Tracker</a></li>
-        <li><a href="#deals" class="nav-link" data-nav="deals">Deals</a></li>
-        <li><a href="#free-games" class="nav-link" data-nav="free-games">Free Games</a></li>
-        <li><a href="#steam-section" class="nav-link" data-nav="steam-section">Steam Library</a></li>
-        <li><a href="#pc-profile" class="nav-link" data-nav="pc-profile">My Rig</a></li>
-      </ul>
-
-      <div class="navbar-actions">
-        <!-- Gaming Theme Studio Trigger & Dropdown -->
-        <div class="gaming-theme-dropdown-wrap">
-          <button class="btn-gaming-theme-trigger" id="gamingThemeTriggerBtn" onclick="toggleGamingThemeMenu(event)" title="Gaming Theme Studio (Cyberpunk, ROG Red, Razer Matrix, Synthwave)">
-            <span class="gaming-theme-icon">🎮</span>
-            <span style="font-size:0.75rem">Theme</span>
-            <span class="gaming-theme-dot" id="gamingThemeActiveDot"></span>
+        <div class="navbar-actions">
+          <!-- Quick Play Tonight Modal Launcher -->
+          <button class="btn-nav-play-tonight" onclick="openPlayTonightModal()" title="What Should I Play Tonight? Backlog Roulette & Mood Wizard">
+            <span>🎲</span>
+            <span>Play Tonight?</span>
           </button>
+
+          <!-- Gamer Rig Passport Trigger -->
+          <button class="btn-nav-passport" onclick="openGamerPassportModal()" title="Holographic Gamer Rig Passport (PNG Card Generator)">
+            <span>🎴</span>
+            <span>Passport</span>
+          </button>
+
+          <!-- Gaming Theme Studio Trigger & Dropdown -->
+          <div class="gaming-theme-dropdown-wrap">
+            <button class="btn-gaming-theme-trigger" id="gamingThemeTriggerBtn" onclick="toggleGamingThemeMenu(event)" title="Gaming Theme Studio (Cyberpunk, ROG Red, Razer Matrix, Synthwave)">
+              <span class="gaming-theme-icon">🎮</span>
+              <span style="font-size:0.75rem">Theme</span>
+              <span class="gaming-theme-dot" id="gamingThemeActiveDot"></span>
+            </button>
 
           <!-- Floating Theme Studio Dropdown -->
           <div class="gaming-theme-panel" id="gamingThemePanel">
@@ -283,7 +287,25 @@
         </div>
       </div>
     </div>
-  </nav>
+
+    <!-- Line 2: Centered, Spacious Navigation Links Bar -->
+    <div class="navbar-bottom-row">
+      <ul class="navbar-nav-centered">
+        <li><a href="#steam-compatibility" class="nav-link" data-nav="steam-compatibility"><span class="nav-item-icon">⚡</span> Can You Run It?</a></li>
+        <li><a href="#ml-recommendations" class="nav-link active" data-nav="ml-recommendations"><span class="nav-item-icon">🤖</span> AI Recommendations</a></li>
+        <li><a href="#upgrade-simulator" class="nav-link" data-nav="upgrade-simulator"><span class="nav-item-icon">🚀</span> Upgrade Sim</a></li>
+        <li><a href="#squad-room" class="nav-link" data-nav="squad-room"><span class="nav-item-icon">👥</span> Squad Co-op</a></li>
+        <li><a href="#dashboard" class="nav-link" data-nav="dashboard"><span class="nav-item-icon">🎮</span> Discover</a></li>
+        <li><a href="#price-tracker" class="nav-link" data-nav="price-tracker"><span class="nav-item-icon">📉</span> Price Tracker</a></li>
+        <li><a href="#upcoming-sales" class="nav-link" data-nav="upcoming-sales"><span class="nav-item-icon">🔥</span> Upcoming Sales</a></li>
+        <li><a href="#deals" class="nav-link" data-nav="deals"><span class="nav-item-icon">🏷️</span> Deals</a></li>
+        <li><a href="#free-games" class="nav-link" data-nav="free-games"><span class="nav-item-icon">🎁</span> Free Games</a></li>
+        <li><a href="#steam-section" class="nav-link" data-nav="steam-section"><span class="nav-item-icon">📚</span> Steam Library</a></li>
+        <li><a href="#pc-profile" class="nav-link" data-nav="pc-profile"><span class="nav-item-icon">💻</span> My Rig</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
 
   <!-- ═══════════════════════ SEARCH OVERLAY ═══════════════════════ -->
   <div class="search-overlay" id="searchOverlay">
@@ -517,6 +539,176 @@
       </div>
     </section>
 
+    <!-- ── 1-CLICK PC UPGRADE SIMULATOR & BOTTLENECK ROI ── -->
+    <section class="section" id="upgrade-simulator" style="padding-top:0">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:#00f0ff">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+              1-Click PC Upgrade Simulator & Bottleneck ROI
+            </h2>
+            <span class="section-subtitle">Virtually swap your GPU, CPU, or RAM to see newly unlocked 60+ FPS games, FPS boost %, and bottleneck relief</span>
+          </div>
+          <div class="badge-upgrade-sim-pill">
+            <span class="pulse-cyan"></span>
+            <span>Live Hardware Sandbox</span>
+          </div>
+        </div>
+
+        <div class="upgrade-sim-card">
+          <!-- Preset Chips -->
+          <div class="sim-preset-chips">
+            <span style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-right:4px">Popular Upgrades:</span>
+            <button class="btn-sim-preset active" onclick="applySimPreset('rtx4060')">💰 Budget King (RTX 4060)</button>
+            <button class="btn-sim-preset" onclick="applySimPreset('rtx4070')">👑 1440p Sweetspot (RTX 4070 Super)</button>
+            <button class="btn-sim-preset" onclick="applySimPreset('ryzen7800x3d')">⚡ 240Hz Esports (Ryzen 7 7800X3D)</button>
+            <button class="btn-sim-preset" onclick="applySimPreset('rx7800xt')">🔴 AMD Heavyweight (RX 7800 XT)</button>
+            <button class="btn-sim-preset" onclick="applySimPreset('ram32gb')">🧠 RAM Boost (32GB RAM)</button>
+          </div>
+
+          <!-- Component Selectors Row -->
+          <div class="sim-controls-grid">
+            <div class="sim-control-box">
+              <label class="sim-control-label">Target Graphics Card (GPU)</label>
+              <select id="simGpuSelect" class="sim-select" onchange="runUpgradeSimulation()">
+                <option value="">Keep Current GPU</option>
+                <optgroup label="NVIDIA RTX 40-Series">
+                  <option value="GeForce RTX 4090">GeForce RTX 4090 (24GB VRAM)</option>
+                  <option value="GeForce RTX 4080 Super">GeForce RTX 4080 Super (16GB VRAM)</option>
+                  <option value="GeForce RTX 4070 Ti Super">GeForce RTX 4070 Ti Super (16GB VRAM)</option>
+                  <option value="GeForce RTX 4070 Super" selected>GeForce RTX 4070 Super (12GB VRAM)</option>
+                  <option value="GeForce RTX 4060 Ti">GeForce RTX 4060 Ti (16GB VRAM)</option>
+                  <option value="GeForce RTX 4060">GeForce RTX 4060 (8GB VRAM)</option>
+                </optgroup>
+                <optgroup label="AMD Radeon RX 7000">
+                  <option value="Radeon RX 7900 XTX">Radeon RX 7900 XTX (24GB VRAM)</option>
+                  <option value="Radeon RX 7800 XT">Radeon RX 7800 XT (16GB VRAM)</option>
+                  <option value="Radeon RX 7600">Radeon RX 7600 (8GB VRAM)</option>
+                </optgroup>
+                <optgroup label="NVIDIA RTX 30 & Budget">
+                  <option value="GeForce RTX 3060 12GB">GeForce RTX 3060 (12GB VRAM)</option>
+                  <option value="GeForce RTX 3050 6GB">GeForce RTX 3050 6GB</option>
+                  <option value="Intel Arc B580">Intel Arc B580 (12GB VRAM)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="sim-control-box">
+              <label class="sim-control-label">Target Processor (CPU)</label>
+              <select id="simCpuSelect" class="sim-select" onchange="runUpgradeSimulation()">
+                <option value="">Keep Current CPU</option>
+                <optgroup label="AMD Ryzen Gaming">
+                  <option value="AMD Ryzen 7 7800X3D">AMD Ryzen 7 7800X3D (8-Core 3D V-Cache)</option>
+                  <option value="AMD Ryzen 7 5700X3D">AMD Ryzen 7 5700X3D (AM4 Upgrade)</option>
+                  <option value="AMD Ryzen 5 7600X">AMD Ryzen 5 7600X (6-Core)</option>
+                  <option value="AMD Ryzen 5 5600X">AMD Ryzen 5 5600X</option>
+                </optgroup>
+                <optgroup label="Intel Core">
+                  <option value="Intel Core i7-14700K">Intel Core i7-14700K (20-Core)</option>
+                  <option value="Intel Core i5-13600K">Intel Core i5-13600K (14-Core)</option>
+                  <option value="Intel Core i5-12400F">Intel Core i5-12400F (6-Core)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="sim-control-box">
+              <label class="sim-control-label">Target RAM Memory</label>
+              <select id="simRamSelect" class="sim-select" onchange="runUpgradeSimulation()">
+                <option value="">Keep Current RAM</option>
+                <option value="16">16 GB Dual-Channel DDR4/DDR5</option>
+                <option value="32" selected>32 GB High-Speed Dual-Channel</option>
+                <option value="64">64 GB Enthusiast Memory</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Simulation Delta Stats Row -->
+          <div class="sim-metrics-row" id="simMetricsRow">
+            <div class="sim-metric-card">
+              <span class="sim-metric-label">Rig Performance Index</span>
+              <div class="sim-metric-val" id="simScoreDelta">+24 pts</div>
+              <span class="sim-metric-sub" id="simScoreSub">From 72/100 → 96/100</span>
+            </div>
+
+            <div class="sim-metric-card">
+              <span class="sim-metric-label">Newly Unlocked 60+ FPS</span>
+              <div class="sim-metric-val" style="color:var(--color-success)" id="simUnlockedCount">+14 Games</div>
+              <span class="sim-metric-sub" id="simUnlockedSub">Jumped from struggle to smooth</span>
+            </div>
+
+            <div class="sim-metric-card">
+              <span class="sim-metric-label">Average FPS Uplift</span>
+              <div class="sim-metric-val" style="color:#00f0ff" id="simFpsBoost">+58.4%</div>
+              <span class="sim-metric-sub">Across full catalog</span>
+            </div>
+
+            <div class="sim-metric-card">
+              <span class="sim-metric-label">Bottleneck Status</span>
+              <div class="sim-metric-val" style="color:#a855f7;font-size:1.1rem" id="simBottleneckRelief">Optimal Balance</div>
+              <span class="sim-metric-sub" id="simBottleneckSub">GPU bottleneck relieved</span>
+            </div>
+          </div>
+
+          <!-- Newly Unlocked Games Showcase -->
+          <div class="sim-unlocked-section">
+            <div class="sim-unlocked-header">
+              <span style="font-weight:700;font-size:0.95rem;color:#ffffff">🎮 Games Unlocked by This Upgrade (Now 60+ FPS):</span>
+              <span class="badge badge-cyan" id="simUnlockedBadge">14 Titles Unlocked</span>
+            </div>
+            <div class="sim-unlocked-grid" id="simUnlockedGrid">
+              <!-- Populated dynamically by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── "CAN MY SQUAD RUN IT?" SQUAD CO-OP ROOM ── -->
+    <section class="section" id="squad-room" style="padding-top:0">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:var(--color-success)">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              "Can My Squad Run It?" Co-op Compatibility Room
+            </h2>
+            <span class="section-subtitle">Pool your gaming squad's rigs together to find multiplayer co-op games that EVERYONE can run smoothly at 60+ FPS</span>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-sm btn-secondary" onclick="addSquadMemberPrompt()">+ Add Squad Mate</button>
+            <button class="btn btn-sm btn-ghost" onclick="resetSquadToDefault()">Reset Demo Squad</button>
+          </div>
+        </div>
+
+        <div class="squad-room-wrapper">
+          <!-- Squad Members Roster Row -->
+          <div class="squad-members-row" id="squadMembersRow">
+            <!-- Dynamic Squad Cards rendered by JS -->
+          </div>
+
+          <!-- Co-op Games Matrix Grid -->
+          <div style="margin-top:20px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+              <span style="font-weight:700;font-size:0.95rem;color:#ffffff">🔥 Squad Co-op Compatibility Matrix:</span>
+              <span class="badge badge-purple" id="squadReadyCountBadge">10 Co-op Games Evaluated</span>
+            </div>
+            <div class="squad-coop-grid" id="squadCoopGrid">
+              <!-- Populated dynamically by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── Recommended For You ── -->
     <section class="section" style="padding-top:0">
       <div class="container">
@@ -635,6 +827,119 @@
         </div>
         <div class="deals-grid" id="dealsGrid">
           <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Upcoming Steam Sales & Seasonal Events Tracker ── -->
+    <section class="section" id="upcoming-sales">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <span style="color:#ff007f">🔥</span>
+              Steam Seasonal Sales & Upcoming Festivals
+            </h2>
+            <span class="section-subtitle">Real-time live countdowns, official Valve seasonal schedule, and predictive wishlist savings forecast</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="badge badge-purple" id="upcomingSalesStatusBadge">🌸 Next Major: Steam Spring Sale</span>
+            <button class="btn btn-sm btn-secondary" onclick="loadUpcomingSalesData(true)" title="Refresh Steam Sale events">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:13px;height:13px">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <!-- Major Sale Hero Countdown Banner -->
+        <div class="sale-countdown-banner" id="saleHeroCountdownBanner">
+          <div class="sale-countdown-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="sale-hero-icon" id="saleHeroIcon">🌸</span>
+              <div>
+                <span class="sale-hero-tag" id="saleHeroTag">🌟 NEXT MAJOR STEAM SEASONAL SALE</span>
+                <h3 class="sale-hero-title" id="saleHeroTitle">Steam Spring Sale 2026</h3>
+              </div>
+            </div>
+            <div class="sale-hero-dates" id="saleHeroDates">
+              📅 March 12 – March 19, 2026 • Expected: 50% – 85% Off
+            </div>
+          </div>
+
+          <!-- Digital Ticking Clock Grid -->
+          <div class="sale-clock-grid">
+            <div class="sale-clock-box">
+              <div class="sale-clock-number" id="clockDays">--</div>
+              <div class="sale-clock-label">DAYS</div>
+            </div>
+            <div class="sale-clock-sep">:</div>
+            <div class="sale-clock-box">
+              <div class="sale-clock-number" id="clockHours">--</div>
+              <div class="sale-clock-label">HOURS</div>
+            </div>
+            <div class="sale-clock-sep">:</div>
+            <div class="sale-clock-box">
+              <div class="sale-clock-number" id="clockMins">--</div>
+              <div class="sale-clock-label">MINUTES</div>
+            </div>
+            <div class="sale-clock-sep">:</div>
+            <div class="sale-clock-box">
+              <div class="sale-clock-number" id="clockSecs">--</div>
+              <div class="sale-clock-label">SECONDS</div>
+            </div>
+          </div>
+
+          <!-- Wishlist Predictive Savings Hero Callout -->
+          <div class="sale-hero-savings-box" id="saleHeroSavingsBox">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+              <div>
+                <strong style="color:#00f0ff">💡 Wishlist Predictive Advice:</strong>
+                <span id="saleHeroAdviceText" style="color:var(--text-secondary);margin-left:6px">Games in your tracker historically drop by ~60% in this sale. We advise waiting for event launch!</span>
+              </div>
+              <button class="btn btn-sm btn-primary" onclick="toggleSaleNotificationReminder()">
+                <span id="saleReminderBtnText">🔔 Set Sale Reminder</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section Navigation / Filter Chips -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 0 14px 0;flex-wrap:wrap;gap:10px">
+          <div class="store-filter-chips">
+            <button class="store-filter-chip active" data-sales-filter="all" onclick="filterSalesCalendar('all')">
+              🗓️ All Upcoming Events (<span id="salesCountAll">9</span>)
+            </button>
+            <button class="store-filter-chip" data-sales-filter="major" onclick="filterSalesCalendar('major')">
+              🌟 Major Seasonal Sales
+            </button>
+            <button class="store-filter-chip" data-sales-filter="fests" onclick="filterSalesCalendar('fests')">
+              🎯 Thematic Festivals
+            </button>
+          </div>
+          <span style="font-size:0.75rem;color:var(--text-muted)">Verified via Official Valve Steam Calendar & Store API</span>
+        </div>
+
+        <!-- Sales Calendar Roadmap Cards Grid -->
+        <div class="sales-calendar-grid" id="salesCalendarGrid">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Active Steam Live Specials & Weekend Deals -->
+        <div class="active-specials-wrap" id="activeSpecialsWrap" style="margin-top:28px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:1.1rem">⚡</span>
+              <h3 style="font-size:1.05rem;font-weight:700;color:var(--text-primary)">Currently Live Steam Specials & Weekend Deals</h3>
+            </div>
+            <span class="badge badge-success">Direct Steam API Feed</span>
+          </div>
+          <div class="active-specials-grid" id="activeSpecialsGrid">
+            <!-- Populated by JS -->
+          </div>
         </div>
       </div>
     </section>
@@ -759,6 +1064,43 @@
           </div>
           
           <div id="steamProfileCard" style="display:none"></div>
+
+          <!-- Steam Library ROI & "Pile of Shame" Analytics Widget -->
+          <div id="steamLibraryRoiWidget" style="display:none;margin-top:16px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:16px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:1.1rem">📊</span>
+                <span style="font-weight:700;font-size:0.95rem;color:#ffffff">Steam Library ROI & Backlog Analytics</span>
+              </div>
+              <span class="badge badge-cyan" id="libraryCphRatingBadge">🏆 Legendary Value</span>
+            </div>
+
+            <div class="library-roi-grid">
+              <div class="library-roi-stat-box">
+                <span class="roi-stat-label">Estimated Library Value</span>
+                <div class="roi-stat-val" id="roiTotalValue">$1,280.00</div>
+                <span class="roi-stat-sub" id="roiTotalGamesCount">Across 42 Owned Games</span>
+              </div>
+
+              <div class="library-roi-stat-box">
+                <span class="roi-stat-label">Total Time Played</span>
+                <div class="roi-stat-val" style="color:#38bdf8" id="roiTotalHours">1,148.5 hrs</div>
+                <span class="roi-stat-sub">Lifetime Steam Playtime</span>
+              </div>
+
+              <div class="library-roi-stat-box">
+                <span class="roi-stat-label">Average Cost-Per-Hour</span>
+                <div class="roi-stat-val" style="color:var(--color-success)" id="roiCostPerHour">$1.11 / hr</div>
+                <span class="roi-stat-sub" id="roiCphDesc">Excellent entertainment ROI</span>
+              </div>
+
+              <div class="library-roi-stat-box">
+                <span class="roi-stat-label">"Pile of Shame" (Unplayed)</span>
+                <div class="roi-stat-val" style="color:var(--color-warning)" id="roiPileCount">8 Games ($180)</div>
+                <span class="roi-stat-sub" id="roiBacklogHours">~180 hrs to clear backlog</span>
+              </div>
+            </div>
+          </div>
           
           <!-- Library Search & Filter Bar (shown when games loaded) -->
           <div id="steamLibraryControls" style="display:none;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle);display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between">
@@ -855,29 +1197,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── Upcoming Gaming Events ── -->
-    <section class="section" id="events" style="padding-top:0">
-      <div class="container">
-        <div class="section-header">
-          <div class="section-title-wrap">
-            <h2 class="section-title">
-              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:var(--brand-blue)">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              Upcoming Steam Sales & Events
-            </h2>
-            <span class="section-subtitle">Annual seasonal sale dates and event countdowns</span>
-          </div>
-        </div>
-        <div id="eventsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--space-md)">
-          <!-- Populated by JS -->
         </div>
       </div>
     </section>
@@ -1454,7 +1773,169 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <!-- ═══════════════════════ "WHAT SHOULD I PLAY TONIGHT?" MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="playTonightModal">
+    <div class="modal" style="max-width:640px">
+      <button class="modal-close" onclick="closePlayTonightModal()">✕</button>
+      <div style="padding:28px 24px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div class="navbar-logo-glyph" style="width:32px;height:32px;font-size:1.1rem">🎲</div>
+          <div>
+            <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.35rem;color:#ffffff">What Should I Play Tonight?</h2>
+            <span style="font-size:0.8rem;color:var(--text-muted)">Backlog Decision Slayer • Curated for your active hardware</span>
+          </div>
+        </div>
+
+        <!-- Mode Toggle Tabs -->
+        <div class="tab-filters" style="margin:16px 0 18px 0">
+          <button class="tab-filter active" id="tabRouletteBtn" onclick="switchPlayTonightMode('roulette')">🎰 Cyberpunk Roulette Wheel</button>
+          <button class="tab-filter" id="tabMoodBtn" onclick="switchPlayTonightMode('mood')">🧠 3-Question Mood Wizard</button>
+        </div>
+
+        <!-- Mode 1: Roulette View -->
+        <div id="playTonightRouletteView">
+          <div class="roulette-wheel-container">
+            <div class="roulette-pointer">▼</div>
+            <div class="roulette-strip-window">
+              <div class="roulette-strip" id="rouletteStrip">
+                <!-- Populated dynamically with game chips -->
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align:center;margin:18px 0 12px 0">
+            <button class="btn btn-primary btn-lg" id="btnSpinRoulette" onclick="spinBacklogRoulette()" style="min-width:200px">
+              <span>⚡ SPIN THE WHEEL</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode 2: Mood Wizard View -->
+        <div id="playTonightMoodView" style="display:none">
+          <!-- Question 1: Time -->
+          <div style="margin-bottom:14px">
+            <span class="mood-q-label">1. How much time do you have tonight?</span>
+            <div class="mood-chips-row" id="moodTimeChips">
+              <button class="btn-mood-chip" data-time="short" onclick="selectMoodChip('time', 'short', this)">⚡ Quick 30m Burst</button>
+              <button class="btn-mood-chip active" data-time="medium" onclick="selectMoodChip('time', 'medium', this)">🎮 1–2 Hours Standard</button>
+              <button class="btn-mood-chip" data-time="long" onclick="selectMoodChip('time', 'long', this)">🌌 3+ Hours Deep Dive</button>
+            </div>
+          </div>
+
+          <!-- Question 2: Vibe -->
+          <div style="margin-bottom:14px">
+            <span class="mood-q-label">2. What vibe are you looking for?</span>
+            <div class="mood-chips-row" id="moodVibeChips">
+              <button class="btn-mood-chip active" data-vibe="adrenaline" onclick="selectMoodChip('vibe', 'adrenaline', this)">🔥 High Adrenaline & FPS</button>
+              <button class="btn-mood-chip" data-vibe="cozy" onclick="selectMoodChip('vibe', 'cozy', this)">☕ Cozy & Relaxing Chill</button>
+              <button class="btn-mood-chip" data-vibe="story" onclick="selectMoodChip('vibe', 'story', this)">📜 Deep Story & RPG</button>
+              <button class="btn-mood-chip" data-vibe="coop" onclick="selectMoodChip('vibe', 'coop', this)">🤝 Multiplayer & Co-op</button>
+            </div>
+          </div>
+
+          <!-- Question 3: FPS -->
+          <div style="margin-bottom:18px">
+            <span class="mood-q-label">3. Target performance?</span>
+            <div class="mood-chips-row" id="moodFpsChips">
+              <button class="btn-mood-chip active" data-fps="60" onclick="selectMoodChip('fps', '60', this)">🎯 Smooth 60+ FPS</button>
+              <button class="btn-mood-chip" data-fps="120" onclick="selectMoodChip('fps', '120', this)">⚡ Max Out 120+ FPS</button>
+            </div>
+          </div>
+
+          <div style="text-align:center;margin-bottom:12px">
+            <button class="btn btn-primary" onclick="runMoodWizardMatch()" style="min-width:200px">
+              <span>✨ Find My Match</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Winner Card Container (Appears after Spin or Wizard) -->
+        <div id="playTonightWinnerCard" style="display:none;margin-top:16px">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ HOLOGRAPHIC GAMER RIG PASSPORT MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="gamerPassportModal">
+    <div class="modal" style="max-width:760px">
+      <button class="modal-close" onclick="closeGamerPassportModal()">✕</button>
+      <div style="padding:28px 24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="navbar-logo-glyph" style="width:32px;height:32px;font-size:1.1rem">🎴</div>
+            <div>
+              <h2 style="font-family:var(--font-heading);font-weight:700;font-size:1.35rem;color:#ffffff">Gamer Rig Passport</h2>
+              <span style="font-size:0.8rem;color:var(--text-muted)">High-Resolution Holographic Card • Share on Discord, Reddit & Twitter</span>
+            </div>
+          </div>
+
+          <!-- Theme Palette Selector for Card -->
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:0.75rem;font-weight:600;color:var(--text-muted)">Card Theme:</span>
+            <select id="passportThemeSelect" class="currency-select" onchange="renderPassportCanvas()">
+              <option value="cyberpunk" selected>Cyberpunk 2077</option>
+              <option value="steam">Steam Dark Navy</option>
+              <option value="rog">ROG Crimson</option>
+              <option value="matrix">Razer Matrix</option>
+              <option value="synthwave">Chroma Synthwave</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Custom Photo / Rig Photo Customizer Toolbar -->
+        <div class="passport-photo-toolbar">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase">Card Photo:</span>
+
+            <!-- Hidden File Input -->
+            <input type="file" id="passportPhotoFileInput" accept="image/*" style="display:none" onchange="handlePassportPhotoUpload(event)" />
+
+            <button class="btn btn-sm btn-primary" onclick="document.getElementById('passportPhotoFileInput').click()" title="Upload your custom photo, selfie, gamer avatar, or battle-station gaming rig photo">
+              <span>📷 Upload Your Photo / Rig</span>
+            </button>
+
+            <!-- Preset Avatar Buttons -->
+            <div class="passport-avatar-presets">
+              <button class="btn-sim-preset active" id="presetAvatarSteam" onclick="selectPassportPresetAvatar('steam')">🎮 Steam Avatar</button>
+              <button class="btn-sim-preset" id="presetAvatarRig" onclick="selectPassportPresetAvatar('battlestation')">🖥️ Custom Rig</button>
+              <button class="btn-sim-preset" id="presetAvatarCyber" onclick="selectPassportPresetAvatar('cyberpunk')">⚡ Cyberpunk V</button>
+              <button class="btn-sim-preset" id="presetAvatarNinja" onclick="selectPassportPresetAvatar('ninja')">🥷 Cyber Ninja</button>
+            </div>
+
+            <button class="btn btn-sm btn-ghost" id="passportClearPhotoBtn" style="display:none;color:var(--color-danger);padding:4px 8px;font-size:0.74rem" onclick="clearPassportCustomPhoto()">
+              ✕ Reset Photo
+            </button>
+          </div>
+
+          <div id="passportPhotoStatus" style="font-size:0.74rem;color:var(--brand-blue);font-weight:600">
+            ✓ Steam Avatar Active
+          </div>
+        </div>
+
+        <!-- Live Canvas Preview Frame -->
+        <div class="passport-canvas-wrapper">
+          <canvas id="passportCanvas" width="800" height="460" class="passport-canvas"></canvas>
+        </div>
+
+        <!-- Action Controls -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px;flex-wrap:wrap;gap:10px;padding-top:14px;border-top:1px solid var(--border-subtle)">
+          <div style="font-size:0.8rem;color:var(--text-secondary)">
+            <span>🛡️ Verified by PlaySpec Hardware Diagnostics</span>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-secondary" onclick="copyPassportToClipboard()" id="btnCopyPassport">
+              <span>📋 Copy Image</span>
+            </button>
+            <button class="btn btn-primary" onclick="downloadPassportPNG()">
+              <span>📥 Download PNG Card</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   <footer class="footer">
     <div class="container">
       <div class="footer-grid">

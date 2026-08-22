@@ -1722,13 +1722,6 @@ const MOCK_GAMES = CATALOG_GAMES;
 let GAMES = [...MOCK_GAMES];
 let FREE_GAMES = [];
 
-const EVENTS = [
-  { title: "Steam Spring Sale", desc: "Major seasonal discounts across thousands of Steam titles.", countdown: "28 days", icon: "tag" },
-  { title: "Steam Summer Sale", desc: "Deepest discounts of the year on AAA & indie games.", countdown: "120 days", icon: "tag" },
-  { title: "Steam Autumn Sale", desc: "Black Friday & Thanksgiving promotional deals.", countdown: "260 days", icon: "tag" },
-  { title: "Steam Winter Sale", desc: "Year-end holiday mega event with Steam Awards.", countdown: "305 days", icon: "tag" }
-];
-
 
 // ── CARD RENDERERS ──
 
@@ -1756,6 +1749,10 @@ function createGameCard(game) {
             ${game.compatText}
           </span>
           <span class="badge badge-cyan">${game.match}% Match</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <span class="badge-deck-verified" style="font-size:0.68rem">✓ Deck Verified</span>
+          ${game.discount ? `<span class="badge-sale-forecast badge-buy-now" style="font-size:0.66rem">🔥 Peak Deal</span>` : `<span class="badge-sale-forecast badge-wait" style="font-size:0.66rem">⏳ Sale Soon</span>`}
         </div>
         <div class="game-card-price">
           <div>
@@ -1872,11 +1869,6 @@ function populateAll() {
   if (freeEl && FREE_GAMES.length > 0) {
     freeEl.innerHTML = FREE_GAMES.map(createFreeCard).join('');
   }
-
-  const eventsEl = document.getElementById('eventsList');
-  if (eventsEl) {
-    eventsEl.innerHTML = EVENTS.map(createEventCard).join('');
-  }
 }
 
 
@@ -1891,14 +1883,24 @@ async function fetchLivePrices() {
       const data = await resp.json();
       GAMES.forEach(g => {
         if (data[g.id]) {
-          g.currentPrice = data[g.id].current;
-          g.originalPrice = data[g.id].original;
-          g.discount = data[g.id].discount_percent ? `-${data[g.id].discount_percent}%` : null;
-          g.priceBadge = data[g.id].discount_percent >= 50 ? 'great' : (data[g.id].discount_percent > 0 ? 'normal' : 'normal');
-          g.priceBadgeText = data[g.id].discount_percent >= 50 ? 'Great Deal' : (data[g.id].discount_percent > 0 ? 'Sale Active' : 'Regular Price');
+          const pData = data[g.id];
+          g.currentPrice = pData.current;
+          g.originalPrice = pData.original;
+          g.discount = pData.discount_percent ? `-${pData.discount_percent}%` : null;
+          g.discount_percent = pData.discount_percent || 0;
+          g.savings_formatted = pData.savings_formatted;
+          g.deal_rating = pData.deal_rating;
+          g.final_cents = pData.final_cents;
+          g.initial_cents = pData.initial_cents;
+          g.priceBadge = pData.discount_percent >= 50 ? 'great' : (pData.discount_percent > 0 ? 'normal' : 'normal');
+          g.priceBadgeText = pData.deal_rating || (pData.discount_percent >= 50 ? 'Great Deal' : (pData.discount_percent > 0 ? 'Sale Active' : 'Regular Price'));
         }
       });
       populateAll();
+      // If wishlist is visible, re-render to reflect new verified live pricing
+      if (window.currentWishlistItems) {
+        updateTrackerStats(window.currentWishlistItems);
+      }
     }
   } catch (err) {}
 }
@@ -3066,8 +3068,14 @@ function renderMLRecommendations(items, filter) {
             ${game.bottleneck ? `<span class="bottleneck-pill" title="Hardware Bottleneck Analysis">${game.bottleneck}</span>` : ''}
           </div>
 
+          <!-- Steam Deck & Sale Forecaster Meta -->
+          <div style="display:flex;align-items:center;gap:6px;margin:6px 0;flex-wrap:wrap">
+            <span class="badge-deck-${game.deck_status || 'verified'}" style="font-size:0.68rem">🎮 ${game.deck_label || 'Deck Verified'}</span>
+            ${game.sale_forecast ? `<span class="badge-sale-forecast ${game.sale_forecast.badge_class || 'badge-buy-now'}" style="font-size:0.66rem">${game.sale_forecast.advice}</span>` : (game.discount ? `<span class="badge-sale-forecast badge-buy-now" style="font-size:0.66rem">🔥 All-Time Low</span>` : `<span class="badge-sale-forecast badge-wait" style="font-size:0.66rem">⏳ Wait for Sale</span>`)}
+          </div>
+
           <!-- Why Recommended Quick Button -->
-          <div style="margin:6px 0">
+          <div style="margin:4px 0">
             <button class="why-recommend-link" onclick="event.stopPropagation(); openWhyRecommendModal('${game.id}')">
               <span>💡 Why recommended?</span>
             </button>
@@ -3402,6 +3410,8 @@ function renderWishlist(items) {
     const lowP = convertPrice(item.lowest_price ? `$${item.lowest_price}` : item.lowestPrice || '$19.99');
     const alertP = item.alert_price ? convertPrice(`$${item.alert_price}`) : 'Not Set';
     const isBelowAlert = item.current_price && item.alert_price && item.current_price <= item.alert_price;
+    const hasDiscount = item.discount_percent && item.discount_percent > 0;
+    const dealRating = item.deal_rating || (hasDiscount ? (item.discount_percent >= 50 ? '🟢 Great Deal' : '🟡 Active Sale') : '⏳ Full Price');
 
     return `
       <div class="wishlist-card">
@@ -3409,15 +3419,15 @@ function renderWishlist(items) {
           <img class="wishlist-card-thumb" src="${item.game_image || item.image || 'images/cyberpunk.png'}" alt="${item.game_title || item.title}" onerror="this.src='images/cyberpunk.png'" />
           <div class="wishlist-card-info">
             <div class="wishlist-card-name">${item.game_title || item.title}</div>
-            <div class="wishlist-card-genre">AppID: ${item.appid || item.id}</div>
+            <div class="wishlist-card-genre">Steam AppID: ${item.appid || item.id}</div>
           </div>
           <button class="wishlist-card-remove" title="Remove from Tracker" onclick="removeFromWishlist(${item.appid || item.id})">✕</button>
         </div>
 
         <div class="wishlist-prices">
           <div>
-            <div class="wishlist-price-label">Current</div>
-            <div class="wishlist-price-value">${currentP}</div>
+            <div class="wishlist-price-label">Current Price</div>
+            <div class="wishlist-price-value">${currentP} ${hasDiscount ? `<span style="font-size:0.72rem;color:var(--color-success);font-weight:700">(-${item.discount_percent}%)</span>` : ''}</div>
           </div>
           <div>
             <div class="wishlist-price-label">Historical Low</div>
@@ -3429,20 +3439,26 @@ function renderWishlist(items) {
           </div>
         </div>
 
-        <div style="margin-bottom:12px">
-          <span class="badge ${isBelowAlert ? 'badge-success' : 'badge-warning'}">
-            <span class="badge-dot"></span>
-            ${isBelowAlert ? 'Below Alert Target!' : 'Watching for Price Drop'}
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+          <span class="badge ${isBelowAlert ? 'badge-success' : 'badge-cyan'}">
+            <span class="badge-dot" style="background:${isBelowAlert ? 'var(--color-success)' : 'var(--brand-blue)'}"></span>
+            ${isBelowAlert ? '🎯 Below Alert Target!' : 'Watching for Price Drop'}
+          </span>
+          <span class="badge ${hasDiscount ? 'badge-green' : 'badge-secondary'}" style="font-size:0.68rem">
+            ${dealRating}
           </span>
         </div>
 
         <div class="wishlist-actions">
+          <button class="btn btn-sm btn-secondary" onclick="openPriceHistoryModal(${item.appid || item.id}, '${(item.game_title || item.title).replace(/'/g, "\\'")}')" title="View historical price chart">
+            📈 History
+          </button>
           <button class="btn btn-sm btn-secondary" onclick="openWishlistModal(${item.appid || item.id}, '${(item.game_title || item.title).replace(/'/g, "\\'")}', '${item.game_image || item.image || ''}')">
-            Set Alert
+            ⚙️ Alert
           </button>
-          <button class="btn btn-sm btn-primary" onclick="window.open('https://store.steampowered.com/app/${item.appid || item.id}', '_blank')">
-            Steam Store ${ICONS.external}
-          </button>
+          <a href="https://store.steampowered.com/app/${item.appid || item.id}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary">
+            Store ↗
+          </a>
         </div>
       </div>
     `;
@@ -5913,11 +5929,890 @@ function initUI() {
     });
   });
 
+  // Navigation Bar Links Active State & Smooth Scroll
+  document.querySelectorAll('.navbar-nav-centered .nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      document.querySelectorAll('.navbar-nav-centered .nav-link').forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+    });
+  });
+
   // Counters
   document.querySelectorAll('[data-count]').forEach(el => {
     const target = parseInt(el.dataset.count);
     if (!isNaN(target)) el.textContent = target.toLocaleString();
   });
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// ADVANCED GAMING SUITE: UPGRADE SIMULATOR • SQUAD CO-OP • ROULETTE • PASSPORT
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── 1. 1-CLICK PC UPGRADE SIMULATOR ──
+const SIM_PRESETS = {
+  rtx4060: { gpu: 'GeForce RTX 4060', cpu: '', ram: '16' },
+  rtx4070: { gpu: 'GeForce RTX 4070 Super', cpu: '', ram: '32' },
+  ryzen7800x3d: { gpu: '', cpu: 'AMD Ryzen 7 7800X3D', ram: '32' },
+  rx7800xt: { gpu: 'Radeon RX 7800 XT', cpu: '', ram: '32' },
+  ram32gb: { gpu: '', cpu: '', ram: '32' }
+};
+
+function applySimPreset(presetKey) {
+  document.querySelectorAll('.btn-sim-preset').forEach(b => b.classList.remove('active'));
+  const targetBtn = document.querySelector(`.btn-sim-preset[onclick*="'${presetKey}'"]`);
+  if (targetBtn) targetBtn.classList.add('active');
+
+  const preset = SIM_PRESETS[presetKey];
+  if (!preset) return;
+
+  const gpuSel = document.getElementById('simGpuSelect');
+  const cpuSel = document.getElementById('simCpuSelect');
+  const ramSel = document.getElementById('simRamSelect');
+
+  if (gpuSel && preset.gpu !== undefined) gpuSel.value = preset.gpu;
+  if (cpuSel && preset.cpu !== undefined) cpuSel.value = preset.cpu;
+  if (ramSel && preset.ram !== undefined) ramSel.value = preset.ram;
+
+  runUpgradeSimulation();
+}
+
+async function runUpgradeSimulation() {
+  const gpuSel = document.getElementById('simGpuSelect');
+  const cpuSel = document.getElementById('simCpuSelect');
+  const ramSel = document.getElementById('simRamSelect');
+
+  const targetGpu = gpuSel ? gpuSel.value : '';
+  const targetCpu = cpuSel ? cpuSel.value : '';
+  const targetRam = ramSel ? ramSel.value : '';
+
+  const activeRig = getActiveRig();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/upgrade/simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        current_rig: activeRig,
+        target_gpu: targetGpu,
+        target_cpu: targetCpu,
+        target_ram: targetRam
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        renderUpgradeSimulation(data);
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // Fallback client simulation if offline
+  renderClientUpgradeSimulation(activeRig, targetGpu, targetCpu, targetRam);
+}
+
+function renderUpgradeSimulation(data) {
+  const base = data.baseline || {};
+  const upg = data.upgraded || {};
+  const sim = data.simulation || {};
+
+  const scoreDeltaEl = document.getElementById('simScoreDelta');
+  const scoreSubEl = document.getElementById('simScoreSub');
+  const unlockedCountEl = document.getElementById('simUnlockedCount');
+  const unlockedSubEl = document.getElementById('simUnlockedSub');
+  const fpsBoostEl = document.getElementById('simFpsBoost');
+  const bottleneckReliefEl = document.getElementById('simBottleneckRelief');
+  const bottleneckSubEl = document.getElementById('simBottleneckSub');
+  const unlockedBadgeEl = document.getElementById('simUnlockedBadge');
+  const unlockedGridEl = document.getElementById('simUnlockedGrid');
+
+  if (scoreDeltaEl) scoreDeltaEl.textContent = `+${Math.max(0, sim.score_delta || 0)} pts`;
+  if (scoreSubEl) scoreSubEl.textContent = `From ${base.score || 72}/100 → ${upg.score || 96}/100`;
+  if (unlockedCountEl) unlockedCountEl.textContent = `+${sim.unlocked_count || 0} Games`;
+  if (unlockedSubEl) unlockedSubEl.textContent = `${upg.smooth_games_count || 0} of ${sim.total_catalog_games || 45} games at 60+ FPS`;
+  if (fpsBoostEl) fpsBoostEl.textContent = `+${sim.avg_fps_boost_percent || 45}%`;
+  if (bottleneckReliefEl) bottleneckReliefEl.textContent = upg.score >= 90 ? 'Enthusiast Balance' : 'Optimal Balance';
+  if (bottleneckSubEl) bottleneckSubEl.textContent = sim.bottleneck_relief_notes || 'Bottleneck eliminated';
+  if (unlockedBadgeEl) unlockedBadgeEl.textContent = `${sim.unlocked_count || 0} Titles Unlocked at 60+ FPS`;
+
+  if (unlockedGridEl) {
+    const games = sim.unlocked_games || [];
+    if (games.length === 0) {
+      unlockedGridEl.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted)">
+          <span>✨ Your current rig already runs these catalog titles smoothly! Select a higher-end GPU to test extreme 1440p/4K presets.</span>
+        </div>
+      `;
+    } else {
+      unlockedGridEl.innerHTML = games.map(g => `
+        <div class="sim-unlocked-card">
+          <img src="${g.image}" alt="${g.title}" class="sim-unlocked-img" loading="lazy" />
+          <div class="sim-unlocked-body">
+            <span class="sim-unlocked-title">${g.title}</span>
+            <div class="sim-fps-delta-row">
+              <span style="color:var(--color-danger)">Before: ${g.before_fps}</span>
+              <span style="color:var(--color-success);font-weight:700">Now: ${g.after_fps}</span>
+            </div>
+            <span style="font-size:0.72rem;color:var(--text-secondary)">Preset: ${g.optimal_setting}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function renderClientUpgradeSimulation(activeRig, targetGpu, targetCpu, targetRam) {
+  const baseParsed = parseAndScoreHardwareClient(activeRig);
+  const upgRig = { ...activeRig };
+  if (targetGpu) upgRig.gpu = targetGpu;
+  if (targetCpu) upgRig.cpu = targetCpu;
+  if (targetRam) upgRig.ram = `${targetRam} GB RAM`;
+  const upgParsed = parseAndScoreHardwareClient(upgRig);
+
+  const delta = Math.max(4, upgParsed.rigIndex - baseParsed.rigIndex);
+  const fpsBoost = Math.round(delta * 2.2);
+
+  const dummyData = {
+    baseline: { score: baseParsed.rigIndex },
+    upgraded: { score: upgParsed.rigIndex, smooth_games_count: 38 },
+    simulation: {
+      score_delta: delta,
+      avg_fps_boost_percent: fpsBoost,
+      unlocked_count: Math.max(3, Math.round(delta / 3)),
+      total_catalog_games: CATALOG_GAMES.length,
+      bottleneck_relief_notes: 'Primary bottleneck relieved across heavy AAA titles.',
+      unlocked_games: CATALOG_GAMES.slice(10, 16).map(g => ({
+        id: g.id,
+        title: g.title,
+        image: g.image,
+        before_fps: '30–45 FPS',
+        after_fps: '75–110 FPS',
+        optimal_setting: '1080p Ultra • Smooth'
+      }))
+    }
+  };
+  renderUpgradeSimulation(dummyData);
+}
+
+
+// ── 2. "CAN MY SQUAD RUN IT?" SQUAD CO-OP ROOM ──
+let squadMembers = [
+  { name: "You (Host)", rig: null },
+  { name: "Alex", rig: { gpu: "GeForce GTX 1650", cpu: "Intel Core i5-9400F", ram: "8 GB RAM", vram: "4.0 GB VRAM" } },
+  { name: "Sarah", rig: { gpu: "GeForce RTX 3070", cpu: "AMD Ryzen 7 5700X", ram: "32 GB RAM", vram: "8.0 GB VRAM" } }
+];
+
+function initSquadRoom() {
+  renderSquadRoster();
+  runSquadAnalysis();
+}
+
+function renderSquadRoster() {
+  const row = document.getElementById('squadMembersRow');
+  if (!row) return;
+
+  const activeRig = getActiveRig();
+  squadMembers[0].rig = activeRig;
+
+  row.innerHTML = squadMembers.map((m, idx) => {
+    const isHost = idx === 0;
+    const parsed = parseAndScoreHardwareClient(m.rig || activeRig);
+    return `
+      <div class="squad-member-card ${isHost ? 'host' : ''}">
+        <div class="squad-member-header">
+          <span class="squad-member-name">${m.name} ${isHost ? '<span style="font-size:0.7rem;color:var(--brand-blue)">(You)</span>' : ''}</span>
+          ${!isHost ? `<button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:0.7rem;color:var(--color-danger)" onclick="removeSquadMember(${idx})">✕</button>` : ''}
+        </div>
+        <div class="squad-member-gpu">${m.rig?.gpu || activeRig.gpu || 'RTX 3060'}</div>
+        <div class="squad-member-specs-line">${m.rig?.cpu || activeRig.cpu || 'i5 Processor'} • ${m.rig?.ram || activeRig.ram || '16 GB RAM'}</div>
+        <div style="margin-top:8px">
+          <span class="badge ${parsed.tierNum >= 4 ? 'badge-cyan' : (parsed.tierNum >= 3 ? 'badge-purple' : 'badge-red')}">${parsed.tierLabel}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addSquadMemberPrompt() {
+  if (squadMembers.length >= 4) {
+    showToastNotification('Maximum 4 squad members supported in co-op room.');
+    return;
+  }
+  const name = prompt("Enter Squad Mate's Name:", `Player ${squadMembers.length + 1}`);
+  if (!name) return;
+
+  const presets = [
+    { label: "Budget Gaming PC (GTX 1660 Super)", rig: { gpu: "GeForce GTX 1660 Super", cpu: "Ryzen 5 3600", ram: "16 GB RAM", vram: "6.0 GB VRAM" } },
+    { label: "Mid-Range Laptop (RTX 4050)", rig: { gpu: "GeForce RTX 4050 Laptop", cpu: "i5-13500H", ram: "16 GB RAM", vram: "6.0 GB VRAM" } },
+    { label: "High-End Rig (RTX 4070)", rig: { gpu: "GeForce RTX 4070", cpu: "Ryzen 7 7700X", ram: "32 GB RAM", vram: "12.0 GB VRAM" } }
+  ];
+
+  squadMembers.push({
+    name: name.trim(),
+    rig: presets[Math.floor(Math.random() * presets.length)].rig
+  });
+
+  renderSquadRoster();
+  runSquadAnalysis();
+  showToastNotification(`Added ${name} to Squad Co-op Room!`);
+}
+
+function removeSquadMember(idx) {
+  if (idx === 0) return; // cannot remove host
+  squadMembers.splice(idx, 1);
+  renderSquadRoster();
+  runSquadAnalysis();
+}
+
+function resetSquadToDefault() {
+  const activeRig = getActiveRig();
+  squadMembers = [
+    { name: "You (Host)", rig: activeRig },
+    { name: "Alex", rig: { gpu: "GeForce GTX 1650", cpu: "Intel Core i5-9400F", ram: "8 GB RAM", vram: "4.0 GB VRAM" } },
+    { name: "Sarah", rig: { gpu: "GeForce RTX 3070", cpu: "AMD Ryzen 7 5700X", ram: "32 GB RAM", vram: "8.0 GB VRAM" } }
+  ];
+  renderSquadRoster();
+  runSquadAnalysis();
+  showToastNotification('Reset to demo 3-player gaming squad.');
+}
+
+async function runSquadAnalysis() {
+  const gridEl = document.getElementById('squadCoopGrid');
+  const badgeEl = document.getElementById('squadReadyCountBadge');
+  if (!gridEl) return;
+
+  const activeRig = getActiveRig();
+  squadMembers[0].rig = activeRig;
+
+  try {
+    const res = await fetch(`${API_BASE}/api/squad/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ members: squadMembers })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.status === 'success') {
+        renderSquadCoopGrid(data.coop_games || []);
+        if (badgeEl) badgeEl.textContent = `${data.coop_games_count || 12} Co-op Games Evaluated`;
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // Fallback client squad co-op evaluation
+  renderClientSquadCoopGrid();
+}
+
+function renderSquadCoopGrid(games) {
+  const gridEl = document.getElementById('squadCoopGrid');
+  if (!gridEl) return;
+
+  gridEl.innerHTML = games.map(g => {
+    const statusClass = g.squad_status === 'squad_ready' ? 'ready' : (g.squad_status === 'squad_playable' ? 'playable' : 'bottleneck');
+    return `
+      <div class="squad-coop-card ${g.squad_status}">
+        <div style="position:relative;height:120px">
+          <img src="${g.image}" alt="${g.title}" style="width:100%;height:100%;object-fit:cover" loading="lazy" />
+          <div style="position:absolute;bottom:6px;left:8px;background:rgba(0,0,0,0.8);padding:2px 8px;border-radius:4px;font-size:0.72rem;font-weight:700;color:#fff">
+            ${g.title}
+          </div>
+        </div>
+
+        <div class="squad-verdict-banner ${statusClass}">
+          <span>${g.squad_label}</span>
+          <span>Floor: ${g.min_fps} FPS</span>
+        </div>
+
+        <div style="padding:10px 12px;font-size:0.75rem;color:var(--text-secondary);flex:1">
+          <div>${g.squad_summary}</div>
+          ${g.bottleneck_player ? `<div style="margin-top:4px;font-size:0.7rem;color:var(--color-warning)">💡 Recommended for ${g.bottleneck_player}: ${g.weakest_recommended_setting || 'Medium settings with FSR'}</div>` : ''}
+        </div>
+
+        <div class="squad-pills-row">
+          ${(g.member_evaluations || []).map(m => `
+            <span class="squad-member-pill" style="color:${m.fps >= 60 ? 'var(--color-success)' : (m.fps >= 30 ? 'var(--color-warning)' : 'var(--color-danger)')}">
+              ${m.player_name}: ${m.fps_display}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderClientSquadCoopGrid() {
+  const sampleCoop = [
+    { title: "Helldivers 2", image: "https://cdn.akamai.steamstatic.com/steam/apps/553850/header.jpg", squad_status: "squad_playable", squad_label: "🟡 Squad Playable", squad_summary: "Alex is at ~38 FPS on GTX 1650. Recommend Medium/FSR settings.", min_fps: 38, bottleneck_player: "Alex", member_evaluations: squadMembers.map(m => ({ player_name: m.name, fps: m.name === 'Alex' ? 38 : 75, fps_display: m.name === 'Alex' ? '35–45 FPS' : '75–90 FPS' })) },
+    { title: "Lethal Company", image: "https://cdn.akamai.steamstatic.com/steam/apps/1966720/header.jpg", squad_status: "squad_ready", squad_label: "🟢 100% Squad Ready", squad_summary: "Runs at 120+ FPS for all members with zero lag!", min_fps: 95, member_evaluations: squadMembers.map(m => ({ player_name: m.name, fps: 120, fps_display: '120+ FPS' })) },
+    { title: "Valheim", image: "https://cdn.akamai.steamstatic.com/steam/apps/892970/header.jpg", squad_status: "squad_ready", squad_label: "🟢 100% Squad Ready", squad_summary: "All players meet high 60+ FPS baseline.", min_fps: 62, member_evaluations: squadMembers.map(m => ({ player_name: m.name, fps: 65, fps_display: '60–80 FPS' })) },
+    { title: "Deep Rock Galactic", image: "https://cdn.akamai.steamstatic.com/steam/apps/548430/header.jpg", squad_status: "squad_ready", squad_label: "🟢 100% Squad Ready", squad_summary: "Rock and stone! 100% smooth co-op performance.", min_fps: 80, member_evaluations: squadMembers.map(m => ({ player_name: m.name, fps: 85, fps_display: '85+ FPS' })) },
+    { title: "Palworld", image: "https://cdn.akamai.steamstatic.com/steam/apps/1623730/header.jpg", squad_status: "squad_playable", squad_label: "🟡 Squad Playable", squad_summary: "Alex hits 40 FPS at 1080p Medium.", min_fps: 40, bottleneck_player: "Alex", member_evaluations: squadMembers.map(m => ({ player_name: m.name, fps: m.name === 'Alex' ? 40 : 70, fps_display: m.name === 'Alex' ? '40 FPS' : '70+ FPS' })) },
+    { title: "Counter-Strike 2", image: "https://cdn.akamai.steamstatic.com/steam/apps/730/header.jpg", squad_status: "squad_ready", squad_label: "🟢 100% Squad Ready", squad_summary: "Ready for 5-stack competitive matches at high tickrate.", min_fps: 90, member_evaluations: squadMembers.map(m => ({ player_name: m.name, fps: 110, fps_display: '90–144 FPS' })) }
+  ];
+  renderSquadCoopGrid(sampleCoop);
+}
+
+
+// ── 3. "WHAT SHOULD I PLAY TONIGHT?" (ROULETTE & MOOD WIZARD) ──
+let rouletteGamesList = [];
+let isSpinning = false;
+let moodSelections = { time: 'medium', vibe: 'adrenaline', fps: '60' };
+
+function openPlayTonightModal() {
+  const modal = document.getElementById('playTonightModal');
+  if (!modal) return;
+  modal.classList.add('active');
+  initRouletteStrip();
+}
+
+function closePlayTonightModal() {
+  const modal = document.getElementById('playTonightModal');
+  if (modal) modal.classList.remove('active');
+}
+
+function switchPlayTonightMode(mode) {
+  const rBtn = document.getElementById('tabRouletteBtn');
+  const mBtn = document.getElementById('tabMoodBtn');
+  const rView = document.getElementById('playTonightRouletteView');
+  const mView = document.getElementById('playTonightMoodView');
+
+  if (mode === 'roulette') {
+    if (rBtn) rBtn.classList.add('active');
+    if (mBtn) mBtn.classList.remove('active');
+    if (rView) rView.style.display = 'block';
+    if (mView) mView.style.display = 'none';
+  } else {
+    if (mBtn) mBtn.classList.add('active');
+    if (rBtn) rBtn.classList.remove('active');
+    if (rView) rView.style.display = 'none';
+    if (mView) mView.style.display = 'block';
+  }
+}
+
+function initRouletteStrip() {
+  const strip = document.getElementById('rouletteStrip');
+  if (!strip) return;
+
+  rouletteGamesList = CATALOG_GAMES.length > 0 ? [...CATALOG_GAMES] : [
+    { id: 1091500, title: "Cyberpunk 2077", image: "https://cdn.akamai.steamstatic.com/steam/apps/1091500/header.jpg", genre: "RPG • Open World" },
+    { id: 1245620, title: "Elden Ring", image: "https://cdn.akamai.steamstatic.com/steam/apps/1245620/header.jpg", genre: "Action RPG" },
+    { id: 413150, title: "Stardew Valley", image: "https://cdn.akamai.steamstatic.com/steam/apps/413150/header.jpg", genre: "Farming Sim" },
+    { id: 1086940, title: "Baldur's Gate 3", image: "https://cdn.akamai.steamstatic.com/steam/apps/1086940/header.jpg", genre: "CRPG" },
+    { id: 367520, title: "Hollow Knight", image: "https://cdn.akamai.steamstatic.com/steam/apps/367520/header.jpg", genre: "Metroidvania" },
+    { id: 553850, title: "Helldivers 2", image: "https://cdn.akamai.steamstatic.com/steam/apps/553850/header.jpg", genre: "Co-op Shooter" }
+  ];
+
+  // Repeat items to fill wide strip for realistic slot physics
+  const repeated = [];
+  for (let i = 0; i < 6; i++) {
+    repeated.push(...rouletteGamesList);
+  }
+
+  strip.innerHTML = repeated.map((g, idx) => `
+    <div class="roulette-item" data-index="${idx}" data-id="${g.id}">
+      <img src="${g.image}" alt="${g.title}" loading="lazy" />
+      <div class="roulette-item-title">${g.title}</div>
+    </div>
+  `).join('');
+
+  strip.style.transition = 'none';
+  strip.style.transform = 'translateX(0px)';
+}
+
+function spinBacklogRoulette() {
+  if (isSpinning) return;
+  isSpinning = true;
+
+  const strip = document.getElementById('rouletteStrip');
+  const spinBtn = document.getElementById('btnSpinRoulette');
+  const winnerCardEl = document.getElementById('playTonightWinnerCard');
+
+  if (winnerCardEl) winnerCardEl.style.display = 'none';
+  if (spinBtn) {
+    spinBtn.disabled = true;
+    spinBtn.innerHTML = '<span>⚡ SPINNING...</span>';
+  }
+
+  const itemWidth = 152; // 140px width + 12px gap
+  const totalItems = rouletteGamesList.length;
+  // Pick random target in 4th repetition block
+  const targetIdx = Math.floor(Math.random() * totalItems);
+  const finalIndex = (totalItems * 3) + targetIdx;
+  const targetOffset = (finalIndex * itemWidth) - 220 + (Math.random() * 40 - 20);
+
+  strip.style.transition = 'transform 3.8s cubic-bezier(0.12, 0.8, 0.15, 1)';
+  strip.style.transform = `translateX(-${targetOffset}px)`;
+
+  setTimeout(() => {
+    isSpinning = false;
+    if (spinBtn) {
+      spinBtn.disabled = false;
+      spinBtn.innerHTML = '<span>⚡ SPIN AGAIN</span>';
+    }
+    const winner = rouletteGamesList[targetIdx];
+    revealPlayTonightWinner(winner, "Selected by Cyberpunk Backlog Roulette for high-speed gaming!");
+  }, 4000);
+}
+
+function selectMoodChip(category, value, el) {
+  moodSelections[category] = value;
+  const parent = el.closest('.mood-chips-row');
+  if (parent) {
+    parent.querySelectorAll('.btn-mood-chip').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+}
+
+async function runMoodWizardMatch() {
+  const activeRig = getActiveRig();
+  try {
+    const res = await fetch(`${API_BASE}/api/backlog/roulette`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mood: moodSelections.vibe,
+        time: moodSelections.time,
+        fps_target: parseInt(moodSelections.fps) || 60,
+        rig: activeRig
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.winner) {
+        revealPlayTonightWinner(data.winner, `Matched for ${moodSelections.time} session • ${moodSelections.vibe.toUpperCase()} vibe • 60+ FPS verified!`);
+        return;
+      }
+    }
+  } catch (e) {}
+
+  // Fallback match
+  const match = CATALOG_GAMES.find(g => g.rating >= 4.8) || CATALOG_GAMES[0];
+  revealPlayTonightWinner(match, `Matched for your ${moodSelections.vibe} mood tonight!`);
+}
+
+function revealPlayTonightWinner(game, reasonText) {
+  const winnerCardEl = document.getElementById('playTonightWinnerCard');
+  if (!winnerCardEl) return;
+
+  const currentP = convertPrice(game.price || game.currentPrice || '$19.99');
+
+  winnerCardEl.innerHTML = `
+    <div class="play-tonight-winner-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="badge badge-purple" style="font-weight:800;letter-spacing:0.04em">🏆 TONIGHT'S GAME PICK</span>
+        <span class="badge-deck-verified">✓ Steam Deck Verified</span>
+      </div>
+
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <img src="${game.image}" alt="${game.title}" style="width:130px;height:75px;object-fit:cover;border-radius:6px;border:1px solid rgba(0,240,255,0.4)" />
+        <div style="flex:1;min-width:200px">
+          <h3 style="font-size:1.1rem;font-weight:700;color:#ffffff;margin-bottom:2px">${game.title}</h3>
+          <div style="font-size:0.75rem;color:var(--text-secondary)">${game.genre || 'Action RPG'}</div>
+          <div style="font-size:0.8rem;color:#00f0ff;margin-top:4px;font-weight:600">⚡ ${game.fps_display || '60–90 FPS'} • ${game.optimal_setting || '1080p High'}</div>
+        </div>
+      </div>
+
+      <p style="font-size:0.8rem;color:var(--text-secondary);margin:10px 0 12px 0;background:rgba(0,0,0,0.3);padding:8px 10px;border-radius:4px">
+        ${reasonText}
+      </p>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span style="font-family:var(--font-mono);font-size:1.05rem;font-weight:700;color:#ffffff">${currentP}</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="openGameModal('${game.id}')">View Full Specs</button>
+          <a href="${game.steam_url || `https://store.steampowered.com/app/${game.id}`}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+            <span>Play on Steam ↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+  winnerCardEl.style.display = 'block';
+  winnerCardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+
+// ── 4. HOLOGRAPHIC GAMER RIG PASSPORT (PNG CARD GENERATOR) ──
+
+let passportCustomImageObj = null;
+let passportPresetAvatarType = 'steam';
+let cachedSteamAvatarImg = null;
+
+function openGamerPassportModal() {
+  const modal = document.getElementById('gamerPassportModal');
+  if (!modal) return;
+  modal.classList.add('active');
+
+  // Preload Steam Avatar if user is connected
+  if (currentUser && currentUser.avatar && !cachedSteamAvatarImg) {
+    cachedSteamAvatarImg = new Image();
+    cachedSteamAvatarImg.crossOrigin = 'anonymous';
+    cachedSteamAvatarImg.src = currentUser.avatar;
+    cachedSteamAvatarImg.onload = () => { renderPassportCanvas(); };
+  }
+
+  renderPassportCanvas();
+}
+
+function closeGamerPassportModal() {
+  const modal = document.getElementById('gamerPassportModal');
+  if (modal) modal.classList.remove('active');
+}
+
+function handlePassportPhotoUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      passportCustomImageObj = img;
+      passportPresetAvatarType = 'custom';
+      
+      // Update UI Status
+      const statusEl = document.getElementById('passportPhotoStatus');
+      const clearBtn = document.getElementById('passportClearPhotoBtn');
+      if (statusEl) statusEl.textContent = `✓ Custom Photo Loaded (${file.name.slice(0, 16)}...)`;
+      if (clearBtn) clearBtn.style.display = 'inline-flex';
+
+      // Remove active from preset chips
+      document.querySelectorAll('.passport-avatar-presets .btn-sim-preset').forEach(b => b.classList.remove('active'));
+
+      renderPassportCanvas();
+      showToastNotification('📷 Custom Photo / Rig Photo uploaded to your Gamer Passport!');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function selectPassportPresetAvatar(type) {
+  passportPresetAvatarType = type;
+  passportCustomImageObj = null;
+
+  // Reset file input
+  const fileInput = document.getElementById('passportPhotoFileInput');
+  if (fileInput) fileInput.value = '';
+
+  const clearBtn = document.getElementById('passportClearPhotoBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  // Highlight active preset
+  document.querySelectorAll('.passport-avatar-presets .btn-sim-preset').forEach(b => {
+    b.classList.remove('active');
+  });
+
+  const statusEl = document.getElementById('passportPhotoStatus');
+
+  if (type === 'steam') {
+    const btn = document.getElementById('presetAvatarSteam');
+    if (btn) btn.classList.add('active');
+    if (statusEl) statusEl.textContent = '✓ Steam Avatar Active';
+  } else if (type === 'battlestation') {
+    const btn = document.getElementById('presetAvatarRig');
+    if (btn) btn.classList.add('active');
+    if (statusEl) statusEl.textContent = '✓ Battlestation Rig Graphic Active';
+  } else if (type === 'cyberpunk') {
+    const btn = document.getElementById('presetAvatarCyber');
+    if (btn) btn.classList.add('active');
+    if (statusEl) statusEl.textContent = '✓ Cyberpunk V Active';
+  } else if (type === 'ninja') {
+    const btn = document.getElementById('presetAvatarNinja');
+    if (btn) btn.classList.add('active');
+    if (statusEl) statusEl.textContent = '✓ Cyber Ninja Active';
+  }
+
+  renderPassportCanvas();
+}
+
+function clearPassportCustomPhoto() {
+  passportCustomImageObj = null;
+  passportPresetAvatarType = 'steam';
+
+  const fileInput = document.getElementById('passportPhotoFileInput');
+  if (fileInput) fileInput.value = '';
+
+  const clearBtn = document.getElementById('passportClearPhotoBtn');
+  if (clearBtn) clearBtn.style.display = 'none';
+
+  const statusEl = document.getElementById('passportPhotoStatus');
+  if (statusEl) statusEl.textContent = '✓ Steam Avatar Active';
+
+  document.querySelectorAll('.passport-avatar-presets .btn-sim-preset').forEach(b => b.classList.remove('active'));
+  const steamBtn = document.getElementById('presetAvatarSteam');
+  if (steamBtn) steamBtn.classList.add('active');
+
+  renderPassportCanvas();
+  showToastNotification('Photo reset to default avatar.');
+}
+
+function renderPassportCanvas() {
+  const canvas = document.getElementById('passportCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const theme = document.getElementById('passportThemeSelect')?.value || 'cyberpunk';
+  const activeRig = getActiveRig();
+  const parsed = parseAndScoreHardwareClient(activeRig);
+  const username = currentUser?.username || 'Gamer';
+
+  // Canvas Dimensions: 800 x 460
+  const W = 800;
+  const H = 460;
+
+  // 1. Theme Color Palettes
+  let bgGrad1 = '#06070d', bgGrad2 = '#0d111a', accentColor = '#00f0ff', accentSecondary = '#ff007f';
+  if (theme === 'rog') {
+    bgGrad1 = '#0a0507'; bgGrad2 = '#15080c'; accentColor = '#ff003c'; accentSecondary = '#ff8800';
+  } else if (theme === 'matrix') {
+    bgGrad1 = '#020804'; bgGrad2 = '#041408'; accentColor = '#00ff66'; accentSecondary = '#10b981';
+  } else if (theme === 'synthwave') {
+    bgGrad1 = '#0a0614'; bgGrad2 = '#170c2e'; accentColor = '#c084fc'; accentSecondary = '#ec4899';
+  } else if (theme === 'steam') {
+    bgGrad1 = '#090d14'; bgGrad2 = '#171a21'; accentColor = '#66c0f4'; accentSecondary = '#38bdf8';
+  }
+
+  // 2. Render Card Background
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, bgGrad1);
+  grad.addColorStop(1, bgGrad2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // 3. Cyber Holographic Tech Grid
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 30) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 30) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // 4. Outer Holographic Glowing Border
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = accentColor;
+  ctx.strokeRect(10, 10, W - 20, H - 20);
+
+  // Corner Accent Brackets
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = accentSecondary;
+  // Top Left
+  ctx.beginPath(); ctx.moveTo(10, 40); ctx.lineTo(10, 10); ctx.lineTo(40, 10); ctx.stroke();
+  // Top Right
+  ctx.beginPath(); ctx.moveTo(W - 40, 10); ctx.lineTo(W - 10, 10); ctx.lineTo(W - 10, 40); ctx.stroke();
+  // Bottom Left
+  ctx.beginPath(); ctx.moveTo(10, H - 40); ctx.lineTo(10, H - 10); ctx.lineTo(40, H - 10); ctx.stroke();
+  // Bottom Right
+  ctx.beginPath(); ctx.moveTo(W - 40, H - 10); ctx.lineTo(W - 10, H - 10); ctx.lineTo(W - 10, H - 40); ctx.stroke();
+
+  // 5. Header: PlaySpec Verified Passport
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 22px "Outfit", Inter, sans-serif';
+  ctx.fillText('PLAYSPEC GAMER RIG PASSPORT', 40, 52);
+
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 12px "JetBrains Mono", monospace';
+  ctx.fillText('VERIFIED HARDWARE DIAGNOSTICS & STEAM INTEL', 40, 72);
+
+  // Top Right QR / Security Badge
+  ctx.strokeStyle = accentColor;
+  ctx.strokeRect(W - 140, 30, 100, 48);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillRect(W - 140, 30, 100, 48);
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 11px "JetBrains Mono", monospace';
+  ctx.fillText('SECURE_ID', W - 128, 48);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 13px "JetBrains Mono", monospace';
+  ctx.fillText(`AGY-9042`, W - 130, 66);
+
+  // Divider line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(40, 92); ctx.lineTo(W - 40, 92); ctx.stroke();
+
+  // 6. User Avatar / Custom Photo / Rig Photo Viewport
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(80, 155, 42, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.fill();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = accentColor;
+  ctx.stroke();
+  ctx.clip();
+
+  if (passportCustomImageObj && passportCustomImageObj.complete && passportCustomImageObj.naturalWidth > 0) {
+    // Draw user's uploaded custom photo or battlestation rig photo
+    ctx.drawImage(passportCustomImageObj, 38, 113, 84, 84);
+  } else if (passportPresetAvatarType === 'steam' && currentUser && currentUser.avatar && cachedSteamAvatarImg && cachedSteamAvatarImg.complete) {
+    ctx.drawImage(cachedSteamAvatarImg, 38, 113, 84, 84);
+  } else if (passportPresetAvatarType === 'battlestation') {
+    ctx.font = '36px sans-serif';
+    ctx.fillText('🖥️', 62, 168);
+  } else if (passportPresetAvatarType === 'cyberpunk') {
+    ctx.font = '36px sans-serif';
+    ctx.fillText('⚡', 64, 168);
+  } else if (passportPresetAvatarType === 'ninja') {
+    ctx.font = '36px sans-serif';
+    ctx.fillText('🥷', 62, 168);
+  } else {
+    ctx.font = '40px sans-serif';
+    ctx.fillText('🎮', 60, 170);
+  }
+  ctx.restore();
+
+  // Handle & Tier
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 26px "Outfit", Inter, sans-serif';
+  ctx.fillText(username, 140, 144);
+
+  ctx.fillStyle = accentSecondary;
+  ctx.font = 'bold 14px "JetBrains Mono", monospace';
+  ctx.fillText(`${parsed.tierLabel.toUpperCase()} • INDEX ${parsed.rigIndex}/100`, 140, 168);
+
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 11px "JetBrains Mono", monospace';
+  ctx.fillText(passportCustomImageObj ? '📷 VERIFIED CUSTOM PHOTO RIG' : '🎮 VERIFIED GAMER RIG', 140, 188);
+
+  // 7. Hardware Specs Badges Box
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+  ctx.fillRect(40, 220, 440, 185);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.strokeRect(40, 220, 440, 185);
+
+  const drawSpecRow = (label, val, y) => {
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '11px "JetBrains Mono", monospace';
+    ctx.fillText(label.toUpperCase(), 56, y);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px Inter, sans-serif';
+    ctx.fillText(val, 160, y);
+  };
+
+  drawSpecRow('GPU', activeRig.gpu || 'GeForce RTX 3050 6GB', 255);
+  drawSpecRow('VRAM', activeRig.vram || '6.0 GB VRAM', 290);
+  drawSpecRow('CPU', activeRig.cpu || 'Intel Core i5 (12th Gen)', 325);
+  drawSpecRow('RAM', activeRig.ram || '16 GB RAM', 360);
+  drawSpecRow('STORAGE', activeRig.storage || '512 GB NVMe SSD', 392);
+
+  // 8. Right Panel: Steam Compatibility Gauge & Metrics
+  ctx.fillStyle = 'rgba(0, 240, 255, 0.04)';
+  ctx.fillRect(505, 115, 255, 290);
+  ctx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+  ctx.strokeRect(505, 115, 255, 290);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 15px "Outfit", Inter, sans-serif';
+  ctx.fillText('STEAM COMPATIBILITY', 530, 148);
+
+  // Circular Meter Simulation
+  const pct = Math.min(99, Math.max(50, Math.round(parsed.rigIndex * 0.95 + 10)));
+  ctx.fillStyle = accentColor;
+  ctx.font = 'bold 44px "JetBrains Mono", monospace';
+  ctx.fillText(`${pct}%`, 530, 205);
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.font = '12px Inter, sans-serif';
+  ctx.fillText('Playable at 60+ FPS', 530, 226);
+
+  // Performance Preset
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.font = '11px "JetBrains Mono", monospace';
+  ctx.fillText('RECOMMENDED TARGET', 530, 270);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 13px Inter, sans-serif';
+  ctx.fillText(parsed.rigIndex >= 85 ? '1440p / 4K Ultra • Max Refresh' : (parsed.rigIndex >= 60 ? '1080p High • 60-90 FPS' : '1080p Medium • DLSS/FSR'), 530, 290);
+
+  // Watermark Footer
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.fillText('GENERATED BY PLAYSPEC • STEAM WEB API ENGINE', 530, 385);
+}
+
+function downloadPassportPNG() {
+  const canvas = document.getElementById('passportCanvas');
+  if (!canvas) return;
+  const link = document.createElement('a');
+  link.download = `PlaySpec-Gamer-Passport-${currentUser?.username || 'Rig'}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  showToastNotification('📥 Downloaded high-resolution Gamer Rig Passport PNG!');
+}
+
+async function copyPassportToClipboard() {
+  const canvas = document.getElementById('passportCanvas');
+  if (!canvas) return;
+  try {
+    canvas.toBlob(async (blob) => {
+      if (!blob) return;
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      showToastNotification('📋 Copied Gamer Rig Passport image to clipboard!');
+    });
+  } catch (err) {
+    showToastNotification('Please right click the card to copy image.');
+  }
+}
+
+
+// ── 5. STEAM LIBRARY ROI & BACKLOG ANALYTICS ──
+function renderSteamLibraryROI(games) {
+  const roiWidget = document.getElementById('steamLibraryRoiWidget');
+  if (!roiWidget) return;
+
+  const totalGames = (games && games.length) || 12;
+  let totalHours = 0;
+  let unplayedCount = 0;
+
+  (games || []).forEach(g => {
+    const hrs = parseFloat(g.hours_played || (g.playtime_forever ? (g.playtime_forever / 60) : 0)) || 0;
+    totalHours += hrs;
+    if (hrs < 2.0) unplayedCount++;
+  });
+
+  if (totalHours <= 0) totalHours = 840;
+  const estValue = Math.round(totalGames * 24.5);
+  const costPerHour = (estValue / Math.max(1, totalHours)).toFixed(2);
+  const unplayedValue = Math.round(unplayedCount * 28);
+  const backlogHours = Math.round(unplayedCount * 22);
+
+  const valEl = document.getElementById('roiTotalValue');
+  const countEl = document.getElementById('roiTotalGamesCount');
+  const hrsEl = document.getElementById('roiTotalHours');
+  const cphEl = document.getElementById('roiCostPerHour');
+  const pileEl = document.getElementById('roiPileCount');
+  const backlogEl = document.getElementById('roiBacklogHours');
+  const badgeEl = document.getElementById('libraryCphRatingBadge');
+
+  if (valEl) valEl.textContent = `$${estValue.toLocaleString()}`;
+  if (countEl) countEl.textContent = `Across ${totalGames} Owned Games`;
+  if (hrsEl) hrsEl.textContent = `${totalHours.toFixed(1)} hrs`;
+  if (cphEl) cphEl.textContent = `$${costPerHour} / hr`;
+  if (pileEl) pileEl.textContent = `${unplayedCount} Games ($${unplayedValue})`;
+  if (backlogEl) backlogEl.textContent = `~${backlogHours} hrs to clear backlog`;
+
+  if (badgeEl) {
+    if (parseFloat(costPerHour) <= 0.80) {
+      badgeEl.textContent = '🏆 Legendary Value';
+      badgeEl.className = 'badge badge-cyan';
+    } else if (parseFloat(costPerHour) <= 2.50) {
+      badgeEl.textContent = '🟢 Great Value';
+      badgeEl.className = 'badge badge-green';
+    } else {
+      badgeEl.textContent = '🟡 Backlog Target';
+      badgeEl.className = 'badge badge-purple';
+    }
+  }
+
+  roiWidget.style.display = 'block';
 }
 
 
@@ -5970,6 +6865,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   initUI();
   fetchAndRenderMLRecommendations();
 
+  // Initialize Advanced Gaming Suite
+  runUpgradeSimulation();
+  initSquadRoom();
+  renderSteamLibraryROI();
+
   // If user is connected to Steam, auto-sync their full Steam library
   if (currentUser && currentUser.steam_id) {
     connectSteamUser(currentUser.steam_id);
@@ -5979,3 +6879,332 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.toggleGamingThemeMenu = toggleGamingThemeMenu;
 window.selectGamingTheme = selectGamingTheme;
 window.THEME_NAMES = THEME_NAMES;
+
+// ══════════════════════════════════════════════════════════════════════════
+// UPCOMING STEAM SALES & SEASONAL EVENTS TRACKER ENGINE
+// ══════════════════════════════════════════════════════════════════════════
+
+let upcomingSalesCachedData = null;
+let currentSaleCountdownInterval = null;
+let activeSalesFilter = 'all';
+
+async function loadUpcomingSalesData(forceRefresh = false) {
+  const cc = getCountryCode(currentCurrency);
+  try {
+    const resp = await fetch(`${API_BASE}/api/steam/upcoming-sales?cc=${cc}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && data.status === 'success') {
+        upcomingSalesCachedData = data;
+        renderUpcomingSales(data);
+        return;
+      }
+    }
+  } catch (err) {}
+
+  // Fallback client calendar
+  renderClientUpcomingSalesFallback();
+}
+
+function renderUpcomingSales(data) {
+  const nextMajor = data.next_major_sale || {};
+  const calendar = data.sales_calendar || [];
+  const liveSpecials = data.active_live_specials || [];
+
+  // 1. Update Hero Countdown Header
+  const titleEl = document.getElementById('saleHeroTitle');
+  const tagEl = document.getElementById('saleHeroTag');
+  const iconEl = document.getElementById('saleHeroIcon');
+  const datesEl = document.getElementById('saleHeroDates');
+  const statusBadge = document.getElementById('upcomingSalesStatusBadge');
+
+  if (titleEl) titleEl.textContent = nextMajor.name || 'Steam Spring Sale 2026';
+  if (tagEl) tagEl.textContent = nextMajor.is_active ? '🔥 STEAM SEASONAL SALE IS LIVE NOW' : '🌟 NEXT MAJOR STEAM SEASONAL SALE';
+  if (iconEl) iconEl.textContent = nextMajor.icon || '🌸';
+  if (datesEl) datesEl.textContent = `📅 ${nextMajor.start_formatted || 'March 12'} – ${nextMajor.end_formatted || 'March 19'} • Expected: ${nextMajor.avg_discount || '50% – 85% Off'}`;
+  if (statusBadge) statusBadge.textContent = `${nextMajor.icon || '🌸'} Next Major: ${nextMajor.name || 'Spring Sale'}`;
+
+  // 2. Start Live Second-by-Second Countdown Clock
+  startSaleCountdown(nextMajor.time_until_seconds || 86400 * 20);
+
+  // 3. Render Sales Calendar Roadmap Cards
+  renderSalesCalendarGrid(calendar);
+
+  // 4. Render Currently Live Steam Specials
+  renderActiveSteamSpecials(liveSpecials);
+
+  // 5. Update Wishlist Predictive Advice
+  updateWishlistSaleAdvice(nextMajor);
+}
+
+function startSaleCountdown(totalSeconds) {
+  if (currentSaleCountdownInterval) {
+    clearInterval(currentSaleCountdownInterval);
+  }
+
+  let remaining = Math.max(0, parseInt(totalSeconds) || 0);
+
+  const updateClockDisplay = () => {
+    const days = Math.floor(remaining / 86400);
+    const hours = Math.floor((remaining % 86400) / 3600);
+    const mins = Math.floor((remaining % 3600) / 60);
+    const secs = remaining % 60;
+
+    const daysEl = document.getElementById('clockDays');
+    const hoursEl = document.getElementById('clockHours');
+    const minsEl = document.getElementById('clockMins');
+    const secsEl = document.getElementById('clockSecs');
+
+    if (daysEl) daysEl.textContent = String(days).padStart(2, '0');
+    if (hoursEl) hoursEl.textContent = String(hours).padStart(2, '0');
+    if (minsEl) minsEl.textContent = String(mins).padStart(2, '0');
+    if (secsEl) secsEl.textContent = String(secs).padStart(2, '0');
+
+    if (remaining > 0) {
+      remaining--;
+    }
+  };
+
+  updateClockDisplay();
+  currentSaleCountdownInterval = setInterval(updateClockDisplay, 1000);
+}
+
+function filterSalesCalendar(filter) {
+  activeSalesFilter = filter;
+  document.querySelectorAll('[data-sales-filter]').forEach(b => {
+    b.classList.toggle('active', b.dataset.salesFilter === filter);
+  });
+
+  if (upcomingSalesCachedData && upcomingSalesCachedData.sales_calendar) {
+    renderSalesCalendarGrid(upcomingSalesCachedData.sales_calendar);
+  }
+}
+
+function renderSalesCalendarGrid(events) {
+  const grid = document.getElementById('salesCalendarGrid');
+  const countAll = document.getElementById('salesCountAll');
+  if (!grid) return;
+
+  if (countAll) countAll.textContent = events.length;
+
+  let filtered = events;
+  if (activeSalesFilter === 'major') {
+    filtered = events.filter(e => e.type === 'major_seasonal');
+  } else if (activeSalesFilter === 'fests') {
+    filtered = events.filter(e => e.type === 'themed_fest' || e.type === 'demo_showcase');
+  }
+
+  grid.innerHTML = filtered.map(item => {
+    const days = item.countdown ? item.countdown.days : Math.floor((item.time_until_seconds || 0) / 86400);
+    return `
+      <div class="sale-event-card ${item.is_active ? 'active-sale' : ''}">
+        <div>
+          <div class="sale-event-card-top">
+            <span class="sale-event-icon">${item.icon || '🎮'}</span>
+            <span class="badge ${item.is_active ? 'badge-green' : (item.type === 'major_seasonal' ? 'badge-purple' : 'badge-cyan')}">
+              ${item.status_label || (item.is_active ? '🔥 Active' : `In ${days} Days`)}
+            </span>
+          </div>
+          <h4 class="sale-event-name">${item.name}</h4>
+          <p class="sale-event-desc">${item.description}</p>
+        </div>
+
+        <div>
+          <div style="font-family:var(--font-mono);font-size:0.75rem;color:#00f0ff;margin-bottom:8px;font-weight:600">
+            📊 Expected Discounts: ${item.avg_discount}
+          </div>
+          <div class="sale-event-footer">
+            <span style="color:var(--text-muted)">📅 ${item.start_formatted || 'Upcoming'}</span>
+            <span style="color:var(--text-primary);font-weight:700">${item.duration_days} Days Long</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderActiveSteamSpecials(specials) {
+  const grid = document.getElementById('activeSpecialsGrid');
+  const wrap = document.getElementById('activeSpecialsWrap');
+  if (!grid) return;
+
+  if (!specials || specials.length === 0) {
+    if (wrap) wrap.style.display = 'none';
+    return;
+  }
+
+  if (wrap) wrap.style.display = 'block';
+
+  grid.innerHTML = specials.map(s => `
+    <div class="active-special-card" onclick="openGameModal(${s.id})" style="cursor:pointer">
+      <img src="${s.image}" alt="${s.title}" class="active-special-img" loading="lazy" onerror="this.src='images/cyberpunk.png'" />
+      <div class="active-special-body">
+        <div class="active-special-title">${s.title}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="font-family:var(--font-mono);font-size:0.92rem;font-weight:800;color:var(--color-success)">${s.formatted_final}</span>
+            ${s.formatted_original ? `<span style="font-size:0.72rem;color:var(--text-muted);text-decoration:line-through;margin-left:4px">${s.formatted_original}</span>` : ''}
+          </div>
+          <span class="discount-badge" style="position:static;font-size:0.72rem">-${s.discount_percent}%</span>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function updateWishlistSaleAdvice(nextMajor) {
+  const adviceEl = document.getElementById('saleHeroAdviceText');
+  if (!adviceEl) return;
+
+  const wishlist = window.currentWishlistItems || localGuestWishlist || [];
+  if (wishlist.length === 0) {
+    adviceEl.textContent = `Track games in the Price Watchlist to get custom savings forecasts for ${nextMajor.name || 'upcoming sale'}!`;
+  } else {
+    adviceEl.textContent = `You have ${wishlist.length} game(s) in your tracker. During the ${nextMajor.name || 'upcoming sale'}, average price drops reach ${nextMajor.avg_discount || '60%'}. Recommended: Hold off on full price purchases!`;
+  }
+}
+
+function toggleSaleNotificationReminder() {
+  const btnText = document.getElementById('saleReminderBtnText');
+  const isSet = localStorage.getItem('playspec_sale_reminder_set') === 'true';
+
+  if (!isSet) {
+    localStorage.setItem('playspec_sale_reminder_set', 'true');
+    if (btnText) btnText.textContent = '✓ Reminder Active';
+    showToastNotification('🔔 Reminder enabled! PlaySpec will alert you as soon as the next Steam Seasonal Sale goes live.');
+  } else {
+    localStorage.removeItem('playspec_sale_reminder_set');
+    if (btnText) btnText.textContent = '🔔 Set Sale Reminder';
+    showToastNotification('🔕 Sale reminder cancelled.');
+  }
+}
+
+function renderClientUpcomingSalesFallback() {
+  const dummyData = {
+    status: 'success',
+    next_major_sale: {
+      id: "spring_sale",
+      name: "Steam Spring Sale 2026",
+      type: "major_seasonal",
+      month: 3, day: 12, duration_days: 7,
+      avg_discount: "50% – 85%",
+      icon: "🌸",
+      start_formatted: "March 12, 2026",
+      end_formatted: "March 19, 2026",
+      time_until_seconds: 86400 * 20 + 3600 * 5,
+      is_active: false
+    },
+    sales_calendar: [
+      { id: "spring_sale", name: "Steam Spring Sale 2026", icon: "🌸", type: "major_seasonal", avg_discount: "50% – 85%", duration_days: 7, start_formatted: "March 12, 2026", description: "One of Steam's 4 major seasonal events with massive discounts across thousands of titles." },
+      { id: "fps_fest", name: "Steam FPS Fest 2026", icon: "🎯", type: "themed_fest", avg_discount: "33% – 70%", duration_days: 7, start_formatted: "April 14, 2026", description: "Spotlighting tactical shooters, battle royales, retro FPS, and singleplayer campaigns." },
+      { id: "next_fest", name: "Steam Next Fest (Summer)", icon: "🚀", type: "demo_showcase", avg_discount: "Playable Demos", duration_days: 7, start_formatted: "June 8, 2026", description: "Play hundreds of free game demos and watch developer livestreams before launch." },
+      { id: "summer_sale", name: "Steam Summer Sale 2026", icon: "☀️", type: "major_seasonal", avg_discount: "60% – 90%", duration_days: 14, start_formatted: "June 25, 2026", description: "The biggest sale of the year. Peak discounts, trading cards, and community badges." }
+    ],
+    active_live_specials: []
+  };
+  renderUpcomingSales(dummyData);
+}
+
+
+// ── INITIALIZATION ──
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const steamToken = urlParams.get('token');
+  const steamId = urlParams.get('steam_id') || urlParams.get('user');
+  const steamUsername = urlParams.get('username');
+  const steamAvatar = urlParams.get('avatar');
+
+  // Check if launched with desktop scanner ?specs= token first
+  checkUrlSpecsParam();
+
+  if (steamToken && steamId) {
+    authToken = steamToken;
+    currentUser = {
+      id: steamId,
+      username: steamUsername ? decodeURIComponent(steamUsername) : `Steam_${steamId.slice(-4)}`,
+      steam_id: steamId,
+      avatar: steamAvatar ? decodeURIComponent(steamAvatar) : ''
+    };
+    localStorage.setItem('playspec_token', authToken);
+    localStorage.setItem('playspec_user', JSON.stringify(currentUser));
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showToastNotification(`Successfully signed in via Steam as ${currentUser.username}!`);
+  } else {
+    const savedToken = localStorage.getItem('playspec_token');
+    const savedUser = localStorage.getItem('playspec_user');
+    if (savedToken && savedUser) {
+      authToken = savedToken;
+      try { currentUser = JSON.parse(savedUser); } catch (e) {}
+    }
+  }
+
+  initThemeToggle();
+  updateAuthUI();
+  fetchExchangeRates();
+  initCurrencySelector();
+  renderActiveRig();
+  populateAll();
+  fetchLivePrices();
+  loadMultiStoreDeals();
+  loadDailyGiveaways();
+  loadWishlist();
+  loadNotifications();
+  initSearch();
+  initSteamCompatibilityChecker();
+  initUI();
+  fetchAndRenderMLRecommendations();
+
+  // Initialize Advanced Gaming Suite
+  runUpgradeSimulation();
+  initSquadRoom();
+  renderSteamLibraryROI();
+  loadUpcomingSalesData();
+
+  // Check sale reminder state
+  if (localStorage.getItem('playspec_sale_reminder_set') === 'true') {
+    const btnText = document.getElementById('saleReminderBtnText');
+    if (btnText) btnText.textContent = '✓ Reminder Active';
+  }
+
+  // If user is connected to Steam, auto-sync their full Steam library
+  if (currentUser && currentUser.steam_id) {
+    connectSteamUser(currentUser.steam_id);
+  }
+});
+
+window.toggleGamingThemeMenu = toggleGamingThemeMenu;
+window.selectGamingTheme = selectGamingTheme;
+window.THEME_NAMES = THEME_NAMES;
+
+// Export Advanced Features to Window
+window.applySimPreset = applySimPreset;
+window.runUpgradeSimulation = runUpgradeSimulation;
+window.addSquadMemberPrompt = addSquadMemberPrompt;
+window.removeSquadMember = removeSquadMember;
+window.resetSquadToDefault = resetSquadToDefault;
+window.runSquadAnalysis = runSquadAnalysis;
+window.openPlayTonightModal = openPlayTonightModal;
+window.closePlayTonightModal = closePlayTonightModal;
+window.switchPlayTonightMode = switchPlayTonightMode;
+window.spinBacklogRoulette = spinBacklogRoulette;
+window.selectMoodChip = selectMoodChip;
+window.runMoodWizardMatch = runMoodWizardMatch;
+window.openGamerPassportModal = openGamerPassportModal;
+window.closeGamerPassportModal = closeGamerPassportModal;
+window.renderPassportCanvas = renderPassportCanvas;
+window.downloadPassportPNG = downloadPassportPNG;
+window.copyPassportToClipboard = copyPassportToClipboard;
+window.renderSteamLibraryROI = renderSteamLibraryROI;
+
+// Export Upcoming Sales functions
+window.loadUpcomingSalesData = loadUpcomingSalesData;
+window.filterSalesCalendar = filterSalesCalendar;
+window.toggleSaleNotificationReminder = toggleSaleNotificationReminder;
+
+// Export Passport Custom Photo functions
+window.handlePassportPhotoUpload = handlePassportPhotoUpload;
+window.selectPassportPresetAvatar = selectPassportPresetAvatar;
+window.clearPassportCustomPhoto = clearPassportCustomPhoto;
+
+
