@@ -6682,11 +6682,24 @@ function renderClientUpgradeSimulation(activeRig, targetGpu, targetCpu, targetRa
 
 
 // ── 2. "CAN MY SQUAD RUN IT?" SQUAD CO-OP ROOM ──
-let squadMembers = [
-  { name: "You (Host)", rig: null },
-  { name: "Alex", rig: { gpu: "GeForce GTX 1650", cpu: "Intel Core i5-9400F", ram: "8 GB RAM", vram: "4.0 GB VRAM" } },
-  { name: "Sarah", rig: { gpu: "GeForce RTX 3070", cpu: "AMD Ryzen 7 5700X", ram: "32 GB RAM", vram: "8.0 GB VRAM" } }
-];
+let squadMembers = (function() {
+  const saved = localStorage.getItem('playspec_squad_members');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (e) {}
+  }
+  return [
+    { name: "You (Host)", rig: null },
+    { name: "Alex", rig: { gpu: "GeForce GTX 1650", cpu: "Intel Core i5-9400F", ram: "8 GB RAM", vram: "4.0 GB VRAM" } },
+    { name: "Sarah", rig: { gpu: "GeForce RTX 3070", cpu: "AMD Ryzen 7 5700X", ram: "32 GB RAM", vram: "8.0 GB VRAM" } }
+  ];
+})();
+
+function saveSquadMembersState() {
+  localStorage.setItem('playspec_squad_members', JSON.stringify(squadMembers));
+}
 
 function initSquadRoom() {
   renderSquadRoster();
@@ -6702,15 +6715,23 @@ function renderSquadRoster() {
 
   row.innerHTML = squadMembers.map((m, idx) => {
     const isHost = idx === 0;
-    const parsed = parseAndScoreHardwareClient(m.rig || activeRig);
+    const currentRig = isHost ? activeRig : (m.rig || activeRig);
+    const parsed = parseAndScoreHardwareClient(currentRig);
     return `
       <div class="squad-member-card ${isHost ? 'host' : ''}">
         <div class="squad-member-header">
-          <span class="squad-member-name">${m.name} ${isHost ? '<span style="font-size:0.7rem;color:var(--brand-blue)">(You)</span>' : ''}</span>
-          ${!isHost ? `<button class="btn btn-sm btn-ghost" style="padding:2px 6px;font-size:0.7rem;color:var(--color-danger)" onclick="removeSquadMember(${idx})">✕</button>` : ''}
+          <span class="squad-member-name">
+            ${m.name} ${isHost ? '<span style="font-size:0.7rem;color:var(--brand-blue)">(You)</span>' : ''}
+          </span>
+          <div class="squad-member-actions">
+            ${isHost 
+              ? `<button class="btn-squad-action" onclick="openEditRigModal()" title="Customize Your Rig Specs">✏️ Edit</button>` 
+              : `<button class="btn-squad-action" onclick="editSquadMember(${idx})" title="Edit ${m.name}'s Hardware Specs">✏️ Edit</button>
+                 <button class="btn-squad-action remove" onclick="removeSquadMember(${idx})" title="Remove Squad Mate">✕</button>`}
+          </div>
         </div>
-        <div class="squad-member-gpu">${m.rig?.gpu || activeRig.gpu || 'RTX 3060'}</div>
-        <div class="squad-member-specs-line">${m.rig?.cpu || activeRig.cpu || 'i5 Processor'} • ${m.rig?.ram || activeRig.ram || '16 GB RAM'}</div>
+        <div class="squad-member-gpu">${currentRig?.gpu || 'RTX 3060'}</div>
+        <div class="squad-member-specs-line">${currentRig?.cpu || 'i5 Processor'} • ${currentRig?.ram || '16 GB RAM'}</div>
         <div style="margin-top:8px">
           <span class="badge ${parsed.tierNum >= 4 ? 'badge-cyan' : (parsed.tierNum >= 3 ? 'badge-purple' : 'badge-red')}">${parsed.tierLabel}</span>
         </div>
@@ -6719,47 +6740,199 @@ function renderSquadRoster() {
   }).join('');
 }
 
-function addSquadMemberPrompt() {
-  if (squadMembers.length >= 4) {
-    showToastNotification('Maximum 4 squad members supported in co-op room.');
-    return;
+function openAddSquadMateModal(editIndex = -1) {
+  const modal = document.getElementById('addSquadMateModal');
+  if (!modal) return;
+
+  const titleEl = document.getElementById('squadMateModalTitle');
+  const indexInput = document.getElementById('squadMateEditIndex');
+  const nameInput = document.getElementById('squadMemberNameInput');
+  const gpuSelect = document.getElementById('squadMemberGpuSelect');
+  const customGpuInput = document.getElementById('squadMemberCustomGpuInput');
+  const cpuSelect = document.getElementById('squadMemberCpuSelect');
+  const customCpuInput = document.getElementById('squadMemberCustomCpuInput');
+  const ramSelect = document.getElementById('squadMemberRamSelect');
+
+  indexInput.value = editIndex;
+
+  if (editIndex >= 0 && squadMembers[editIndex]) {
+    const member = squadMembers[editIndex];
+    if (titleEl) titleEl.textContent = `Edit ${member.name}'s Hardware Specs`;
+    if (nameInput) nameInput.value = member.name;
+
+    const memberGpu = member.rig?.gpu || '';
+    let foundGpu = false;
+    if (gpuSelect) {
+      for (let opt of gpuSelect.options) {
+        if (opt.value === memberGpu || (memberGpu && opt.value.toLowerCase().includes(memberGpu.toLowerCase()))) {
+          gpuSelect.value = opt.value;
+          foundGpu = true;
+          break;
+        }
+      }
+      if (!foundGpu) {
+        gpuSelect.value = 'custom';
+        if (customGpuInput) {
+          customGpuInput.value = memberGpu;
+          customGpuInput.style.display = 'block';
+        }
+      } else if (customGpuInput) {
+        customGpuInput.style.display = 'none';
+      }
+    }
+
+    const memberCpu = member.rig?.cpu || '';
+    let foundCpu = false;
+    if (cpuSelect) {
+      for (let opt of cpuSelect.options) {
+        if (opt.value === memberCpu || (memberCpu && opt.value.toLowerCase().includes(memberCpu.toLowerCase()))) {
+          cpuSelect.value = opt.value;
+          foundCpu = true;
+          break;
+        }
+      }
+      if (!foundCpu) {
+        cpuSelect.value = 'custom';
+        if (customCpuInput) {
+          customCpuInput.value = memberCpu;
+          customCpuInput.style.display = 'block';
+        }
+      } else if (customCpuInput) {
+        customCpuInput.style.display = 'none';
+      }
+    }
+
+    if (ramSelect) ramSelect.value = member.rig?.ram || '16 GB RAM';
+  } else {
+    // Adding new member
+    if (squadMembers.length >= 6) {
+      showToastNotification('Maximum 6 squad members supported in co-op room.');
+      return;
+    }
+    if (titleEl) titleEl.textContent = 'Add Squad Mate Specs';
+    if (nameInput) nameInput.value = `Player ${squadMembers.length + 1}`;
+    if (gpuSelect) gpuSelect.value = 'NVIDIA GeForce GTX 1650';
+    if (customGpuInput) { customGpuInput.value = ''; customGpuInput.style.display = 'none'; }
+    if (cpuSelect) cpuSelect.value = 'Intel Core i5-9400F (6 Cores / 6 Threads)';
+    if (customCpuInput) { customCpuInput.value = ''; customCpuInput.style.display = 'none'; }
+    if (ramSelect) ramSelect.value = '16 GB RAM';
   }
-  const name = prompt("Enter Squad Mate's Name:", `Player ${squadMembers.length + 1}`);
-  if (!name) return;
 
-  const presets = [
-    { label: "Budget Gaming PC (GTX 1660 Super)", rig: { gpu: "GeForce GTX 1660 Super", cpu: "Ryzen 5 3600", ram: "16 GB RAM", vram: "6.0 GB VRAM" } },
-    { label: "Mid-Range Laptop (RTX 4050)", rig: { gpu: "GeForce RTX 4050 Laptop", cpu: "i5-13500H", ram: "16 GB RAM", vram: "6.0 GB VRAM" } },
-    { label: "High-End Rig (RTX 4070)", rig: { gpu: "GeForce RTX 4070", cpu: "Ryzen 7 7700X", ram: "32 GB RAM", vram: "12.0 GB VRAM" } }
-  ];
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
 
-  squadMembers.push({
-    name: name.trim(),
-    rig: presets[Math.floor(Math.random() * presets.length)].rig
-  });
+function closeAddSquadMateModal() {
+  const modal = document.getElementById('addSquadMateModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
 
+function handleSquadGpuSelectChange(selectEl) {
+  const customInput = document.getElementById('squadMemberCustomGpuInput');
+  if (!customInput) return;
+  if (selectEl.value === 'custom') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+  }
+}
+
+function handleSquadCpuSelectChange(selectEl) {
+  const customInput = document.getElementById('squadMemberCustomCpuInput');
+  if (!customInput) return;
+  if (selectEl.value === 'custom') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+  }
+}
+
+function editSquadMember(idx) {
+  openAddSquadMateModal(idx);
+}
+
+function handleSaveSquadMate(e) {
+  e.preventDefault();
+  const index = parseInt(document.getElementById('squadMateEditIndex')?.value || '-1', 10);
+  const name = document.getElementById('squadMemberNameInput')?.value?.trim() || `Player ${squadMembers.length + 1}`;
+  
+  const gpuSelect = document.getElementById('squadMemberGpuSelect');
+  const customGpu = document.getElementById('squadMemberCustomGpuInput')?.value?.trim();
+  const gpu = (gpuSelect?.value === 'custom' && customGpu) ? customGpu : (gpuSelect?.value || 'NVIDIA GeForce GTX 1650');
+
+  const cpuSelect = document.getElementById('squadMemberCpuSelect');
+  const customCpu = document.getElementById('squadMemberCustomCpuInput')?.value?.trim();
+  const cpu = (cpuSelect?.value === 'custom' && customCpu) ? customCpu : (cpuSelect?.value || 'Intel Core i5-9400F');
+
+  const ram = document.getElementById('squadMemberRamSelect')?.value || '16 GB RAM';
+
+  // Infer VRAM
+  let vram = "8.0 GB VRAM";
+  const gLow = gpu.toLowerCase();
+  if (/5090|4090|7900 xtx/i.test(gLow)) vram = "24.0 GB VRAM";
+  else if (/4080|7900 xt|7800 xt|a770/i.test(gLow)) vram = "16.0 GB VRAM";
+  else if (/4070|6700 xt/i.test(gLow)) vram = "12.0 GB VRAM";
+  else if (/4060|3070|3060 ti|2070|6600|a750/i.test(gLow)) vram = "8.0 GB VRAM";
+  else if (/3060/i.test(gLow)) vram = "12.0 GB VRAM";
+  else if (/3050|4050|1660/i.test(gLow)) vram = "6.0 GB VRAM";
+  else if (/1650|1050/i.test(gLow)) vram = "4.0 GB VRAM";
+
+  const newRig = {
+    gpu: gpu,
+    gpuDetail: `${gpu} • ${vram}`,
+    vram: vram,
+    cpu: cpu,
+    cpuDetail: `${cpu}`,
+    ram: ram,
+    ramDetail: `${ram} Physical Memory`,
+    storage: "512 GB NVMe",
+    os: "Windows 11"
+  };
+
+  if (index >= 0 && index < squadMembers.length) {
+    squadMembers[index].name = name;
+    squadMembers[index].rig = newRig;
+    showToastNotification(`✓ Updated ${name}'s hardware specs!`);
+  } else {
+    squadMembers.push({
+      name: name,
+      isHost: false,
+      rig: newRig
+    });
+    showToastNotification(`✓ Added ${name} (${gpu}) to Squad Room!`);
+  }
+
+  saveSquadMembersState();
+  closeAddSquadMateModal();
   renderSquadRoster();
   runSquadAnalysis();
-  showToastNotification(`Added ${name} to Squad Co-op Room!`);
 }
 
 function removeSquadMember(idx) {
   if (idx === 0) return; // cannot remove host
+  const removedName = squadMembers[idx]?.name || 'Squad mate';
   squadMembers.splice(idx, 1);
+  saveSquadMembersState();
   renderSquadRoster();
   runSquadAnalysis();
+  showToastNotification(`Removed ${removedName} from squad room.`);
 }
 
 function resetSquadToDefault() {
   const activeRig = getActiveRig();
   squadMembers = [
-    { name: "You (Host)", rig: activeRig },
-    { name: "Alex", rig: { gpu: "GeForce GTX 1650", cpu: "Intel Core i5-9400F", ram: "8 GB RAM", vram: "4.0 GB VRAM" } },
-    { name: "Sarah", rig: { gpu: "GeForce RTX 3070", cpu: "AMD Ryzen 7 5700X", ram: "32 GB RAM", vram: "8.0 GB VRAM" } }
+    { name: "You (Host)", isHost: true, rig: activeRig },
+    { name: "Alex", isHost: false, rig: { gpu: "GeForce GTX 1650", cpu: "Intel Core i5-9400F", ram: "8 GB RAM", vram: "4.0 GB VRAM" } },
+    { name: "Sarah", isHost: false, rig: { gpu: "GeForce RTX 3070", cpu: "AMD Ryzen 7 5700X", ram: "32 GB RAM", vram: "8.0 GB VRAM" } }
   ];
+  saveSquadMembersState();
   renderSquadRoster();
   runSquadAnalysis();
-  showToastNotification('Reset to demo 3-player gaming squad.');
+  showToastNotification('✓ Reset to demo 3-player gaming squad.');
 }
 
 async function runSquadAnalysis() {
@@ -8505,7 +8678,12 @@ window.THEME_NAMES = THEME_NAMES;
 // Export Advanced Features to Window
 window.applySimPreset = applySimPreset;
 window.runUpgradeSimulation = runUpgradeSimulation;
-window.addSquadMemberPrompt = addSquadMemberPrompt;
+window.openAddSquadMateModal = openAddSquadMateModal;
+window.closeAddSquadMateModal = closeAddSquadMateModal;
+window.handleSquadGpuSelectChange = handleSquadGpuSelectChange;
+window.handleSquadCpuSelectChange = handleSquadCpuSelectChange;
+window.editSquadMember = editSquadMember;
+window.handleSaveSquadMate = handleSaveSquadMate;
 window.removeSquadMember = removeSquadMember;
 window.resetSquadToDefault = resetSquadToDefault;
 window.runSquadAnalysis = runSquadAnalysis;

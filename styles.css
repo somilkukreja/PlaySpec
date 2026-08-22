@@ -5773,6 +5773,183 @@ input, select, textarea {
   font-family: var(--font-mono);
 }
 
+/* ── Squad Co-op Room Styles ── */
+.squad-room-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+
+.squad-members-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.squad-member-card {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  position: relative;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.squad-member-card:hover {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
+}
+
+.squad-member-card.host {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.06), var(--bg-surface));
+}
+
+.squad-member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.squad-member-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.squad-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-squad-action {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 0.8rem;
+  transition: all var(--transition-fast);
+}
+
+.btn-squad-action:hover {
+  color: var(--brand-blue);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.btn-squad-action.remove:hover {
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.squad-member-gpu {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--brand-blue);
+  font-family: var(--font-mono);
+}
+
+.squad-member-specs-line {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  margin-bottom: 10px;
+}
+
+.squad-tier-pill {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.squad-coop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.squad-coop-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-fast);
+}
+
+.squad-coop-card:hover {
+  border-color: var(--border-medium);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.squad-coop-card.squad_ready {
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.squad-coop-card.squad_bottleneck {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.squad-verdict-banner {
+  padding: 8px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.squad-verdict-banner.ready {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-success);
+}
+
+.squad-verdict-banner.playable {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+.squad-verdict-banner.bottleneck {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+}
+
+.squad-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.squad-member-pill {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+}
+
 
 
 

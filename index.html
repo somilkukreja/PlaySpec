@@ -685,7 +685,7 @@
             <span class="section-subtitle">Pool your gaming squad's rigs together to find multiplayer co-op games that EVERYONE can run smoothly at 60+ FPS</span>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn btn-sm btn-secondary" onclick="addSquadMemberPrompt()">+ Add Squad Mate</button>
+            <button class="btn btn-sm btn-secondary" onclick="openAddSquadMateModal()">+ Add Squad Mate</button>
             <button class="btn btn-sm btn-ghost" onclick="resetSquadToDefault()">Reset Demo Squad</button>
           </div>
         </div>
@@ -2387,6 +2387,129 @@
                 <span>✨ Generate & Play Now</span>
               </button>
             </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ ADD / EDIT SQUAD MATE SPECS MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="addSquadMateModal" onclick="if(event.target===this) closeAddSquadMateModal()">
+    <div class="modal" style="max-width:580px">
+      <button class="modal-close" onclick="closeAddSquadMateModal()" aria-label="Close modal">✕</button>
+      <div style="padding:28px 24px">
+        <div class="modal-header" style="margin-bottom:20px;border-bottom:1px solid var(--border-subtle);padding-bottom:14px">
+          <div>
+            <h3 class="modal-title" style="display:flex;align-items:center;gap:8px;font-family:var(--font-heading);font-weight:700;font-size:1.35rem;color:#ffffff">
+              <span style="font-size:1.3rem">👥</span> <span id="squadMateModalTitle">Add Squad Mate Specs</span>
+            </h3>
+            <p class="modal-subtitle" style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+              Manually customize your teammate's hardware specs to calculate real-time co-op game compatibility and squad FPS floors.
+            </p>
+          </div>
+        </div>
+
+        <form id="addSquadMateForm" onsubmit="handleSaveSquadMate(event)">
+          <input type="hidden" id="squadMateEditIndex" value="-1" />
+
+          <!-- Member Name / Gamertag -->
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label" for="squadMemberNameInput" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">
+              Teammate Name / Gamertag *
+            </label>
+            <input type="text" class="form-input" id="squadMemberNameInput" placeholder="e.g. Alex, Sarah, Jordan, Dave" style="width:100%" required />
+          </div>
+
+          <!-- GPU Selector with Custom Type Option -->
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label" for="squadMemberGpuSelect" style="display:flex;justify-content:space-between;font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">
+              <span>Graphics Card (GPU) *</span>
+              <span style="font-size:0.72rem;color:var(--brand-blue)">Choose model or custom</span>
+            </label>
+            <select class="form-select" id="squadMemberGpuSelect" onchange="handleSquadGpuSelectChange(this)" style="width:100%" required>
+              <optgroup label="🔥 NVIDIA GeForce RTX 40 & 50 Series">
+                <option value="NVIDIA GeForce RTX 4090">NVIDIA GeForce RTX 4090 (24GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 4080 Super">NVIDIA GeForce RTX 4080 Super (16GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 4070 Ti Super">NVIDIA GeForce RTX 4070 Ti Super (16GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 4070 Super">NVIDIA GeForce RTX 4070 Super (12GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 4060 Ti">NVIDIA GeForce RTX 4060 Ti (8GB / 16GB)</option>
+                <option value="NVIDIA GeForce RTX 4060">NVIDIA GeForce RTX 4060 (8GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 4050 Laptop GPU">NVIDIA GeForce RTX 4050 Laptop (6GB VRAM)</option>
+              </optgroup>
+              <optgroup label="⚡ NVIDIA GeForce RTX 30 & 20 Series">
+                <option value="NVIDIA GeForce RTX 3080">NVIDIA GeForce RTX 3080 (10GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 3070">NVIDIA GeForce RTX 3070 (8GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 3060 Ti">NVIDIA GeForce RTX 3060 Ti (8GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 3060">NVIDIA GeForce RTX 3060 (12GB VRAM)</option>
+                <option value="NVIDIA GeForce RTX 3050 6GB Laptop GPU">NVIDIA GeForce RTX 3050 6GB Laptop GPU</option>
+                <option value="NVIDIA GeForce RTX 2060">NVIDIA GeForce RTX 2060 (6GB VRAM)</option>
+              </optgroup>
+              <optgroup label="🎮 Budget & GTX Series">
+                <option value="NVIDIA GeForce GTX 1660 Super">NVIDIA GeForce GTX 1660 Super (6GB VRAM)</option>
+                <option value="NVIDIA GeForce GTX 1650" selected>NVIDIA GeForce GTX 1650 (4GB VRAM)</option>
+                <option value="NVIDIA GeForce GTX 1060 6GB">NVIDIA GeForce GTX 1060 (6GB VRAM)</option>
+                <option value="NVIDIA GeForce GTX 1050 Ti">NVIDIA GeForce GTX 1050 Ti (4GB VRAM)</option>
+              </optgroup>
+              <optgroup label="🔴 AMD Radeon RX Series">
+                <option value="AMD Radeon RX 7900 XTX">AMD Radeon RX 7900 XTX (24GB VRAM)</option>
+                <option value="AMD Radeon RX 7800 XT">AMD Radeon RX 7800 XT (16GB VRAM)</option>
+                <option value="AMD Radeon RX 6700 XT">AMD Radeon RX 6700 XT (12GB VRAM)</option>
+                <option value="AMD Radeon RX 6600">AMD Radeon RX 6600 (8GB VRAM)</option>
+                <option value="AMD Radeon RX 580">AMD Radeon RX 580 (8GB VRAM)</option>
+              </optgroup>
+              <optgroup label="🔵 Intel & Integrated">
+                <option value="Intel Arc A770">Intel Arc A770 (16GB VRAM)</option>
+                <option value="Intel Arc A750">Intel Arc A750 (8GB VRAM)</option>
+                <option value="Intel Iris Xe Graphics">Intel Iris Xe Graphics (Integrated)</option>
+                <option value="Apple M2 Pro GPU">Apple M2 / M3 Pro GPU (Unified)</option>
+              </optgroup>
+              <option value="custom">✏️ Enter Custom GPU Model...</option>
+            </select>
+            <input type="text" class="form-input" id="squadMemberCustomGpuInput" placeholder="Enter custom GPU model (e.g. RTX 4070 Ti, Radeon RX 6800)" style="width:100%;margin-top:6px;display:none" />
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <!-- CPU Selector -->
+            <div class="form-group">
+              <label class="form-label" for="squadMemberCpuSelect" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">Processor (CPU) *</label>
+              <select class="form-select" id="squadMemberCpuSelect" onchange="handleSquadCpuSelectChange(this)" style="width:100%" required>
+                <optgroup label="AMD Ryzen Processors">
+                  <option value="AMD Ryzen 7 7800X3D (8 Cores / 16 Threads)">AMD Ryzen 7 7800X3D (8-Core 3D V-Cache)</option>
+                  <option value="AMD Ryzen 7 5700X (8 Cores / 16 Threads)">AMD Ryzen 7 5700X (8-Core)</option>
+                  <option value="AMD Ryzen 5 5600X (6 Cores / 12 Threads)">AMD Ryzen 5 5600X (6-Core)</option>
+                  <option value="AMD Ryzen 5 3600 (6 Cores / 12 Threads)">AMD Ryzen 5 3600 (6-Core)</option>
+                </optgroup>
+                <optgroup label="Intel Core Processors">
+                  <option value="Intel Core i7-14700K (20 Cores / 28 Threads)">Intel Core i7-14700K (14th Gen)</option>
+                  <option value="Intel Core i5-13600K (14 Cores / 20 Threads)">Intel Core i5-13600K (13th Gen)</option>
+                  <option value="12th Gen Intel Core i5-12450HX">Intel Core i5-12450HX (12th Gen)</option>
+                  <option value="Intel Core i5-12400F (6 Cores / 12 Threads)">Intel Core i5-12400F (12th Gen)</option>
+                  <option value="Intel Core i5-9400F (6 Cores / 6 Threads)" selected>Intel Core i5-9400F (9th Gen)</option>
+                  <option value="Intel Core i7-7700K (4 Cores / 8 Threads)">Intel Core i7-7700K (7th Gen)</option>
+                </optgroup>
+                <option value="custom">✏️ Enter Custom CPU Model...</option>
+              </select>
+              <input type="text" class="form-input" id="squadMemberCustomCpuInput" placeholder="Enter custom CPU model (e.g. Ryzen 9 7900X, i7-12700K)" style="width:100%;margin-top:6px;display:none" />
+            </div>
+
+            <!-- RAM Capacity -->
+            <div class="form-group">
+              <label class="form-label" for="squadMemberRamSelect" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">RAM Memory *</label>
+              <select class="form-select" id="squadMemberRamSelect" style="width:100%" required>
+                <option value="8 GB RAM">8 GB RAM (Budget / Minimum)</option>
+                <option value="16 GB RAM" selected>16 GB RAM (Mainstream Standard)</option>
+                <option value="32 GB RAM">32 GB RAM (High-Performance)</option>
+                <option value="64 GB RAM">64 GB RAM (Enthusiast / Workstation)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Form Actions -->
+          <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-subtle);padding-top:16px">
+            <button type="button" class="btn btn-secondary" onclick="closeAddSquadMateModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveSquadMember">
+              <span>💾 Save Squad Mate Specs</span>
+            </button>
           </div>
         </form>
       </div>
