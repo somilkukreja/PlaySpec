@@ -7412,6 +7412,7 @@ let quizCorrectCount = 0;
 let quizTimerInterval = null;
 let quizSecondsRemaining = 15;
 let quizSoundEnabled = true;
+let quizTimerEnabled = localStorage.getItem('playspec_quiz_timer_enabled') !== 'false';
 let quizAnswerLocked = false;
 
 // Web Audio API Synthesizer (Zero external audio files needed)
@@ -7492,6 +7493,31 @@ function toggleQuizSound() {
   showToastNotification(quizSoundEnabled ? 'Quiz Sound FX Enabled' : 'Quiz Sound FX Muted');
 }
 
+function toggleQuizTimer() {
+  quizTimerEnabled = !quizTimerEnabled;
+  localStorage.setItem('playspec_quiz_timer_enabled', quizTimerEnabled.toString());
+  updateQuizTimerButtonUI();
+
+  if (!quizAnswerLocked) {
+    startQuizQuestionTimer();
+  }
+
+  showToastNotification(quizTimerEnabled 
+    ? '⏱️ 15s Challenge Timer Enabled!' 
+    : '♾️ Relaxed Zen Mode Enabled (Untimed — Think at your own pace!)'
+  );
+}
+
+function updateQuizTimerButtonUI() {
+  const btn = document.getElementById('quizTimerToggleBtn');
+  const icon = document.getElementById('quizTimerIcon');
+  const text = document.getElementById('quizTimerModeText');
+
+  if (btn) btn.classList.toggle('zen-mode', !quizTimerEnabled);
+  if (icon) icon.textContent = quizTimerEnabled ? '⏱️' : '♾️';
+  if (text) text.textContent = quizTimerEnabled ? 'Timer: ON' : 'Timer: OFF (Zen)';
+}
+
 function selectQuizCategory(cat) {
   activeQuizCategory = cat;
   document.querySelectorAll('.quiz-topic-chip').forEach(c => {
@@ -7513,6 +7539,7 @@ async function startNewQuizRound() {
   quizCorrectCount = 0;
   quizAnswerLocked = false;
   updateQuizHUD();
+  updateQuizTimerButtonUI();
 
   try {
     const res = await fetch(`${API_BASE}/api/quiz/generate?category=${activeQuizCategory}&count=10`);
@@ -7576,17 +7603,28 @@ function renderCurrentQuizQuestion() {
 
 function startQuizQuestionTimer() {
   if (quizTimerInterval) clearInterval(quizTimerInterval);
+  updateQuizTimerButtonUI();
 
-  quizSecondsRemaining = 15;
   const fill = document.getElementById('quizTimerFill');
   const secEl = document.getElementById('quizSecondsLeft');
 
+  if (!quizTimerEnabled) {
+    if (fill) {
+      fill.style.width = '100%';
+      fill.classList.remove('warning');
+      fill.classList.add('zen');
+    }
+    if (secEl) secEl.textContent = '♾️ Untimed';
+    return;
+  }
+
   if (fill) {
     fill.style.width = '100%';
-    fill.classList.remove('warning');
+    fill.classList.remove('warning', 'zen');
   }
   if (secEl) secEl.textContent = '15s';
 
+  quizSecondsRemaining = 15;
   const startTime = Date.now();
   const duration = 15000;
 
@@ -8241,6 +8279,7 @@ window.selectQuizCategory = selectQuizCategory;
 window.handleQuizAnswer = handleQuizAnswer;
 window.advanceToNextQuestion = advanceToNextQuestion;
 window.toggleQuizSound = toggleQuizSound;
+window.toggleQuizTimer = toggleQuizTimer;
 window.copyQuizScoreToClipboard = copyQuizScoreToClipboard;
 
 

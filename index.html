@@ -753,8 +753,16 @@
                 <span class="badge badge-cyan" id="quizCategoryBadge">🗡️ RPG & AAA Lore</span>
                 <span class="badge badge-green" id="quizDifficultyBadge">🟢 Rookie</span>
               </div>
-              <div style="display:flex;align-items:center;gap:14px">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                 <div class="quiz-score-display">Score: <span id="quizScoreVal">0</span></div>
+                
+                <!-- Timer Toggle Mode Button -->
+                <button class="btn-quiz-toggle" id="quizTimerToggleBtn" onclick="toggleQuizTimer()" title="Toggle Timer: Timed Challenge vs Zen (No Timer) Mode">
+                  <span id="quizTimerIcon">⏱️</span>
+                  <span id="quizTimerModeText" style="font-size:0.75rem;font-weight:700">Timer: ON</span>
+                </button>
+
+                <!-- Audio SFX Toggle Button -->
                 <button class="btn-quiz-sound" id="quizSoundToggleBtn" onclick="toggleQuizSound()" title="Toggle SFX Sound Chimes">
                   <span id="quizSoundIcon">🔊</span>
                 </button>

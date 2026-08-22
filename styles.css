@@ -5390,6 +5390,39 @@ input, select, textarea {
   font-family: var(--font-mono);
 }
 
+.btn-quiz-toggle {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-xs);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-heading);
+}
+
+.btn-quiz-toggle:hover {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 8px var(--brand-blue-glow);
+  background: var(--bg-card-hover);
+}
+
+.btn-quiz-toggle.zen-mode {
+  border-color: rgba(168, 85, 247, 0.5);
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+}
+
+.quiz-timer-fill.zen {
+  background: linear-gradient(90deg, #a855f7, #c084fc);
+  width: 100% !important;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+
 .btn-quiz-sound {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
