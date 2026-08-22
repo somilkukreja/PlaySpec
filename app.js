@@ -3802,6 +3802,361 @@ async function addCurrentGameToWishlist() {
 }
 
 
+// ── NOTIFICATIONS & PROFILE UI CONTROLLER ──
+
+let systemNotifications = [
+  {
+    id: 1,
+    title: 'Steam Wishlist Sync Active',
+    desc: 'Automatic real-time price drop alerts & historical lows are active for your tracked titles.',
+    time: 'Just now',
+    icon: '🎮',
+    read: false,
+    action: () => document.getElementById('price-tracker')?.scrollIntoView({ behavior: 'smooth' })
+  },
+  {
+    id: 2,
+    title: 'Hardware Profile Loaded',
+    desc: 'Local PC gaming hardware benchmarks calibrated for 60+ FPS tier calculations.',
+    time: '5m ago',
+    icon: '⚡',
+    read: false,
+    action: () => document.getElementById('pc-profile')?.scrollIntoView({ behavior: 'smooth' })
+  },
+  {
+    id: 3,
+    title: 'Steam Seasonal Sales Calendar',
+    desc: 'Steam Spring Sale countdown and real-time Steam Store specials are live.',
+    time: '1h ago',
+    icon: '🔥',
+    read: false,
+    action: () => document.getElementById('upcoming-sales')?.scrollIntoView({ behavior: 'smooth' })
+  }
+];
+
+function initNotificationBell() {
+  const notifBtn = document.getElementById('notifBtn');
+  const notifDropdown = document.getElementById('notifDropdown');
+  if (!notifBtn || !notifDropdown) return;
+
+  notifBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isActive = notifDropdown.classList.contains('active');
+    
+    // Close other dropdowns
+    closeAllNavDropdowns();
+    
+    if (!isActive) {
+      notifDropdown.classList.add('active');
+      renderNotificationsList();
+    }
+  });
+}
+
+function loadNotifications() {
+  renderNotificationsList();
+}
+
+function renderNotificationsList() {
+  const container = document.getElementById('notificationsContainer');
+  const badge = document.getElementById('notifBadge');
+  if (!container) return;
+
+  const unreadCount = systemNotifications.filter(n => !n.read).length;
+  if (badge) {
+    if (unreadCount > 0) {
+      badge.textContent = unreadCount;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  if (systemNotifications.length === 0) {
+    container.innerHTML = `
+      <div style="padding:28px 16px;text-align:center;color:var(--text-muted)">
+        <div style="font-size:1.6rem;margin-bottom:6px">🔕</div>
+        <div style="font-size:0.84rem;font-weight:600">No Notifications</div>
+        <div style="font-size:0.75rem;margin-top:2px">You're all caught up on sales & deals!</div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = systemNotifications.map(n => `
+    <div class="notification-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick(${n.id})">
+      <div class="notification-item-icon">${n.icon}</div>
+      <div style="flex:1">
+        <div class="notification-text">${n.title}</div>
+        <div class="notification-desc">${n.desc}</div>
+        <div class="notification-time">${n.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function handleNotificationClick(id) {
+  const notif = systemNotifications.find(n => n.id === id);
+  if (notif) {
+    notif.read = true;
+    renderNotificationsList();
+    if (typeof notif.action === 'function') {
+      notif.action();
+    }
+  }
+  const notifDropdown = document.getElementById('notifDropdown');
+  if (notifDropdown) notifDropdown.classList.remove('active');
+}
+
+function markAllNotificationsRead() {
+  systemNotifications.forEach(n => n.read = true);
+  renderNotificationsList();
+  showToastNotification('✓ All notifications marked as read');
+}
+
+function clearAllNotifications() {
+  systemNotifications = [];
+  renderNotificationsList();
+}
+
+
+// ── PROFILE DROPDOWN CONTROLLER ──
+
+function initProfileDropdown() {
+  const profileBtn = document.getElementById('profileBtn');
+  const profileDropdown = document.getElementById('profileDropdown');
+  if (!profileBtn || !profileDropdown) return;
+
+  profileBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isActive = profileDropdown.classList.contains('active');
+    
+    // Close other dropdowns
+    closeAllNavDropdowns();
+    
+    if (!isActive) {
+      profileDropdown.classList.add('active');
+      renderProfileDropdownContent();
+    }
+  });
+}
+
+function updateAuthUI() {
+  renderProfileDropdownContent();
+  
+  const profileBtn = document.getElementById('profileBtn');
+  if (profileBtn && currentUser) {
+    if (currentUser.avatar) {
+      profileBtn.innerHTML = `<img src="${currentUser.avatar}" alt="${currentUser.username || 'User'}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='images/cyberpunk.png'" />`;
+    } else {
+      profileBtn.innerHTML = `<div style="font-weight:700;font-size:0.85rem;color:#ffffff">${(currentUser.username || 'G')[0].toUpperCase()}</div>`;
+    }
+  }
+}
+
+function renderProfileDropdownContent() {
+  const dropdown = document.getElementById('profileDropdown');
+  if (!dropdown) return;
+
+  const isSteamUser = currentUser && (currentUser.steam_id || currentUser.id);
+
+  if (isSteamUser) {
+    dropdown.innerHTML = `
+      <div class="profile-user-card">
+        <img class="profile-user-avatar" src="${currentUser.avatar || 'images/cyberpunk.png'}" alt="${currentUser.username}" onerror="this.src='images/cyberpunk.png'" />
+        <div class="profile-user-info">
+          <div class="profile-user-name">${currentUser.username || 'Steam Gamer'}</div>
+          <div class="profile-user-badge">
+            <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--color-success)"></span>
+            Steam Connected
+          </div>
+          <div style="font-family:var(--font-mono);font-size:0.68rem;color:var(--text-dim);margin-top:1px">ID: ${currentUser.steam_id || currentUser.id}</div>
+        </div>
+      </div>
+
+      <div class="profile-dropdown-item" onclick="openGamerPassportModal(); closeAllNavDropdowns();">
+        <span>🎴</span> Holographic Gamer Passport
+      </div>
+      <div class="profile-dropdown-item" onclick="document.getElementById('price-tracker').scrollIntoView({behavior:'smooth'}); closeAllNavDropdowns();">
+        <span>❤️</span> Price Tracker & Wishlist
+      </div>
+      <div class="profile-dropdown-item" onclick="document.getElementById('steam-library').scrollIntoView({behavior:'smooth'}); closeAllNavDropdowns();">
+        <span>📊</span> My Steam Library ROI & Value
+      </div>
+      <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'}); closeAllNavDropdowns();">
+        <span>🕹️</span> My Rig Hardware Specs
+      </div>
+      <div class="profile-dropdown-item" onclick="syncUserSteamWishlist(); closeAllNavDropdowns();">
+        <span>📥</span> Re-Sync Steam Wishlist
+      </div>
+      <a href="https://steamcommunity.com/profiles/${currentUser.steam_id || currentUser.id}" target="_blank" rel="noopener noreferrer" class="profile-dropdown-item">
+        <span>🌐</span> Steam Community Profile ↗
+      </a>
+      
+      <div class="profile-dropdown-divider"></div>
+      
+      <div class="profile-dropdown-item" style="color:var(--color-danger)" onclick="logoutUser()">
+        <span>🚪</span> Sign Out / Disconnect
+      </div>
+    `;
+  } else {
+    dropdown.innerHTML = `
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border-subtle);margin-bottom:6px">
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:0.92rem;color:#ffffff">👤 Guest Gamer</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">Connect Steam for live library & wishlist tracking</div>
+      </div>
+
+      <div class="profile-dropdown-item" onclick="window.location.href='/api/auth/steam/login'">
+        <svg class="svg-icon" viewBox="0 0 512 512" style="width:14px;height:14px;color:var(--brand-blue)" fill="currentColor">
+          <path d="M255.9 0C114.6 0 0 114.6 0 256c0 102.7 60 191.1 147 232.8l20-56.1c-15.7-18.4-25.2-42-25.2-67.7 0-56.8 46.1-102.9 102.9-102.9 4.3 0 8.5 .3 12.6 .8l71.4-102.4c0-2.3-.2-4.5-.2-6.8 0-48.4 39.2-87.6 87.6-87.6 48.4 0 87.6 39.2 87.6 87.6c-20 0-38.3-6.7-52.9-18l-72.2 103.5c.3 3.6 .4 7.2 .4 10.9 0 56.8-46.1 102.9-102.9 102.9-46.7 0-86-31.2-99.3-73.6l-111 31.9c37 42.1 91 68.6 150.8 68.6 113.3 0 205.1-91.8 205.1-205.1S369.2 51 255.9 51V0z"/>
+        </svg>
+        <span style="font-weight:700;color:var(--text-primary)">Sign In via Steam</span>
+      </div>
+
+      <a href="/login.html" class="profile-dropdown-item">
+        <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+        Sign In / Register
+      </a>
+
+      <div class="profile-dropdown-item" onclick="openGamerPassportModal(); closeAllNavDropdowns();">
+        <span>🎴</span> Holographic Gamer Passport
+      </div>
+
+      <div class="profile-dropdown-divider"></div>
+
+      <div class="profile-dropdown-item" onclick="document.getElementById('steam-library').scrollIntoView({behavior:'smooth'}); closeAllNavDropdowns();">
+        <span>⚡</span> Quick Connect Steam ID
+      </div>
+    `;
+  }
+}
+
+function logoutUser() {
+  authToken = null;
+  currentUser = null;
+  localStorage.removeItem('playspec_token');
+  localStorage.removeItem('playspec_user');
+  updateAuthUI();
+  closeAllNavDropdowns();
+  showToastNotification('Logged out successfully');
+}
+
+function closeAllNavDropdowns() {
+  const notifDropdown = document.getElementById('notifDropdown');
+  const profileDropdown = document.getElementById('profileDropdown');
+  const themePanel = document.getElementById('gamingThemePanel');
+
+  if (notifDropdown) notifDropdown.classList.remove('active');
+  if (profileDropdown) profileDropdown.classList.remove('active');
+  if (themePanel) themePanel.classList.remove('active');
+}
+
+// Global click outside listener
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#notifBtn') && !e.target.closest('#notifDropdown') &&
+      !e.target.closest('#profileBtn') && !e.target.closest('#profileDropdown') &&
+      !e.target.closest('#gamingThemeTriggerBtn') && !e.target.closest('#gamingThemePanel')) {
+    closeAllNavDropdowns();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeAllNavDropdowns();
+  }
+});
+
+
+// ── THEME STUDIO & SWITCH CONTROLLER ──
+
+function initThemeToggle() {
+  const themeBtn = document.getElementById('themeToggleBtn');
+  if (!themeBtn) return;
+
+  themeBtn.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    selectGamingTheme(nextTheme);
+  });
+}
+
+function toggleGamingThemeMenu(e) {
+  if (e) e.stopPropagation();
+  const panel = document.getElementById('gamingThemePanel');
+  if (!panel) return;
+
+  const isActive = panel.classList.contains('active');
+  closeAllNavDropdowns();
+  if (!isActive) {
+    panel.classList.add('active');
+  }
+}
+
+function selectGamingTheme(themeName) {
+  document.documentElement.setAttribute('data-theme', themeName);
+  localStorage.setItem('playspec_theme', themeName);
+
+  document.querySelectorAll('.gaming-theme-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.themeVal === themeName);
+  });
+
+  const dot = document.getElementById('gamingThemeActiveDot');
+  if (dot) {
+    const themeColors = {
+      dark: '#66c0f4',
+      cyberpunk: '#00f0ff',
+      rog: '#ff1e42',
+      matrix: '#00ff66',
+      synthwave: '#c084fc',
+      stealth: '#38bdf8',
+      light: '#0284c7'
+    };
+    dot.style.background = themeColors[themeName] || '#66c0f4';
+  }
+
+  closeAllNavDropdowns();
+  showToastNotification(`Theme switched to ${themeName.toUpperCase()}`);
+}
+
+function initSearch() {
+  const searchBtn = document.getElementById('searchBtn');
+  const searchInput = document.getElementById('searchInput') || document.getElementById('trackerSearchInput');
+
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  });
+}
+
+function initUI() {
+  initNotificationBell();
+  initProfileDropdown();
+
+  // Highlight active nav links on scroll
+  const navLinks = document.querySelectorAll('.navbar-nav-centered .nav-link');
+  navLinks.forEach(link => {
+    link.addEventListener('click', function(e) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+}
+
+
 // ── INTERACTIVE PRICE HISTORY CHART (Chart.js) ──
 let priceHistoryChart = null;
 
@@ -7421,5 +7776,14 @@ window.switchTrackerTab = switchTrackerTab;
 window.handleTrackerSearch = handleTrackerSearch;
 window.trackTopPopularGames = trackTopPopularGames;
 window.syncUserSteamWishlist = syncUserSteamWishlist;
+
+// Export UI & Dropdown functions
+window.markAllNotificationsRead = markAllNotificationsRead;
+window.clearAllNotifications = clearAllNotifications;
+window.handleNotificationClick = handleNotificationClick;
+window.logoutUser = logoutUser;
+window.closeAllNavDropdowns = closeAllNavDropdowns;
+window.toggleGamingThemeMenu = toggleGamingThemeMenu;
+window.selectGamingTheme = selectGamingTheme;
 
 
