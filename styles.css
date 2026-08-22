@@ -917,10 +917,10 @@ input, select, textarea {
   transform: translateY(-1px);
 }
 
+.nav-icon-btn svg,
+.nav-avatar svg,
 .nav-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  pointer-events: none;
 }
 
 /* ── Notifications Dropdown ── */

@@ -3834,23 +3834,33 @@ let systemNotifications = [
   }
 ];
 
-function initNotificationBell() {
-  const notifBtn = document.getElementById('notifBtn');
-  const notifDropdown = document.getElementById('notifDropdown');
-  if (!notifBtn || !notifDropdown) return;
-
-  notifBtn.addEventListener('click', (e) => {
+function toggleNotificationsDropdown(e) {
+  if (e) {
+    e.preventDefault();
     e.stopPropagation();
-    const isActive = notifDropdown.classList.contains('active');
-    
-    // Close other dropdowns
-    closeAllNavDropdowns();
-    
-    if (!isActive) {
+  }
+  const notifDropdown = document.getElementById('notifDropdown');
+  const profileDropdown = document.getElementById('profileDropdown');
+  const themePanel = document.getElementById('gamingThemePanel');
+
+  if (profileDropdown) profileDropdown.classList.remove('active');
+  if (themePanel) themePanel.classList.remove('active');
+
+  if (notifDropdown) {
+    const isCurrentlyActive = notifDropdown.classList.contains('active');
+    if (isCurrentlyActive) {
+      notifDropdown.classList.remove('active');
+    } else {
       notifDropdown.classList.add('active');
       renderNotificationsList();
     }
-  });
+  }
+}
+
+function initNotificationBell() {
+  const notifBtn = document.getElementById('notifBtn');
+  if (!notifBtn) return;
+  notifBtn.onclick = toggleNotificationsDropdown;
 }
 
 function loadNotifications() {
@@ -3922,23 +3932,33 @@ function clearAllNotifications() {
 
 // ── PROFILE DROPDOWN CONTROLLER ──
 
-function initProfileDropdown() {
-  const profileBtn = document.getElementById('profileBtn');
-  const profileDropdown = document.getElementById('profileDropdown');
-  if (!profileBtn || !profileDropdown) return;
-
-  profileBtn.addEventListener('click', (e) => {
+function toggleProfileDropdown(e) {
+  if (e) {
+    e.preventDefault();
     e.stopPropagation();
-    const isActive = profileDropdown.classList.contains('active');
-    
-    // Close other dropdowns
-    closeAllNavDropdowns();
-    
-    if (!isActive) {
+  }
+  const notifDropdown = document.getElementById('notifDropdown');
+  const profileDropdown = document.getElementById('profileDropdown');
+  const themePanel = document.getElementById('gamingThemePanel');
+
+  if (notifDropdown) notifDropdown.classList.remove('active');
+  if (themePanel) themePanel.classList.remove('active');
+
+  if (profileDropdown) {
+    const isCurrentlyActive = profileDropdown.classList.contains('active');
+    if (isCurrentlyActive) {
+      profileDropdown.classList.remove('active');
+    } else {
       profileDropdown.classList.add('active');
       renderProfileDropdownContent();
     }
-  });
+  }
+}
+
+function initProfileDropdown() {
+  const profileBtn = document.getElementById('profileBtn');
+  if (!profileBtn) return;
+  profileBtn.onclick = toggleProfileDropdown;
 }
 
 function updateAuthUI() {
@@ -7778,6 +7798,8 @@ window.trackTopPopularGames = trackTopPopularGames;
 window.syncUserSteamWishlist = syncUserSteamWishlist;
 
 // Export UI & Dropdown functions
+window.toggleNotificationsDropdown = toggleNotificationsDropdown;
+window.toggleProfileDropdown = toggleProfileDropdown;
 window.markAllNotificationsRead = markAllNotificationsRead;
 window.clearAllNotifications = clearAllNotifications;
 window.handleNotificationClick = handleNotificationClick;

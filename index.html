@@ -222,7 +222,7 @@
 
         <!-- Notification Bell -->
         <div style="position:relative">
-          <button class="nav-icon-btn" id="notifBtn" aria-label="Notifications" title="Notifications">
+          <button class="nav-icon-btn" id="notifBtn" onclick="toggleNotificationsDropdown(event)" aria-label="Notifications" title="Notifications">
             <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
@@ -233,7 +233,7 @@
           <!-- Notifications Dropdown -->
           <div class="notifications-dropdown" id="notifDropdown">
             <div class="notifications-header">
-              <span>Notifications</span>
+              <span>🔔 Notifications</span>
               <button class="btn btn-ghost btn-sm" onclick="markAllNotificationsRead()">Mark all read</button>
             </div>
             <div id="notificationsContainer">
@@ -249,7 +249,7 @@
 
         <!-- Steam / User Profile -->
         <div style="position:relative">
-          <div class="nav-avatar" id="profileBtn" title="Account">
+          <div class="nav-avatar" id="profileBtn" onclick="toggleProfileDropdown(event)" role="button" tabindex="0" title="Account">
             <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:16px;height:16px">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
