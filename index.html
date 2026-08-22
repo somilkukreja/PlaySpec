@@ -726,6 +726,9 @@
               <span class="streak-flame">🔥</span>
               <span>Streak: <strong id="quizStreakCount">0</strong>x (<span id="quizMultiplierText">1.0x</span>)</span>
             </div>
+            <button class="btn btn-sm btn-primary" onclick="openAiCustomQuizModal()" style="background:linear-gradient(135deg, #8b5cf6, #ec4899);border-color:#a855f7;box-shadow:0 0 12px rgba(168,85,247,0.4)" title="Generate an instant AI quiz on any custom game or tech topic">
+              <span>✨ AI Quiz Generator</span>
+            </button>
             <button class="btn btn-sm btn-secondary" onclick="openCustomQuizModal()" title="Add your own custom gaming question to the database">
               <span style="color:var(--color-success)">➕</span> Add Custom Question
             </button>
@@ -2297,6 +2300,93 @@
             <button type="submit" class="btn btn-primary" id="submitCustomQBtn">
               <span>🚀 Submit to Community Database</span>
             </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ AI CUSTOM QUIZ GENERATOR MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="aiCustomQuizModal" onclick="if(event.target===this) closeAiCustomQuizModal()">
+    <div class="modal" style="max-width:680px">
+      <button class="modal-close" onclick="closeAiCustomQuizModal()" aria-label="Close modal">✕</button>
+      <div style="padding:28px 24px">
+        <div class="modal-header" style="margin-bottom:20px;border-bottom:1px solid var(--border-subtle);padding-bottom:14px">
+          <div>
+            <h3 class="modal-title" style="display:flex;align-items:center;gap:8px;font-family:var(--font-heading);font-weight:700;font-size:1.35rem;color:#ffffff">
+              <span style="font-size:1.3rem">✨</span> AI Custom Quiz Generator
+            </h3>
+            <p class="modal-subtitle" style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+              Generate tailored gaming trivia questions on any game, hardware tech, or lore topic. Questions are automatically checked for duplicates and saved to the live database!
+            </p>
+          </div>
+        </div>
+
+        <form id="aiCustomQuizForm" onsubmit="handleAiCustomQuizSubmit(event)">
+          <!-- Topic / Game Title -->
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label" for="aiQuizTopicInput" style="display:flex;justify-content:space-between;font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">
+              <span>Target Topic, Game or Hardware *</span>
+              <span style="font-size:0.72rem;color:var(--brand-blue)">e.g. Elden Ring, RTX 4090, GTA VI, Valorant</span>
+            </label>
+            <input type="text" class="form-input" id="aiQuizTopicInput" placeholder="e.g. Cyberpunk 2077 Night City Lore" style="width:100%" required />
+          </div>
+
+          <!-- Quick Topic Pills / Presets -->
+          <div style="margin-bottom:16px">
+            <span style="font-size:0.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;display:block;margin-bottom:6px">🔥 Quick Presets:</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <button type="button" class="btn-mood-chip" onclick="setAiTopicPreset('Elden Ring Shadow of the Erdtree')">🗡️ Elden Ring DLC</button>
+              <button type="button" class="btn-mood-chip" onclick="setAiTopicPreset('Cyberpunk 2077')">🦾 Cyberpunk 2077</button>
+              <button type="button" class="btn-mood-chip" onclick="setAiTopicPreset('Grand Theft Auto VI')">🚗 GTA 6 & Vice City</button>
+              <button type="button" class="btn-mood-chip" onclick="setAiTopicPreset('NVIDIA RTX & GPU Hardware')">🖥️ PC GPU Architecture</button>
+              <button type="button" class="btn-mood-chip" onclick="setAiTopicPreset('Counter-Strike 2')">🎯 Counter-Strike 2</button>
+              <button type="button" class="btn-mood-chip" onclick="setAiTopicPreset('VALORANT Protocol Lore')">⚡ VALORANT</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:14px;margin-bottom:18px">
+            <!-- Custom Question Quantity -->
+            <div class="form-group">
+              <label class="form-label" for="aiQuizCountInput" style="display:flex;justify-content:space-between;font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">
+                <span>Number of Questions:</span>
+                <strong id="aiQuizCountLabel" style="color:var(--brand-blue);font-family:var(--font-mono)">10 Questions</strong>
+              </label>
+              <div style="display:flex;align-items:center;gap:10px">
+                <input type="range" class="custom-range" id="aiQuizCountRange" min="3" max="25" value="10" step="1" oninput="document.getElementById('aiQuizCountInput').value=this.value; document.getElementById('aiQuizCountLabel').textContent=this.value + ' Questions';" style="flex:1" />
+                <input type="number" class="form-input" id="aiQuizCountInput" min="3" max="25" value="10" oninput="document.getElementById('aiQuizCountRange').value=this.value; document.getElementById('aiQuizCountLabel').textContent=this.value + ' Questions';" style="width:70px;text-align:center" />
+              </div>
+            </div>
+
+            <!-- Difficulty Selector -->
+            <div class="form-group">
+              <label class="form-label" for="aiQuizDifficultySelect" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">Difficulty Level *</label>
+              <select class="form-select" id="aiQuizDifficultySelect" style="width:100%" required>
+                <option value="balanced" selected>⚖️ Balanced (Mix of Easy, Med & Hard)</option>
+                <option value="rookie">🟢 Rookie Only (Casual)</option>
+                <option value="veteran">🟡 Veteran Only (Challenging)</option>
+                <option value="hardcore">🔴 Hardcore / God Tier (Extreme)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Submitter Gamertag -->
+          <div class="form-group" style="margin-bottom:24px">
+            <label class="form-label" for="aiQuizAuthorInput" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">
+              <span>👤 Creator Gamertag / Credit (Optional)</span>
+            </label>
+            <input type="text" class="form-input" id="aiQuizAuthorInput" placeholder="e.g. AI_Commander" style="width:100%" />
+          </div>
+
+          <!-- Form Actions -->
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border-subtle);padding-top:16px;flex-wrap:wrap;gap:10px">
+            <span style="font-size:0.75rem;color:var(--color-success)">💾 Auto-saves unique questions to live database</span>
+            <div style="display:flex;gap:10px">
+              <button type="button" class="btn btn-secondary" onclick="closeAiCustomQuizModal()">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="btnAiGenerateQuiz" style="background:linear-gradient(135deg, #8b5cf6, #ec4899);border-color:#a855f7">
+                <span>✨ Generate & Play Now</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>

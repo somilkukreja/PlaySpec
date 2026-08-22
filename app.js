@@ -7762,6 +7762,121 @@ async function handleCustomQuizFormSubmit(e) {
   }
 }
 
+function openAiCustomQuizModal() {
+  const modal = document.getElementById('aiCustomQuizModal');
+  if (!modal) return;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  const authorInput = document.getElementById('aiQuizAuthorInput');
+  if (authorInput && currentUser && currentUser.username) {
+    authorInput.value = currentUser.username;
+  }
+}
+
+function closeAiCustomQuizModal() {
+  const modal = document.getElementById('aiCustomQuizModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function setAiTopicPreset(topicText) {
+  const topicInput = document.getElementById('aiQuizTopicInput');
+  if (topicInput) {
+    topicInput.value = topicText;
+    topicInput.focus();
+  }
+}
+
+async function handleAiCustomQuizSubmit(e) {
+  e.preventDefault();
+  const submitBtn = document.getElementById('btnAiGenerateQuiz');
+  const originalHtml = submitBtn ? submitBtn.innerHTML : 'Generate & Play';
+
+  const topic = document.getElementById('aiQuizTopicInput')?.value?.trim();
+  const count = parseInt(document.getElementById('aiQuizCountInput')?.value || '10', 10);
+  const difficulty = document.getElementById('aiQuizDifficultySelect')?.value || 'balanced';
+  const author = document.getElementById('aiQuizAuthorInput')?.value?.trim() || (currentUser?.username || 'AI Commander');
+
+  if (!topic) {
+    showToastNotification('Please enter a target topic or game title!');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>✨ Synthesizing Questions & Saving...</span>';
+  }
+
+  try {
+    const payload = {
+      topic: topic,
+      count: count,
+      difficulty: difficulty,
+      author: author
+    };
+
+    const res = await fetch(`${API_BASE}/api/quiz/ai-generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (res.ok && data.status === 'success' && data.questions && data.questions.length > 0) {
+      const savedMsg = data.newly_saved_to_database > 0 
+        ? ` (Saved ${data.newly_saved_to_database} new unique questions to global database!)`
+        : ` (All questions verified!)`;
+      
+      showToastNotification(`✨ Generated ${data.questions.length} Custom Questions for '${topic}'!${savedMsg}`);
+      
+      if (data.total_database_questions !== undefined) {
+        const totalBadge = document.getElementById('quizTotalDatabaseCount');
+        if (totalBadge) totalBadge.textContent = `${data.total_database_questions}+`;
+      }
+      if (data.community_questions_count !== undefined) {
+        const comBadge = document.getElementById('communityQuestionCountBadge');
+        if (comBadge) comBadge.textContent = data.community_questions_count;
+      }
+
+      closeAiCustomQuizModal();
+      document.getElementById('aiCustomQuizForm')?.reset();
+
+      // Launch custom round with the exact generated questions
+      quizQuestions = data.questions;
+      currentQuizIndex = 0;
+      quizScore = 0;
+      quizStreak = 0;
+      quizMaxStreak = 0;
+      quizCorrectCount = 0;
+      quizAnswerLocked = false;
+      updateQuizHUD();
+      updateQuizTimerButtonUI();
+
+      const activeCard = document.getElementById('quizActiveCard');
+      const completedCard = document.getElementById('quizCompletedCard');
+      if (activeCard) activeCard.style.display = 'block';
+      if (completedCard) completedCard.style.display = 'none';
+
+      renderCurrentQuizQuestion();
+
+      // Smooth scroll to arena
+      const arenaEl = document.getElementById('gamer-quiz');
+      if (arenaEl) arenaEl.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      showToastNotification(data.message || 'Failed to generate custom quiz.');
+    }
+  } catch (err) {
+    showToastNotification('Error connecting to AI quiz generator.');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
+    }
+  }
+}
+
 function startQuizQuestionTimer() {
   if (quizTimerInterval) clearInterval(quizTimerInterval);
   updateQuizTimerButtonUI();
@@ -8446,5 +8561,9 @@ window.openCustomQuizModal = openCustomQuizModal;
 window.closeCustomQuizModal = closeCustomQuizModal;
 window.handleCustomQuizFormSubmit = handleCustomQuizFormSubmit;
 window.updateQuizSettings = updateQuizSettings;
+window.openAiCustomQuizModal = openAiCustomQuizModal;
+window.closeAiCustomQuizModal = closeAiCustomQuizModal;
+window.setAiTopicPreset = setAiTopicPreset;
+window.handleAiCustomQuizSubmit = handleAiCustomQuizSubmit;
 
 

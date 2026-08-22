@@ -5682,6 +5682,55 @@ def submit_custom_quiz_question():
         return jsonify({"status": "error", "message": f"Server error: {str(e)}"}), 500
 
 
+@app.route('/api/quiz/ai-generate', methods=['POST'])
+def ai_generate_custom_quiz():
+    from quiz_generator import generate_ai_custom_questions, is_duplicate_question
+    try:
+        data = request.get_json() or {}
+        topic = (data.get('topic') or 'General Gaming Lore').strip()
+        count = int(data.get('count', 10))
+        difficulty = (data.get('difficulty') or 'balanced').strip().lower()
+        author = (data.get('author') or 'AI Gaming Agent').strip()
+
+        if not topic:
+            topic = 'General Gaming Lore'
+
+        custom_pool = load_custom_questions()
+        combined_pool = list(QUIZ_QUESTION_BANK) + custom_pool
+
+        # Generate tailored questions
+        generated_questions = generate_ai_custom_questions(
+            topic=topic,
+            count=count,
+            difficulty=difficulty,
+            author=author,
+            existing_pool=combined_pool
+        )
+
+        # Deduplicate and auto-save new questions to persistent database
+        newly_saved_count = 0
+        for q in generated_questions:
+            if not is_duplicate_question(q.get('question', ''), combined_pool):
+                custom_pool.insert(0, q)
+                combined_pool.insert(0, q)
+                newly_saved_count += 1
+
+        if newly_saved_count > 0:
+            save_custom_questions(custom_pool)
+
+        return jsonify({
+            "status": "success",
+            "topic": topic,
+            "count": len(generated_questions),
+            "newly_saved_to_database": newly_saved_count,
+            "total_database_questions": len(QUIZ_QUESTION_BANK) + len(custom_pool),
+            "community_questions_count": len(custom_pool),
+            "questions": generated_questions
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"AI Generation error: {str(e)}"}), 500
+
+
 @app.route('/api/quiz/custom/list')
 def list_custom_quiz_questions():
     custom_questions = load_custom_questions()
