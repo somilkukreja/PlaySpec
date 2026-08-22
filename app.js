@@ -7550,6 +7550,10 @@ async function startNewQuizRound() {
       } else {
         quizQuestions = getFallbackQuizQuestions();
       }
+      if (data.community_questions_count !== undefined) {
+        const badge = document.getElementById('communityQuestionCountBadge');
+        if (badge) badge.textContent = data.community_questions_count;
+      }
     } else {
       quizQuestions = getFallbackQuizQuestions();
     }
@@ -7573,6 +7577,7 @@ function renderCurrentQuizQuestion() {
   const numBadge = document.getElementById('quizQuestionNumberBadge');
   const catBadge = document.getElementById('quizCategoryBadge');
   const diffBadge = document.getElementById('quizDifficultyBadge');
+  const authorBadge = document.getElementById('quizAuthorBadge');
   const qText = document.getElementById('quizQuestionText');
   const grid = document.getElementById('quizMcqGrid');
   const loreTray = document.getElementById('quizLoreTray');
@@ -7582,6 +7587,15 @@ function renderCurrentQuizQuestion() {
   if (diffBadge) diffBadge.textContent = q.difficulty_label || '🟢 Rookie';
   if (qText) qText.textContent = q.question;
   if (loreTray) loreTray.style.display = 'none';
+
+  if (authorBadge) {
+    if (q.is_custom || (q.author && q.author !== 'PlaySpec')) {
+      authorBadge.textContent = `👤 By @${q.author}`;
+      authorBadge.style.display = 'inline-flex';
+    } else {
+      authorBadge.style.display = 'none';
+    }
+  }
 
   const multiplier = getStreakMultiplier();
   const potential = Math.round(q.points * multiplier);
@@ -7599,6 +7613,95 @@ function renderCurrentQuizQuestion() {
   }
 
   startQuizQuestionTimer();
+}
+
+function openCustomQuizModal() {
+  const modal = document.getElementById('customQuizModal');
+  if (!modal) return;
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  const authorInput = document.getElementById('customQAuthor');
+  if (authorInput && currentUser && currentUser.username) {
+    authorInput.value = currentUser.username;
+  }
+}
+
+function closeCustomQuizModal() {
+  const modal = document.getElementById('customQuizModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+async function handleCustomQuizFormSubmit(e) {
+  e.preventDefault();
+  const submitBtn = document.getElementById('submitCustomQBtn');
+  const originalHtml = submitBtn ? submitBtn.innerHTML : 'Submit';
+
+  const qText = document.getElementById('customQText')?.value?.trim();
+  const category = document.getElementById('customQCategory')?.value;
+  const difficulty = document.getElementById('customQDifficulty')?.value;
+  const opt0 = document.getElementById('customOpt0')?.value?.trim();
+  const opt1 = document.getElementById('customOpt1')?.value?.trim();
+  const opt2 = document.getElementById('customOpt2')?.value?.trim();
+  const opt3 = document.getElementById('customOpt3')?.value?.trim();
+  const correctRadio = document.querySelector('input[name="customCorrectChoice"]:checked');
+  const correctIndex = correctRadio ? parseInt(correctRadio.value, 10) : 0;
+  const loreFact = document.getElementById('customQLoreFact')?.value?.trim();
+  const author = document.getElementById('customQAuthor')?.value?.trim() || (currentUser?.username || 'Anonymous Gamer');
+
+  if (!qText || !opt0 || !opt1 || !opt2 || !opt3) {
+    showToastNotification('Please fill in the question and all 4 options!');
+    return;
+  }
+
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>⏳ Saving Question...</span>';
+  }
+
+  try {
+    const payload = {
+      question: qText,
+      category: category,
+      difficulty: difficulty,
+      options: [opt0, opt1, opt2, opt3],
+      correct_index: correctIndex,
+      lore_fact: loreFact,
+      author: author
+    };
+
+    const res = await fetch(`${API_BASE}/api/quiz/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      showToastNotification(data.message || '🎉 Question added to Community Database!');
+      closeCustomQuizModal();
+      document.getElementById('customQuizForm')?.reset();
+
+      if (data.total_community_questions !== undefined) {
+        const badge = document.getElementById('communityQuestionCountBadge');
+        if (badge) badge.textContent = data.total_community_questions;
+      }
+
+      // Automatically switch to Community category to play the newly submitted question!
+      selectQuizCategory('community');
+    } else {
+      showToastNotification(data.message || 'Failed to submit question.');
+    }
+  } catch (err) {
+    showToastNotification('Error connecting to quiz server.');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
+    }
+  }
 }
 
 function startQuizQuestionTimer() {
@@ -8281,5 +8384,8 @@ window.advanceToNextQuestion = advanceToNextQuestion;
 window.toggleQuizSound = toggleQuizSound;
 window.toggleQuizTimer = toggleQuizTimer;
 window.copyQuizScoreToClipboard = copyQuizScoreToClipboard;
+window.openCustomQuizModal = openCustomQuizModal;
+window.closeCustomQuizModal = closeCustomQuizModal;
+window.handleCustomQuizFormSubmit = handleCustomQuizFormSubmit;
 
 

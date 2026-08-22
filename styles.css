@@ -5677,6 +5677,55 @@ input, select, textarea {
   font-weight: 800;
 }
 
+/* ── Custom Question Creator Modal & Form ── */
+.custom-options-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.correct-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.correct-radio-label input[type="radio"] {
+  cursor: pointer;
+  accent-color: #10b981;
+  width: 18px;
+  height: 18px;
+}
+
+.custom-opt-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.correct-radio-label input[type="radio"]:checked + .custom-opt-badge {
+  background: #10b981;
+  color: #ffffff;
+  border-color: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
 
 
 

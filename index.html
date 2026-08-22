@@ -726,6 +726,9 @@
               <span class="streak-flame">🔥</span>
               <span>Streak: <strong id="quizStreakCount">0</strong>x (<span id="quizMultiplierText">1.0x</span>)</span>
             </div>
+            <button class="btn btn-sm btn-secondary" onclick="openCustomQuizModal()" title="Add your own custom gaming question to the database">
+              <span style="color:var(--color-success)">➕</span> Add Custom Question
+            </button>
             <button class="btn btn-sm btn-primary" onclick="startNewQuizRound()">
               <span>🔄 New Quiz Round</span>
             </button>
@@ -742,6 +745,7 @@
             <button class="quiz-topic-chip" data-quiz-cat="esports" onclick="selectQuizCategory('esports')">🎯 FPS & Esports</button>
             <button class="quiz-topic-chip" data-quiz-cat="indie_retro" onclick="selectQuizCategory('indie_retro')">🕹️ Retro & Indie</button>
             <button class="quiz-topic-chip" data-quiz-cat="trivia" onclick="selectQuizCategory('trivia')">🏆 GOTY & Steam Trivia</button>
+            <button class="quiz-topic-chip" data-quiz-cat="community" onclick="selectQuizCategory('community')">⭐ Community Questions (<span id="communityQuestionCountBadge">1</span>)</button>
           </div>
 
           <!-- Main Active Quiz Box -->
@@ -752,6 +756,7 @@
                 <span class="badge badge-purple" id="quizQuestionNumberBadge">Question 1 / 10</span>
                 <span class="badge badge-cyan" id="quizCategoryBadge">🗡️ RPG & AAA Lore</span>
                 <span class="badge badge-green" id="quizDifficultyBadge">🟢 Rookie</span>
+                <span class="badge badge-purple" id="quizAuthorBadge" style="display:none;font-size:0.7rem">👤 By Community</span>
               </div>
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                 <div class="quiz-score-display">Score: <span id="quizScoreVal">0</span></div>
@@ -2150,6 +2155,124 @@
       </div>
     </div>
   </footer>
+
+  <!-- ═══════════════════════ SUBMIT CUSTOM QUIZ QUESTION MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="customQuizModal" onclick="if(event.target===this) closeCustomQuizModal()">
+    <div class="modal" style="max-width:680px">
+      <button class="modal-close" onclick="closeCustomQuizModal()" aria-label="Close modal">✕</button>
+      <div style="padding:28px 24px">
+        <div class="modal-header" style="margin-bottom:20px;border-bottom:1px solid var(--border-subtle);padding-bottom:14px">
+          <div>
+            <h3 class="modal-title" style="display:flex;align-items:center;gap:8px;font-family:var(--font-heading);font-weight:700;font-size:1.35rem;color:#ffffff">
+              <span style="font-size:1.3rem">➕</span> Submit Question to Community Database
+            </h3>
+            <p class="modal-subtitle" style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+              Contribute your gaming knowledge, hardware specs, or easter egg lore to the live PlaySpec quiz pool.
+            </p>
+          </div>
+        </div>
+
+        <form id="customQuizForm" onsubmit="handleCustomQuizFormSubmit(event)">
+          <!-- Question Prompt -->
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label" for="customQText" style="display:flex;justify-content:space-between;font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">
+              <span>Question Prompt *</span>
+              <span style="font-size:0.72rem;color:var(--text-muted)">Clear & concise</span>
+            </label>
+            <textarea class="form-input" id="customQText" rows="2" placeholder="e.g. In Cyberpunk 2077, what is Johnny Silverhand's signature pistol named?" style="width:100%;resize:vertical" required></textarea>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:12px;margin-bottom:16px">
+            <!-- Category Selector -->
+            <div class="form-group">
+              <label class="form-label" for="customQCategory" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">Category *</label>
+              <select class="form-select" id="customQCategory" style="width:100%" required>
+                <option value="rpg_lore">🗡️ RPG & AAA Lore</option>
+                <option value="hardware">🖥️ PC Hardware & Tech</option>
+                <option value="esports">🎯 FPS & Esports</option>
+                <option value="indie_retro">🕹️ Retro & Indie Legends</option>
+                <option value="trivia">🏆 GOTY & Steam Trivia</option>
+                <option value="community" selected>⭐ Community / Custom</option>
+              </select>
+            </div>
+
+            <!-- Difficulty Selector -->
+            <div class="form-group">
+              <label class="form-label" for="customQDifficulty" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">Difficulty Level *</label>
+              <select class="form-select" id="customQDifficulty" style="width:100%" required>
+                <option value="rookie">🟢 Rookie (+100 pts)</option>
+                <option value="veteran" selected>🟡 Veteran (+200 pts)</option>
+                <option value="hardcore">🔴 Hardcore (+350 pts)</option>
+                <option value="god">💀 Elden God (+500 pts)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 4 MCQ Options & Radio Selection for Correct Option -->
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label" style="display:flex;justify-content:space-between;font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:8px">
+              <span>4 Multiple Choice Options (Select Correct Answer) *</span>
+              <span style="font-size:0.72rem;color:var(--color-success)">● Radio button marks correct option</span>
+            </label>
+            <div class="custom-options-stack" style="display:flex;flex-direction:column;gap:8px">
+              <div class="custom-option-row">
+                <label class="correct-radio-label" title="Mark Option A as correct">
+                  <input type="radio" name="customCorrectChoice" value="0" checked />
+                  <span class="custom-opt-badge opt-a">A</span>
+                </label>
+                <input type="text" class="form-input" id="customOpt0" placeholder="Option A (e.g. Malorian Arms 3516)" style="flex:1" required />
+              </div>
+              <div class="custom-option-row">
+                <label class="correct-radio-label" title="Mark Option B as correct">
+                  <input type="radio" name="customCorrectChoice" value="1" />
+                  <span class="custom-opt-badge opt-b">B</span>
+                </label>
+                <input type="text" class="form-input" id="customOpt1" placeholder="Option B (e.g. Skippy)" style="flex:1" required />
+              </div>
+              <div class="custom-option-row">
+                <label class="correct-radio-label" title="Mark Option C as correct">
+                  <input type="radio" name="customCorrectChoice" value="2" />
+                  <span class="custom-opt-badge opt-c">C</span>
+                </label>
+                <input type="text" class="form-input" id="customOpt2" placeholder="Option C (e.g. Dying Night)" style="flex:1" required />
+              </div>
+              <div class="custom-option-row">
+                <label class="correct-radio-label" title="Mark Option D as correct">
+                  <input type="radio" name="customCorrectChoice" value="3" />
+                  <span class="custom-opt-badge opt-d">D</span>
+                </label>
+                <input type="text" class="form-input" id="customOpt3" placeholder="Option D (e.g. Comrade's Hammer)" style="flex:1" required />
+              </div>
+            </div>
+          </div>
+
+          <!-- Lore Factoid Explanation -->
+          <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label" for="customQLoreFact" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">
+              <span>💡 Lore / Trivia Factoid (Displayed after player answers)</span>
+            </label>
+            <input type="text" class="form-input" id="customQLoreFact" placeholder="e.g. The Malorian Arms 3516 was custom-forged for Johnny with customized cyberarm recoil compensators." style="width:100%" />
+          </div>
+
+          <!-- Submitter Gamertag / Name -->
+          <div class="form-group" style="margin-bottom:24px">
+            <label class="form-label" for="customQAuthor" style="font-size:0.82rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;display:block">
+              <span>👤 Creator Gamertag / Handle (Optional)</span>
+            </label>
+            <input type="text" class="form-input" id="customQAuthor" placeholder="e.g. CyberV" style="width:100%" />
+          </div>
+
+          <!-- Form Actions -->
+          <div style="display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--border-subtle);padding-top:16px">
+            <button type="button" class="btn btn-secondary" onclick="closeCustomQuizModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submitCustomQBtn">
+              <span>🚀 Submit to Community Database</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- ═══════════════════════ MOBILE NAV ═══════════════════════ -->
   <nav class="mobile-nav">

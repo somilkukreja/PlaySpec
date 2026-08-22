@@ -1,0 +1,44 @@
+[
+  {
+    "id": "custom_1787412430_4",
+    "category": "rpg_lore",
+    "category_label": "\ud83d\udde1\ufe0f RPG & AAA Lore",
+    "difficulty": "hardcore",
+    "difficulty_label": "\ud83d\udd34 Hardcore",
+    "points": 350,
+    "question": "In Elden Ring: Shadow of the Erdtree, what is the name of the colossal wicker fire giant enemies roaming the Realm of Shadow?",
+    "options": [
+      "Furnace Golems",
+      "Fire Monks",
+      "Erdtree Sentinels",
+      "Magma Wyrms"
+    ],
+    "correct": "Furnace Golems",
+    "correct_answer": "Furnace Golems",
+    "lore_fact": "Furnace Golems are towering siege weapons powered by sacred burning heads crafted during Messmer the Impaler's crusade.",
+    "author": "TarnishedChampion",
+    "is_custom": true,
+    "created_at": "2026-08-22 20:57:10"
+  },
+  {
+    "id": "custom_1787412257_4",
+    "category": "rpg_lore",
+    "category_label": "\ud83d\udde1\ufe0f RPG & AAA Lore",
+    "difficulty": "veteran",
+    "difficulty_label": "\ud83d\udfe1 Veteran",
+    "points": 200,
+    "question": "What is the maximum player level cap in Fallout: New Vegas with all 4 story add-on DLCs installed?",
+    "options": [
+      "Level 50",
+      "Level 30",
+      "Level 100",
+      "No Level Cap"
+    ],
+    "correct": "Level 50",
+    "correct_answer": "Level 50",
+    "lore_fact": "Each of the 4 story add-on packs (Dead Money, Honest Hearts, Old World Blues, Lonesome Road) increased the level cap by 5, raising it from 30 to 50.",
+    "author": "CourierSix",
+    "is_custom": true,
+    "created_at": "2026-08-22 20:54:17"
+  }
+]

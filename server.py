@@ -5740,22 +5740,52 @@ QUIZ_QUESTION_BANK = [
 ]
 
 
+CUSTOM_QUIZ_FILE = os.path.join(os.path.dirname(__file__), 'custom_quiz_questions.json')
+
+def load_custom_questions():
+    if os.path.exists(CUSTOM_QUIZ_FILE):
+        try:
+            with open(CUSTOM_QUIZ_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_custom_questions(questions):
+    try:
+        with open(CUSTOM_QUIZ_FILE, 'w', encoding='utf-8') as f:
+            json.dump(questions, f, indent=2)
+        return True
+    except Exception:
+        return False
+
+
 @app.route('/api/quiz/generate')
 @app.route('/api/quiz/question')
 def get_quiz_questions():
     import random
     category = request.args.get('category', 'all').lower()
     difficulty = request.args.get('difficulty', 'all').lower()
-    count = min(int(request.args.get('count', 10)), len(QUIZ_QUESTION_BANK))
+    count = min(int(request.args.get('count', 10)), 50)
 
-    filtered = QUIZ_QUESTION_BANK
-    if category != 'all':
-        filtered = [q for q in filtered if q['category'] == category]
+    # Merge core question bank with user-submitted community questions
+    custom_pool = load_custom_questions()
+    combined_pool = list(QUIZ_QUESTION_BANK) + custom_pool
+
+    filtered = combined_pool
+    if category == 'community':
+        filtered = [q for q in combined_pool if q.get('is_custom') or q.get('category') == 'community']
+        if not filtered:
+            # Fallback if no custom questions yet
+            filtered = combined_pool
+    elif category != 'all':
+        filtered = [q for q in combined_pool if q.get('category') == category]
+
     if difficulty != 'all':
-        filtered = [q for q in filtered if q['difficulty'] == difficulty]
+        filtered = [q for q in filtered if q.get('difficulty') == difficulty]
 
     if not filtered:
-        filtered = QUIZ_QUESTION_BANK
+        filtered = combined_pool
 
     sample_size = min(count, len(filtered))
     chosen = random.sample(filtered, sample_size)
@@ -5764,26 +5794,117 @@ def get_quiz_questions():
     output_questions = []
     for idx, q in enumerate(chosen):
         options = list(q['options'])
+        correct_val = q.get('correct') or q.get('correct_answer')
+        if correct_val not in options and len(options) > 0:
+            correct_val = options[0]
+            
         random.shuffle(options)
         output_questions.append({
             "number": idx + 1,
-            "id": q['id'],
-            "category": q['category'],
-            "category_label": q['category_label'],
-            "difficulty": q['difficulty'],
-            "difficulty_label": q['difficulty_label'],
-            "points": q['points'],
-            "question": q['question'],
+            "id": q.get('id', f"q_{idx}"),
+            "category": q.get('category', 'trivia'),
+            "category_label": q.get('category_label', '🎮 Community Lore'),
+            "difficulty": q.get('difficulty', 'veteran'),
+            "difficulty_label": q.get('difficulty_label', '🟡 Veteran'),
+            "points": q.get('points', 200),
+            "question": q.get('question', ''),
             "options": options,
-            "correct_index": options.index(q['correct']),
-            "correct_answer": q['correct'],
-            "lore_fact": q['lore_fact']
+            "correct_index": options.index(correct_val) if correct_val in options else 0,
+            "correct_answer": correct_val,
+            "lore_fact": q.get('lore_fact', 'A community-contributed gaming lore fact.'),
+            "author": q.get('author', 'PlaySpec Community'),
+            "is_custom": q.get('is_custom', False)
         })
 
     return jsonify({
         "status": "success",
         "total_questions": len(output_questions),
+        "community_questions_count": len(custom_pool),
         "questions": output_questions
+    })
+
+
+@app.route('/api/quiz/submit', methods=['POST'])
+def submit_custom_quiz_question():
+    import time
+    try:
+        data = request.get_json() or {}
+        question_text = (data.get('question') or '').strip()
+        category = (data.get('category') or 'community').strip().lower()
+        difficulty = (data.get('difficulty') or 'veteran').strip().lower()
+        options = data.get('options') or []
+        correct_index = int(data.get('correct_index', 0))
+        lore_fact = (data.get('lore_fact') or '').strip()
+        author = (data.get('author') or 'Anonymous Gamer').strip()
+
+        # Validation
+        if not question_text or len(question_text) < 5:
+            return jsonify({"status": "error", "message": "Question prompt must be at least 5 characters long."}), 400
+
+        clean_options = [str(opt).strip() for opt in options if str(opt).strip()]
+        if len(clean_options) < 4:
+            return jsonify({"status": "error", "message": "Please provide exactly 4 distinct MCQ options."}), 400
+
+        if correct_index < 0 or correct_index >= len(clean_options):
+            correct_index = 0
+
+        correct_answer = clean_options[correct_index]
+
+        category_labels = {
+            "rpg_lore": "🗡️ RPG & AAA Lore",
+            "hardware": "🖥️ PC Hardware & Tech",
+            "esports": "🎯 FPS & Esports",
+            "indie_retro": "🕹️ Retro & Indie Legends",
+            "trivia": "🏆 GOTY & Steam Trivia",
+            "community": "⭐ Community Created"
+        }
+
+        difficulty_meta = {
+            "rookie": {"label": "🟢 Rookie", "points": 100},
+            "veteran": {"label": "🟡 Veteran", "points": 200},
+            "hardcore": {"label": "🔴 Hardcore", "points": 350},
+            "god": {"label": "💀 Elden God", "points": 500}
+        }
+        diff_info = difficulty_meta.get(difficulty, {"label": "🟡 Veteran", "points": 200})
+
+        new_question = {
+            "id": f"custom_{int(time.time())}_{len(clean_options)}",
+            "category": category,
+            "category_label": category_labels.get(category, "⭐ Community Created"),
+            "difficulty": difficulty,
+            "difficulty_label": diff_info["label"],
+            "points": diff_info["points"],
+            "question": question_text,
+            "options": clean_options,
+            "correct": correct_answer,
+            "correct_answer": correct_answer,
+            "lore_fact": lore_fact or f"Created and verified by {author}.",
+            "author": author,
+            "is_custom": True,
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+
+        custom_questions = load_custom_questions()
+        custom_questions.insert(0, new_question)
+        save_custom_questions(custom_questions)
+
+        return jsonify({
+            "status": "success",
+            "message": "🎉 Question successfully saved to Community Database and added to live rotation!",
+            "question": new_question,
+            "total_community_questions": len(custom_questions)
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Server error: {str(e)}"}), 500
+
+
+@app.route('/api/quiz/custom/list')
+def list_custom_quiz_questions():
+    custom_questions = load_custom_questions()
+    return jsonify({
+        "status": "success",
+        "total": len(custom_questions),
+        "questions": custom_questions
     })
 
 
