@@ -3390,21 +3390,97 @@ function updateTrackerStats(items) {
   }
 }
 
+let currentTrackerSearchQuery = '';
+let activeTrackerTab = 'all';
+
+function switchTrackerTab(tab) {
+  activeTrackerTab = tab;
+  const tabAll = document.getElementById('trackerTabAllBtn');
+  const tabDiscover = document.getElementById('trackerTabDiscoverBtn');
+  const suggestedShelf = document.getElementById('suggestedTrackerShelf');
+
+  if (tabAll) tabAll.classList.toggle('active', tab === 'all');
+  if (tabDiscover) tabDiscover.classList.toggle('active', tab === 'discover');
+
+  if (tab === 'discover') {
+    if (suggestedShelf) suggestedShelf.style.display = 'block';
+    renderSuggestedTrackerShelf(currentTrackerSearchQuery);
+  } else {
+    // If user has 0 items, keep suggested shelf visible as guidance
+    const items = window.currentWishlistItems || localGuestWishlist || [];
+    if (items.length === 0) {
+      if (suggestedShelf) suggestedShelf.style.display = 'block';
+    } else {
+      if (suggestedShelf) suggestedShelf.style.display = 'none';
+    }
+  }
+}
+
+function handleTrackerSearch(val) {
+  currentTrackerSearchQuery = (val || '').toLowerCase().trim();
+  const items = window.currentWishlistItems || localGuestWishlist || [];
+  
+  if (currentTrackerSearchQuery.length > 0) {
+    // Filter tracked items
+    const filteredTracked = items.filter(i => 
+      (i.game_title || i.title || '').toLowerCase().includes(currentTrackerSearchQuery) ||
+      String(i.appid || i.id).includes(currentTrackerSearchQuery)
+    );
+    renderWishlistCards(filteredTracked);
+
+    // Auto-open suggested shelf with matching games
+    const suggestedShelf = document.getElementById('suggestedTrackerShelf');
+    if (suggestedShelf) suggestedShelf.style.display = 'block';
+    renderSuggestedTrackerShelf(currentTrackerSearchQuery);
+  } else {
+    renderWishlistCards(items);
+    if (activeTrackerTab !== 'discover' && items.length > 0) {
+      const suggestedShelf = document.getElementById('suggestedTrackerShelf');
+      if (suggestedShelf) suggestedShelf.style.display = 'none';
+    } else {
+      renderSuggestedTrackerShelf('');
+    }
+  }
+}
+
 function renderWishlist(items) {
+  const tabCount = document.getElementById('trackerTabCount');
+  if (tabCount) tabCount.textContent = items ? items.length : 0;
+  
+  renderWishlistCards(items);
+  renderSuggestedTrackerShelf(currentTrackerSearchQuery);
+}
+
+function renderWishlistCards(items) {
   const grid = document.getElementById('wishlistGrid');
+  const suggestedShelf = document.getElementById('suggestedTrackerShelf');
   if (!grid) return;
 
   if (!items || items.length === 0) {
     grid.innerHTML = `
-      <div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">
-        <div style="margin-bottom:8px;color:var(--text-muted)">${ICONS.heart}</div>
-        <h3 style="font-family:var(--font-heading);font-weight:700;font-size:1.1rem;margin-bottom:4px">No games tracked yet</h3>
-        <p style="font-size:0.82rem;color:var(--text-muted)">Add games from the Discover catalog or click 'Track Price' on any game to receive price drop alerts.</p>
+      <div style="grid-column:1/-1;text-align:center;padding:36px 20px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">
+        <div style="font-size:2.2rem;margin-bottom:8px">📉</div>
+        <h3 style="font-family:var(--font-heading);font-weight:700;font-size:1.15rem;margin-bottom:6px">No Games In Your Price Watchlist Yet</h3>
+        <p style="font-size:0.84rem;color:var(--text-muted);max-width:560px;margin:0 auto 16px auto">
+          You can track any Steam game below to get real-time price drops, historical all-time low comparisons, and custom alert notifications.
+        </p>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="trackTopPopularGames()">
+            <span>⚡ 1-Click Track Top 5 Trending Games</span>
+          </button>
+          <button class="btn btn-secondary" onclick="switchTrackerTab('discover')">
+            <span>➕ Browse All Games to Track</span>
+          </button>
+        </div>
       </div>
     `;
+
+    // Automatically make suggested games visible below the empty state
+    if (suggestedShelf) suggestedShelf.style.display = 'block';
     return;
   }
 
+  // If items exist, render them
   grid.innerHTML = items.map(item => {
     const currentP = convertPrice(item.current_price ? `$${item.current_price}` : item.currentPrice || '$29.99');
     const lowP = convertPrice(item.lowest_price ? `$${item.lowest_price}` : item.lowestPrice || '$19.99');
@@ -3463,6 +3539,69 @@ function renderWishlist(items) {
       </div>
     `;
   }).join('');
+}
+
+function renderSuggestedTrackerShelf(searchQuery = '') {
+  const grid = document.getElementById('suggestedTrackerGrid');
+  if (!grid) return;
+
+  const q = (searchQuery || '').toLowerCase().trim();
+  let availableGames = GAMES;
+
+  if (q) {
+    availableGames = GAMES.filter(g => g.title.toLowerCase().includes(q) || String(g.id).includes(q));
+  }
+
+  grid.innerHTML = availableGames.slice(0, 12).map(game => {
+    const isTracked = isAppWishlisted(game.id);
+    const priceFormatted = convertPrice(game.currentPrice);
+    const hasDiscount = game.discount && game.discount !== '0%' && game.discount !== null;
+
+    return `
+      <div class="suggested-track-card">
+        <div style="display:flex;align-items:center;gap:10px;overflow:hidden">
+          <img src="${game.image}" alt="${game.title}" style="width:48px;height:30px;object-fit:cover;border-radius:4px;flex-shrink:0" onerror="this.src='images/cyberpunk.png'" />
+          <div style="overflow:hidden">
+            <div style="font-size:0.84rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${game.title}</div>
+            <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-secondary)">
+              ${priceFormatted} ${hasDiscount ? `<span style="color:var(--color-success);font-weight:700">(${game.discount})</span>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-sm ${isTracked ? 'btn-secondary' : 'btn-primary'}" style="flex-shrink:0;font-size:0.75rem;padding:4px 9px" onclick="quickToggleWishlist(${game.id}, '${game.title.replace(/'/g, "\\'")}', '${game.image}')">
+          ${isTracked ? '✓ Tracking' : '+ Track Price'}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function trackTopPopularGames() {
+  const topAppIds = [1091500, 1245620, 1086940, 553850, 2358720]; // Cyberpunk, Elden Ring, Baldur's Gate 3, Helldivers 2, Black Myth Wukong
+  let addedCount = 0;
+
+  topAppIds.forEach(appid => {
+    const game = GAMES.find(g => g.id === appid);
+    if (game && !isAppWishlisted(appid)) {
+      const rawP = parseFloat((game.currentPrice || '59.99').replace(/[^0-9.]/g, '')) || 59.99;
+      localGuestWishlist.push({
+        appid: game.id,
+        game_title: game.title,
+        game_image: game.image,
+        current_price: rawP,
+        lowest_price: Math.round(rawP * 0.5 * 100) / 100,
+        alert_price: Math.round(rawP * 0.8 * 100) / 100,
+        discount_percent: game.discount_percent || 0,
+        notify_on_sale: true
+      });
+      addedCount++;
+    }
+  });
+
+  localStorage.setItem('playspec_guest_wishlist', JSON.stringify(localGuestWishlist));
+  loadWishlist();
+  showToastNotification(`⚡ Added ${addedCount > 0 ? addedCount : 'top'} trending games to your Price Tracker!`);
 }
 
 function openWishlistModal(appid, title, image) {
@@ -7206,5 +7345,10 @@ window.toggleSaleNotificationReminder = toggleSaleNotificationReminder;
 window.handlePassportPhotoUpload = handlePassportPhotoUpload;
 window.selectPassportPresetAvatar = selectPassportPresetAvatar;
 window.clearPassportCustomPhoto = clearPassportCustomPhoto;
+
+// Export Price Tracker Discovery functions
+window.switchTrackerTab = switchTrackerTab;
+window.handleTrackerSearch = handleTrackerSearch;
+window.trackTopPopularGames = trackTopPopularGames;
 
 

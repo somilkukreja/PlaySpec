@@ -743,7 +743,10 @@
             </h2>
             <span class="section-subtitle">Track Steam games, compare current prices against historical lows, and receive notifications when prices drop</span>
           </div>
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-sm btn-primary" onclick="trackTopPopularGames()" title="1-Click track 5 top trending Steam games">
+              <span>⚡ Track Top 5 Games</span>
+            </button>
             <button class="btn btn-sm btn-secondary" onclick="triggerPriceCheck()">
               <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:13px;height:13px">
                 <polyline points="23 4 23 10 17 10"></polyline>
@@ -775,8 +778,38 @@
           </div>
         </div>
 
+        <!-- Search & Quick Track Toolbar -->
+        <div class="tracker-search-toolbar">
+          <div class="tracker-search-input-wrap">
+            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:15px;height:15px;color:var(--text-muted)">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="trackerSearchInput" class="tracker-search-input" placeholder="Search any Steam game to track (e.g. Cyberpunk, Elden Ring, Black Myth: Wukong, BG3)..." oninput="handleTrackerSearch(this.value)" />
+          </div>
+          <div class="tab-filters" style="margin:0">
+            <button class="tab-filter active" id="trackerTabAllBtn" onclick="switchTrackerTab('all')">My Tracked Games (<span id="trackerTabCount">0</span>)</button>
+            <button class="tab-filter" id="trackerTabDiscoverBtn" onclick="switchTrackerTab('discover')">➕ Explore & Track More Games</button>
+          </div>
+        </div>
+
+        <!-- Main Wishlist Grid (User's Tracked Games) -->
         <div class="wishlist-grid" id="wishlistGrid">
           <!-- Populated by JS -->
+        </div>
+
+        <!-- Discover / Suggested Games to Track Grid -->
+        <div class="suggested-tracker-shelf" id="suggestedTrackerShelf" style="display:none;margin-top:24px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div>
+              <h3 style="font-size:1.05rem;font-weight:700;color:var(--text-primary)">🔥 Popular Games Ready to Track</h3>
+              <span style="font-size:0.78rem;color:var(--text-muted)">Click '+ Track Price' on any title to monitor real-time discounts & set alerts</span>
+            </div>
+            <button class="btn btn-sm btn-ghost" onclick="switchTrackerTab('all')">✕ Close Suggested</button>
+          </div>
+          <div class="suggested-tracker-grid" id="suggestedTrackerGrid">
+            <!-- Populated by JS -->
+          </div>
         </div>
       </div>
     </section>
