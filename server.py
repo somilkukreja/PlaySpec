@@ -1449,6 +1449,130 @@ def search_steam():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/steam/wishlist/<steam_id_or_vanity>')
+@app.route('/api/steam/user/<steam_id_or_vanity>/wishlist')
+def get_steam_user_wishlist(steam_id_or_vanity):
+    target = steam_id_or_vanity.strip()
+    steam_id = target
+    cc = request.args.get('cc', 'US').upper()
+
+    # If vanity URL username
+    if not (target.isdigit() and len(target) == 17):
+        try:
+            vanity_url = f"{STEAM_API_BASE}/ISteamUser/ResolveVanityURL/v1/?key={STEAM_API_KEY}&vanityurl={target}"
+            v_resp = requests.get(vanity_url, timeout=10).json()
+            resolved_id = v_resp.get('response', {}).get('steamid')
+            if resolved_id:
+                steam_id = resolved_id
+            else:
+                return jsonify({"error": f"Could not resolve Steam vanity username '{target}'"}), 404
+        except Exception as e:
+            return jsonify({"error": f"Failed to resolve Steam vanity username: {str(e)}"}), 500
+
+    cache_key = f"steam_wishlist_{steam_id}_{cc}"
+    cached_data = get_cached(cache_key)
+    if cached_data:
+        return jsonify(cached_data)
+
+    wishlist_items = []
+    
+    # 1. Try Store Wishlist API
+    try:
+        store_wl_url = f"https://store.steampowered.com/wishlist/profiles/{steam_id}/wishlistdata/?p=0"
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        resp = requests.get(store_wl_url, headers=headers, timeout=8)
+        if resp.ok:
+            data = resp.json()
+            if isinstance(data, dict):
+                for appid_str, gdata in data.items():
+                    if not appid_str.isdigit():
+                        continue
+                    appid = int(appid_str)
+                    name = gdata.get('name') or f"App {appid}"
+                    capsule = gdata.get('capsule') or f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg"
+                    
+                    price_val = 29.99
+                    orig_val = 29.99
+                    disc_pct = 0
+                    subs = gdata.get('subs', [])
+                    if subs and isinstance(subs, list) and len(subs) > 0:
+                        first_sub = subs[0]
+                        if isinstance(first_sub, dict):
+                            raw_p = first_sub.get('price', 0)
+                            if raw_p:
+                                price_val = round(raw_p / 100.0, 2)
+                            disc_pct = first_sub.get('discount_pct', 0) or 0
+                            if disc_pct > 0 and price_val > 0:
+                                orig_val = round(price_val / (1 - disc_pct / 100.0), 2)
+                            else:
+                                orig_val = price_val
+
+                    wishlist_items.append({
+                        "appid": appid,
+                        "game_title": name,
+                        "game_image": capsule,
+                        "current_price": price_val,
+                        "original_price": orig_val,
+                        "discount_percent": disc_pct,
+                        "lowest_price": round(price_val * 0.6, 2),
+                        "alert_price": round(price_val * 0.8, 2),
+                        "priority": gdata.get('priority', 0),
+                        "added": gdata.get('added', 0),
+                        "source": "steam_wishlist"
+                    })
+    except Exception:
+        pass
+
+    # 2. Fallback to IWishlistService if store returned 0 items
+    if not wishlist_items:
+        try:
+            wl_service_url = f"{STEAM_API_BASE}/IWishlistService/GetWishlist/v1/?key={STEAM_API_KEY}&steamid={steam_id}"
+            resp2 = requests.get(wl_service_url, timeout=8).json()
+            items = resp2.get('response', {}).get('items', [])
+            catalog_map = {g['id']: g for g in GAMES}
+            for itm in items:
+                appid = itm.get('appid')
+                cat_game = catalog_map.get(appid)
+                g_title = cat_game['title'] if cat_game else f"Steam Game ({appid})"
+                g_img = cat_game['image'] if cat_game else f"https://cdn.akamai.steamstatic.com/steam/apps/{appid}/header.jpg"
+                raw_p = 29.99
+                if cat_game and cat_game.get('price'):
+                    p_str = re.sub(r'[^0-9.]', '', cat_game.get('price', '29.99'))
+                    if p_str:
+                        raw_p = float(p_str)
+
+                wishlist_items.append({
+                    "appid": appid,
+                    "game_title": g_title,
+                    "game_image": g_img,
+                    "current_price": raw_p,
+                    "original_price": raw_p,
+                    "discount_percent": 0,
+                    "lowest_price": round(raw_p * 0.6, 2),
+                    "alert_price": round(raw_p * 0.8, 2),
+                    "priority": itm.get('priority', 0),
+                    "added": itm.get('date_added', 0),
+                    "source": "steam_api"
+                })
+        except Exception:
+            pass
+
+    # Sort by priority
+    wishlist_items.sort(key=lambda x: (x.get('priority', 999) == 0, x.get('priority', 999)))
+
+    result = {
+        "status": "success",
+        "steamid": steam_id,
+        "currency": cc,
+        "total_wishlist_items": len(wishlist_items),
+        "is_empty": len(wishlist_items) == 0,
+        "items": wishlist_items
+    }
+
+    set_cached(cache_key, result)
+    return jsonify(result)
+
+
 @app.route('/api/steam/user/<steam_id_or_vanity>')
 def get_steam_user(steam_id_or_vanity):
     target = steam_id_or_vanity.strip()

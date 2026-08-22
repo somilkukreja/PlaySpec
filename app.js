@@ -3257,8 +3257,11 @@ async function connectSteamUser(customId) {
 
     renderSteamLibrary();
 
+    // Auto-sync Steam Wishlist in background
+    syncUserSteamWishlist(data.steamid, true);
+
     if (btn) btn.textContent = '✓ Synced';
-    showToastNotification(`Synced ${totalCount} games from Steam profile: ${data.persona_name}`);
+    showToastNotification(`Synced ${totalCount} games & wishlist from Steam profile: ${data.persona_name}`);
   } catch (err) {
     if (btn) btn.textContent = 'Sync Library';
     showToastNotification('Failed to connect Steam. Please verify connection.');
@@ -3457,15 +3460,25 @@ function renderWishlistCards(items) {
   if (!grid) return;
 
   if (!items || items.length === 0) {
+    const isSteamConnected = currentUser && currentUser.steam_id;
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:36px 20px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">
         <div style="font-size:2.2rem;margin-bottom:8px">📉</div>
         <h3 style="font-family:var(--font-heading);font-weight:700;font-size:1.15rem;margin-bottom:6px">No Games In Your Price Watchlist Yet</h3>
-        <p style="font-size:0.84rem;color:var(--text-muted);max-width:560px;margin:0 auto 16px auto">
-          You can track any Steam game below to get real-time price drops, historical all-time low comparisons, and custom alert notifications.
+        <p style="font-size:0.84rem;color:var(--text-muted);max-width:580px;margin:0 auto 16px auto">
+          ${isSteamConnected ? `You are logged in via Steam as <strong style="color:#ffffff">${currentUser.username}</strong>! Import all games from your Steam Wishlist with 1 click to track price drops & discounts.` : `Connect your Steam account or track any Steam game below to get real-time price drops, historical all-time low comparisons, and custom alert notifications.`}
         </p>
         <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="trackTopPopularGames()">
+          ${isSteamConnected ? `
+            <button class="btn btn-primary" onclick="syncUserSteamWishlist()">
+              <span>📥 Import My Steam Wishlist (${currentUser.username})</span>
+            </button>
+          ` : `
+            <button class="btn btn-primary" onclick="window.location.href='/api/auth/steam/login'">
+              <span>🎮 Sign in with Steam to Auto-Sync Wishlist</span>
+            </button>
+          `}
+          <button class="btn btn-secondary" onclick="trackTopPopularGames()">
             <span>⚡ 1-Click Track Top 5 Trending Games</span>
           </button>
           <button class="btn btn-secondary" onclick="switchTrackerTab('discover')">
@@ -3602,6 +3615,63 @@ function trackTopPopularGames() {
   localStorage.setItem('playspec_guest_wishlist', JSON.stringify(localGuestWishlist));
   loadWishlist();
   showToastNotification(`⚡ Added ${addedCount > 0 ? addedCount : 'top'} trending games to your Price Tracker!`);
+}
+
+async function syncUserSteamWishlist(customSteamId, isSilent = false) {
+  const targetId = customSteamId || (currentUser && (currentUser.steam_id || currentUser.id));
+  if (!targetId) {
+    if (!isSilent) {
+      showToastNotification('Please sign in with Steam to automatically import your Steam Wishlist.');
+    }
+    return;
+  }
+
+  const cc = getCountryCode(currentCurrency);
+  if (!isSilent) {
+    showToastNotification('📥 Fetching games from your Steam Wishlist...');
+  }
+
+  try {
+    const resp = await fetch(`${API_BASE}/api/steam/user/${encodeURIComponent(targetId)}/wishlist?cc=${cc}`);
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data && data.items && data.items.length > 0) {
+        let importedCount = 0;
+        data.items.forEach(itm => {
+          if (!isAppWishlisted(itm.appid)) {
+            const rawCurrent = itm.current_price || 29.99;
+            const rawOrig = itm.original_price || rawCurrent;
+            const disc = itm.discount_percent || 0;
+            localGuestWishlist.push({
+              appid: itm.appid,
+              game_title: itm.game_title,
+              game_image: itm.game_image,
+              current_price: rawCurrent,
+              original_price: rawOrig,
+              lowest_price: itm.lowest_price || Math.round(rawCurrent * 0.6 * 100) / 100,
+              alert_price: itm.alert_price || Math.round(rawCurrent * 0.8 * 100) / 100,
+              discount_percent: disc,
+              deal_rating: disc >= 50 ? '🟢 Great Deal' : (disc > 0 ? '🟡 Active Sale' : '⏳ Full Price'),
+              notify_on_sale: true,
+              source: 'steam_wishlist'
+            });
+            importedCount++;
+          }
+        });
+
+        localStorage.setItem('playspec_guest_wishlist', JSON.stringify(localGuestWishlist));
+        loadWishlist();
+        if (!isSilent || importedCount > 0) {
+          showToastNotification(`🎉 Tracked ${importedCount > 0 ? importedCount : data.items.length} games from your Steam Wishlist!`);
+        }
+        return;
+      }
+    }
+  } catch (err) {}
+
+  if (!isSilent) {
+    showToastNotification('Steam Wishlist sync completed. Ensure your Steam "Game Details" are Public in Privacy Settings.');
+  }
 }
 
 function openWishlistModal(appid, title, image) {
@@ -7350,5 +7420,6 @@ window.clearPassportCustomPhoto = clearPassportCustomPhoto;
 window.switchTrackerTab = switchTrackerTab;
 window.handleTrackerSearch = handleTrackerSearch;
 window.trackTopPopularGames = trackTopPopularGames;
+window.syncUserSteamWishlist = syncUserSteamWishlist;
 
 
