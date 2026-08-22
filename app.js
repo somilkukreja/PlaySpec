@@ -7400,6 +7400,431 @@ function renderSteamLibraryROI(games) {
 }
 
 
+// ═══════════════════════ GAMER IQ & AI GAMING TRIVIA QUIZ CONTROLLER ═══════════════════════
+
+let activeQuizCategory = 'all';
+let quizQuestions = [];
+let currentQuizIndex = 0;
+let quizScore = 0;
+let quizStreak = 0;
+let quizMaxStreak = 0;
+let quizCorrectCount = 0;
+let quizTimerInterval = null;
+let quizSecondsRemaining = 15;
+let quizSoundEnabled = true;
+let quizAnswerLocked = false;
+
+// Web Audio API Synthesizer (Zero external audio files needed)
+let audioCtx = null;
+
+function getAudioContext() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      audioCtx = new AudioContext();
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playQuizSound(type) {
+  if (!quizSoundEnabled) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    if (type === 'correct') {
+      // Ascending triumphant chime (C5 -> E5 -> G5)
+      const freqs = [523.25, 659.25, 783.99];
+      freqs.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, now + i * 0.08);
+        gain.gain.setValueAtTime(0.15, now + i * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.08);
+        osc.stop(now + i * 0.08 + 0.25);
+      });
+    } else if (type === 'wrong') {
+      // Low buzz
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'fanfare') {
+      // Victorious Game Over fanfare
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, now + i * 0.12);
+        gain.gain.setValueAtTime(0.2, now + i * 0.12);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.4);
+      });
+    }
+  } catch (e) {}
+}
+
+function toggleQuizSound() {
+  quizSoundEnabled = !quizSoundEnabled;
+  const icon = document.getElementById('quizSoundIcon');
+  if (icon) icon.textContent = quizSoundEnabled ? '🔊' : '🔇';
+  showToastNotification(quizSoundEnabled ? 'Quiz Sound FX Enabled' : 'Quiz Sound FX Muted');
+}
+
+function selectQuizCategory(cat) {
+  activeQuizCategory = cat;
+  document.querySelectorAll('.quiz-topic-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.quizCat === cat);
+  });
+  startNewQuizRound();
+}
+
+async function startNewQuizRound() {
+  const activeCard = document.getElementById('quizActiveCard');
+  const completedCard = document.getElementById('quizCompletedCard');
+  if (activeCard) activeCard.style.display = 'block';
+  if (completedCard) completedCard.style.display = 'none';
+
+  currentQuizIndex = 0;
+  quizScore = 0;
+  quizStreak = 0;
+  quizMaxStreak = 0;
+  quizCorrectCount = 0;
+  quizAnswerLocked = false;
+  updateQuizHUD();
+
+  try {
+    const res = await fetch(`${API_BASE}/api/quiz/generate?category=${activeQuizCategory}&count=10`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.questions && data.questions.length > 0) {
+        quizQuestions = data.questions;
+      } else {
+        quizQuestions = getFallbackQuizQuestions();
+      }
+    } else {
+      quizQuestions = getFallbackQuizQuestions();
+    }
+  } catch (e) {
+    quizQuestions = getFallbackQuizQuestions();
+  }
+
+  renderCurrentQuizQuestion();
+}
+
+function renderCurrentQuizQuestion() {
+  if (!quizQuestions || quizQuestions.length === 0 || currentQuizIndex >= quizQuestions.length) {
+    finishQuizRound();
+    return;
+  }
+
+  quizAnswerLocked = false;
+  const q = quizQuestions[currentQuizIndex];
+  const total = quizQuestions.length;
+
+  const numBadge = document.getElementById('quizQuestionNumberBadge');
+  const catBadge = document.getElementById('quizCategoryBadge');
+  const diffBadge = document.getElementById('quizDifficultyBadge');
+  const qText = document.getElementById('quizQuestionText');
+  const grid = document.getElementById('quizMcqGrid');
+  const loreTray = document.getElementById('quizLoreTray');
+
+  if (numBadge) numBadge.textContent = `Question ${currentQuizIndex + 1} / ${total}`;
+  if (catBadge) catBadge.textContent = q.category_label || '🎮 Gaming Lore';
+  if (diffBadge) diffBadge.textContent = q.difficulty_label || '🟢 Rookie';
+  if (qText) qText.textContent = q.question;
+  if (loreTray) loreTray.style.display = 'none';
+
+  const multiplier = getStreakMultiplier();
+  const potential = Math.round(q.points * multiplier);
+  const potentialEl = document.getElementById('quizPotentialPoints');
+  if (potentialEl) potentialEl.textContent = `+${potential} pts (${multiplier}x)`;
+
+  const letters = ['A', 'B', 'C', 'D'];
+  if (grid) {
+    grid.innerHTML = q.options.map((opt, i) => `
+      <button class="quiz-option-btn" id="quizOpt_${i}" onclick="handleQuizAnswer(${i})">
+        <span class="quiz-option-letter">${letters[i]}</span>
+        <span style="flex:1">${opt}</span>
+      </button>
+    `).join('');
+  }
+
+  startQuizQuestionTimer();
+}
+
+function startQuizQuestionTimer() {
+  if (quizTimerInterval) clearInterval(quizTimerInterval);
+
+  quizSecondsRemaining = 15;
+  const fill = document.getElementById('quizTimerFill');
+  const secEl = document.getElementById('quizSecondsLeft');
+
+  if (fill) {
+    fill.style.width = '100%';
+    fill.classList.remove('warning');
+  }
+  if (secEl) secEl.textContent = '15s';
+
+  const startTime = Date.now();
+  const duration = 15000;
+
+  quizTimerInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, duration - elapsed);
+    const pct = (remaining / duration) * 100;
+    const sec = Math.ceil(remaining / 1000);
+
+    if (fill) {
+      fill.style.width = `${pct}%`;
+      if (sec <= 5) fill.classList.add('warning');
+    }
+    if (secEl) secEl.textContent = `${sec}s`;
+
+    if (remaining <= 0) {
+      clearInterval(quizTimerInterval);
+      if (!quizAnswerLocked) {
+        handleQuizTimeout();
+      }
+    }
+  }, 100);
+}
+
+function getStreakMultiplier() {
+  if (quizStreak >= 5) return 3.0;
+  if (quizStreak >= 3) return 2.0;
+  if (quizStreak >= 2) return 1.5;
+  return 1.0;
+}
+
+function updateQuizHUD() {
+  const scoreVal = document.getElementById('quizScoreVal');
+  const streakCount = document.getElementById('quizStreakCount');
+  const multText = document.getElementById('quizMultiplierText');
+
+  if (scoreVal) scoreVal.textContent = quizScore.toLocaleString();
+  if (streakCount) streakCount.textContent = quizStreak;
+  if (multText) multText.textContent = `${getStreakMultiplier()}x`;
+}
+
+function handleQuizAnswer(selectedIndex) {
+  if (quizAnswerLocked) return;
+  quizAnswerLocked = true;
+  clearInterval(quizTimerInterval);
+
+  const q = quizQuestions[currentQuizIndex];
+  const isCorrect = selectedIndex === q.correct_index;
+  const chosenBtn = document.getElementById(`quizOpt_${selectedIndex}`);
+  const correctBtn = document.getElementById(`quizOpt_${q.correct_index}`);
+
+  document.querySelectorAll('.quiz-option-btn').forEach(b => b.classList.add('disabled'));
+
+  if (isCorrect) {
+    if (chosenBtn) chosenBtn.classList.add('correct');
+    quizStreak++;
+    if (quizStreak > quizMaxStreak) quizMaxStreak = quizStreak;
+    quizCorrectCount++;
+
+    const multiplier = getStreakMultiplier();
+    const earned = Math.round(q.points * multiplier);
+    quizScore += earned;
+
+    playQuizSound('correct');
+    showQuizVerdict(true, `+${earned} Points! Perfect Hit!`, q.lore_fact);
+  } else {
+    if (chosenBtn) chosenBtn.classList.add('wrong');
+    if (correctBtn) correctBtn.classList.add('correct');
+    quizStreak = 0;
+
+    playQuizSound('wrong');
+    showQuizVerdict(false, `Incorrect. Correct answer: ${q.options[q.correct_index]}`, q.lore_fact);
+  }
+
+  updateQuizHUD();
+}
+
+function handleQuizTimeout() {
+  quizAnswerLocked = true;
+  const q = quizQuestions[currentQuizIndex];
+  const correctBtn = document.getElementById(`quizOpt_${q.correct_index}`);
+
+  document.querySelectorAll('.quiz-option-btn').forEach(b => b.classList.add('disabled'));
+  if (correctBtn) correctBtn.classList.add('correct');
+
+  quizStreak = 0;
+  playQuizSound('wrong');
+  showQuizVerdict(false, `⏰ Time Out! Correct answer: ${q.options[q.correct_index]}`, q.lore_fact);
+  updateQuizHUD();
+}
+
+function showQuizVerdict(isCorrect, title, fact) {
+  const tray = document.getElementById('quizLoreTray');
+  const icon = document.getElementById('quizVerdictIcon');
+  const titleEl = document.getElementById('quizVerdictTitle');
+  const textEl = document.getElementById('quizLoreText');
+
+  if (icon) icon.textContent = isCorrect ? '🎉' : '❌';
+  if (titleEl) {
+    titleEl.textContent = title;
+    titleEl.style.color = isCorrect ? 'var(--color-success)' : 'var(--color-danger)';
+  }
+  if (textEl) textEl.textContent = `💡 Trivia Insight: ${fact}`;
+  if (tray) tray.style.display = 'block';
+}
+
+function advanceToNextQuestion() {
+  currentQuizIndex++;
+  if (currentQuizIndex < quizQuestions.length) {
+    renderCurrentQuizQuestion();
+  } else {
+    finishQuizRound();
+  }
+}
+
+function finishQuizRound() {
+  if (quizTimerInterval) clearInterval(quizTimerInterval);
+
+  const activeCard = document.getElementById('quizActiveCard');
+  const completedCard = document.getElementById('quizCompletedCard');
+  if (activeCard) activeCard.style.display = 'none';
+  if (completedCard) completedCard.style.display = 'block';
+
+  const total = quizQuestions.length || 10;
+  const accuracy = Math.round((quizCorrectCount / total) * 100);
+
+  // Compute Gamer IQ (100 - 165 range)
+  let gamerIQ = 100 + Math.round((quizScore / 3500) * 45) + Math.round((accuracy / 100) * 20);
+  if (gamerIQ > 165) gamerIQ = 165;
+
+  let rankTitle = '🟢 Rookie Casual';
+  let rankDesc = 'You know the basics, but Night City and the Lands Between still hold many secrets for you to uncover.';
+
+  if (gamerIQ >= 145) {
+    rankTitle = '🏆 Legendary Lorekeeper';
+    rankDesc = 'Phenomenal gaming intellect! Your mastery of gaming history, mechanics, and hardware puts you in the top 1% of PC gamers worldwide.';
+    playQuizSound('fanfare');
+  } else if (gamerIQ >= 130) {
+    rankTitle = '🔥 Veteran Esports Master';
+    rankDesc = 'Formidable instincts! You possess razor-sharp gaming knowledge and deep familiarity with hardware and iconic franchises.';
+  } else if (gamerIQ >= 115) {
+    rankTitle = '⚔️ Hardcore Adventurer';
+    rankDesc = 'Solid gaming prowess! You have traversed many digital worlds and know your way around both lore and specs.';
+  }
+
+  const iqEl = document.getElementById('finalGamerIQ');
+  const titleEl = document.getElementById('finalRankTitle');
+  const descEl = document.getElementById('finalRankDesc');
+  const scoreEl = document.getElementById('finalScoreVal');
+  const accEl = document.getElementById('finalAccuracyVal');
+  const streakEl = document.getElementById('finalMaxStreakVal');
+  const highEl = document.getElementById('finalHighScoreVal');
+
+  if (iqEl) iqEl.textContent = gamerIQ;
+  if (titleEl) titleEl.textContent = rankTitle;
+  if (descEl) descEl.textContent = rankDesc;
+  if (scoreEl) scoreEl.textContent = quizScore.toLocaleString();
+  if (accEl) accEl.textContent = `${accuracy}% (${quizCorrectCount}/${total})`;
+  if (streakEl) streakEl.textContent = `${quizMaxStreak}x 🔥`;
+
+  const prevHigh = parseInt(localStorage.getItem('playspec_quiz_highscore') || '0', 10);
+  const newHigh = Math.max(prevHigh, quizScore);
+  localStorage.setItem('playspec_quiz_highscore', newHigh.toString());
+
+  if (highEl) highEl.textContent = newHigh.toLocaleString();
+}
+
+function copyQuizScoreToClipboard() {
+  const iq = document.getElementById('finalGamerIQ')?.textContent || '145';
+  const rank = document.getElementById('finalRankTitle')?.textContent || 'Legendary Lorekeeper';
+  const score = document.getElementById('finalScoreVal')?.textContent || '1,850';
+  const acc = document.getElementById('finalAccuracyVal')?.textContent || '90%';
+
+  const text = `🧠 PlaySpec AI Gamer IQ Test\nScore: ${score} pts | Accuracy: ${acc}\nRank: ${rank} (IQ: ${iq})\nTest your gaming IQ at PlaySpec! 🎮`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    showToastNotification('📋 Gamer IQ score card copied to clipboard!');
+  }).catch(() => {
+    showToastNotification('Score card copied!');
+  });
+}
+
+function getFallbackQuizQuestions() {
+  return [
+    {
+      number: 1,
+      category_label: "🗡️ RPG & AAA Lore",
+      difficulty_label: "🟢 Rookie",
+      points: 100,
+      question: "In 'The Witcher 3: Wild Hunt', what is the name of Geralt of Rivia's beloved horse?",
+      options: ["Roach", "Shadowmere", "Agro", "Epona"],
+      correct_index: 0,
+      lore_fact: "Geralt names every horse he ever owns 'Roach' (Płotka in original Polish), regardless of breed or gender."
+    },
+    {
+      number: 2,
+      category_label: "🖥️ PC Hardware & Tech",
+      difficulty_label: "🟢 Rookie",
+      points: 100,
+      question: "What does 'DLSS' stand for in NVIDIA GeForce RTX graphics cards?",
+      options: ["Deep Learning Super Sampling", "Direct Lighting Spatial Shading", "Dynamic Low Synchronous System", "Digital Light Source Simulation"],
+      correct_index: 0,
+      lore_fact: "NVIDIA DLSS uses dedicated Tensor Core AI neural networks to upscale lower-resolution frames with sharp high-res quality and massive FPS boosts."
+    },
+    {
+      number: 3,
+      category_label: "🗡️ RPG & AAA Lore",
+      difficulty_label: "🟡 Veteran",
+      points: 200,
+      question: "In 'Elden Ring', what is the name of General Radahn's miniature scrawny horse?",
+      options: ["Leonard", "Torrent", "Maliketh", "Godefroy"],
+      correct_index: 0,
+      lore_fact: "General Radahn loved his scrawny steed Leonard so much that he mastered celestial gravity magic specifically to avoid crushing him in battle."
+    },
+    {
+      number: 4,
+      category_label: "🎯 FPS & Esports",
+      difficulty_label: "🟢 Rookie",
+      points: 100,
+      question: "In 'Counter-Strike 2', what is the standard purchase price of the AWP sniper rifle?",
+      options: ["$4,750", "$3,100", "$5,000", "$4,200"],
+      correct_index: 0,
+      lore_fact: "The AWP has remained priced at $4,750 for decades across CS 1.6, CS:Source, CS:GO, and CS2."
+    },
+    {
+      number: 5,
+      category_label: "🕹️ Retro & Indie Legends",
+      difficulty_label: "🟢 Rookie",
+      points: 100,
+      question: "What is the famous Konami Code cheat sequence popularized in 'Contra'?",
+      options: ["Up, Up, Down, Down, Left, Right, Left, Right, B, A", "Up, Down, Up, Down, Left, Left, Right, Right, A, B", "Down, Down, Up, Up, Left, Right, B, A, Start", "Left, Right, Left, Right, Up, Down, A, B, Select"],
+      correct_index: 0,
+      lore_fact: "Created by Kazuhisa Hashimoto in 1986, the code gave players 30 extra lives in Contra."
+    }
+  ];
+}
+
+
 // ── INITIALIZATION ──
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -7453,6 +7878,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   runUpgradeSimulation();
   initSquadRoom();
   renderSteamLibraryROI();
+  loadUpcomingSalesData();
+  startNewQuizRound();
 
   // If user is connected to Steam, auto-sync their full Steam library
   if (currentUser && currentUser.steam_id) {
@@ -7807,5 +8234,13 @@ window.logoutUser = logoutUser;
 window.closeAllNavDropdowns = closeAllNavDropdowns;
 window.toggleGamingThemeMenu = toggleGamingThemeMenu;
 window.selectGamingTheme = selectGamingTheme;
+
+// Export Gaming IQ & Quiz functions
+window.startNewQuizRound = startNewQuizRound;
+window.selectQuizCategory = selectQuizCategory;
+window.handleQuizAnswer = handleQuizAnswer;
+window.advanceToNextQuestion = advanceToNextQuestion;
+window.toggleQuizSound = toggleQuizSound;
+window.copyQuizScoreToClipboard = copyQuizScoreToClipboard;
 
 

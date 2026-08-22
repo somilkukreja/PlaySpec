@@ -295,6 +295,7 @@
         <li><a href="#ml-recommendations" class="nav-link active" data-nav="ml-recommendations"><span class="nav-item-icon">🤖</span> AI Recommendations</a></li>
         <li><a href="#upgrade-simulator" class="nav-link" data-nav="upgrade-simulator"><span class="nav-item-icon">🚀</span> Upgrade Sim</a></li>
         <li><a href="#squad-room" class="nav-link" data-nav="squad-room"><span class="nav-item-icon">👥</span> Squad Co-op</a></li>
+        <li><a href="#gamer-quiz" class="nav-link" data-nav="gamer-quiz"><span class="nav-item-icon">🧠</span> Gamer IQ Quiz</a></li>
         <li><a href="#dashboard" class="nav-link" data-nav="dashboard"><span class="nav-item-icon">🎮</span> Discover</a></li>
         <li><a href="#price-tracker" class="nav-link" data-nav="price-tracker"><span class="nav-item-icon">📉</span> Price Tracker</a></li>
         <li><a href="#upcoming-sales" class="nav-link" data-nav="upcoming-sales"><span class="nav-item-icon">🔥</span> Upcoming Sales</a></li>
@@ -703,6 +704,132 @@
             </div>
             <div class="squad-coop-grid" id="squadCoopGrid">
               <!-- Populated dynamically by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Gamer IQ & AI Gaming Trivia Quiz Agent ── -->
+    <section class="section" id="gamer-quiz">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <span style="font-size:1.4rem">🧠</span>
+              AI Gamer IQ & Gaming Trivia Arena
+            </h2>
+            <span class="section-subtitle">Randomized Multiple Choice Questions across AAA lore, PC hardware, esports & indie classics</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <div class="quiz-streak-pill" id="quizStreakPill">
+              <span class="streak-flame">🔥</span>
+              <span>Streak: <strong id="quizStreakCount">0</strong>x (<span id="quizMultiplierText">1.0x</span>)</span>
+            </div>
+            <button class="btn btn-sm btn-primary" onclick="startNewQuizRound()">
+              <span>🔄 New Quiz Round</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quiz Arena Shell -->
+        <div class="quiz-arena-shell">
+          <!-- Quiz Category Filter Chips -->
+          <div class="quiz-topic-chips">
+            <button class="quiz-topic-chip active" data-quiz-cat="all" onclick="selectQuizCategory('all')">🌐 All Topics</button>
+            <button class="quiz-topic-chip" data-quiz-cat="rpg_lore" onclick="selectQuizCategory('rpg_lore')">🗡️ RPG & AAA Lore</button>
+            <button class="quiz-topic-chip" data-quiz-cat="hardware" onclick="selectQuizCategory('hardware')">🖥️ PC Hardware & Tech</button>
+            <button class="quiz-topic-chip" data-quiz-cat="esports" onclick="selectQuizCategory('esports')">🎯 FPS & Esports</button>
+            <button class="quiz-topic-chip" data-quiz-cat="indie_retro" onclick="selectQuizCategory('indie_retro')">🕹️ Retro & Indie</button>
+            <button class="quiz-topic-chip" data-quiz-cat="trivia" onclick="selectQuizCategory('trivia')">🏆 GOTY & Steam Trivia</button>
+          </div>
+
+          <!-- Main Active Quiz Box -->
+          <div class="quiz-active-card" id="quizActiveCard">
+            <!-- Header with Question Count, Points, Difficulty & Audio toggle -->
+            <div class="quiz-card-top-bar">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span class="badge badge-purple" id="quizQuestionNumberBadge">Question 1 / 10</span>
+                <span class="badge badge-cyan" id="quizCategoryBadge">🗡️ RPG & AAA Lore</span>
+                <span class="badge badge-green" id="quizDifficultyBadge">🟢 Rookie</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:14px">
+                <div class="quiz-score-display">Score: <span id="quizScoreVal">0</span></div>
+                <button class="btn-quiz-sound" id="quizSoundToggleBtn" onclick="toggleQuizSound()" title="Toggle SFX Sound Chimes">
+                  <span id="quizSoundIcon">🔊</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Visual Progress & Timer Bar -->
+            <div class="quiz-timer-track">
+              <div class="quiz-timer-fill" id="quizTimerFill" style="width:100%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-muted);margin-top:5px;font-family:var(--font-mono)">
+              <span>Time Left: <strong id="quizSecondsLeft" style="color:var(--brand-blue)">15s</strong></span>
+              <span>Potential Reward: <strong id="quizPotentialPoints" style="color:var(--color-success)">+100 pts</strong></span>
+            </div>
+
+            <!-- Question Prompt Box -->
+            <div class="quiz-question-box">
+              <h3 class="quiz-question-text" id="quizQuestionText">Loading gaming challenge...</h3>
+            </div>
+
+            <!-- 4 MCQ Option Choices Grid -->
+            <div class="quiz-mcq-grid" id="quizMcqGrid">
+              <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Lore Factoid Explanation Tray (Shown after answer) -->
+            <div class="quiz-lore-tray" id="quizLoreTray" style="display:none">
+              <div class="quiz-lore-header">
+                <span id="quizVerdictIcon">💡</span>
+                <span id="quizVerdictTitle" style="font-weight:700">Lore & Trivia Insight:</span>
+              </div>
+              <p class="quiz-lore-text" id="quizLoreText">Fact details...</p>
+              <div style="margin-top:12px;text-align:right">
+                <button class="btn btn-sm btn-primary" id="quizNextBtn" onclick="advanceToNextQuestion()">
+                  Next Question →
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completed Quiz Report Card (Hidden until round completes) -->
+          <div class="quiz-completed-card" id="quizCompletedCard" style="display:none">
+            <div class="gamer-iq-badge-hero">
+              <div class="gamer-iq-number" id="finalGamerIQ">145</div>
+              <div class="gamer-iq-label">CALCULATED GAMER IQ</div>
+            </div>
+            <h3 class="gamer-rank-title" id="finalRankTitle">🏆 Legendary Lorekeeper</h3>
+            <p class="gamer-rank-desc" id="finalRankDesc">Your gaming knowledge across lore, hardware, and classic easter eggs is among the top 1% of PC gamers!</p>
+
+            <div class="quiz-summary-stats-grid">
+              <div class="quiz-stat-card">
+                <div class="quiz-stat-label">Total Score</div>
+                <div class="quiz-stat-val" id="finalScoreVal" style="color:var(--brand-blue)">1,850</div>
+              </div>
+              <div class="quiz-stat-card">
+                <div class="quiz-stat-label">Accuracy</div>
+                <div class="quiz-stat-val" id="finalAccuracyVal" style="color:var(--color-success)">90%</div>
+              </div>
+              <div class="quiz-stat-card">
+                <div class="quiz-stat-label">Max Streak</div>
+                <div class="quiz-stat-val" id="finalMaxStreakVal" style="color:#ff007f">6x 🔥</div>
+              </div>
+              <div class="quiz-stat-card">
+                <div class="quiz-stat-label">Personal Best</div>
+                <div class="quiz-stat-val" id="finalHighScoreVal" style="color:#f59e0b">2,400</div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:center;gap:12px;margin-top:24px;flex-wrap:wrap">
+              <button class="btn btn-primary btn-lg" onclick="startNewQuizRound()">
+                <span>🔄 Play Again (New Random MCQs)</span>
+              </button>
+              <button class="btn btn-secondary btn-lg" onclick="copyQuizScoreToClipboard()">
+                <span>📋 Copy Score Card</span>
+              </button>
             </div>
           </div>
         </div>
