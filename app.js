@@ -3395,6 +3395,7 @@ function updateTrackerStats(items) {
 
 let currentTrackerSearchQuery = '';
 let activeTrackerTab = 'all';
+let trackerSearchDebounceTimer = null;
 
 function switchTrackerTab(tab) {
   activeTrackerTab = tab;
@@ -3422,28 +3423,208 @@ function switchTrackerTab(tab) {
 function handleTrackerSearch(val) {
   currentTrackerSearchQuery = (val || '').toLowerCase().trim();
   const items = window.currentWishlistItems || localGuestWishlist || [];
-  
+  const searchResultsSec = document.getElementById('trackerSearchResultsSection');
+  const countBadge = document.getElementById('trackerSearchResultCountBadge');
+  const searchTitle = document.getElementById('trackerSearchTitle');
+  const searchGrid = document.getElementById('trackerSearchResultsGrid');
+
   if (currentTrackerSearchQuery.length > 0) {
-    // Filter tracked items
+    // 1. Filter local tracked items in user's watchlist
     const filteredTracked = items.filter(i => 
       (i.game_title || i.title || '').toLowerCase().includes(currentTrackerSearchQuery) ||
       String(i.appid || i.id).includes(currentTrackerSearchQuery)
     );
-    renderWishlistCards(filteredTracked);
+    renderWishlistCards(filteredTracked, true);
 
-    // Auto-open suggested shelf with matching games
-    const suggestedShelf = document.getElementById('suggestedTrackerShelf');
-    if (suggestedShelf) suggestedShelf.style.display = 'block';
-    renderSuggestedTrackerShelf(currentTrackerSearchQuery);
+    // 2. Open Live Search Results Section & Debounce query to Steam API + Catalog
+    if (searchResultsSec) searchResultsSec.style.display = 'block';
+    if (searchTitle) searchTitle.textContent = `Search Results for "${val.trim()}"`;
+    if (searchGrid) {
+      searchGrid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:22px;color:var(--text-muted)">
+          <span style="display:inline-block;animation:spin 1s linear infinite;margin-right:8px">⚡</span> Searching Steam Store for "${val.trim()}"...
+        </div>
+      `;
+    }
+
+    if (trackerSearchDebounceTimer) clearTimeout(trackerSearchDebounceTimer);
+    trackerSearchDebounceTimer = setTimeout(() => {
+      performSteamTrackerSearch(val.trim());
+    }, 280);
+
   } else {
+    if (searchResultsSec) searchResultsSec.style.display = 'none';
     renderWishlistCards(items);
-    if (activeTrackerTab !== 'discover' && items.length > 0) {
+    if (activeTrackerTab === 'discover' || items.length === 0) {
+      const suggestedShelf = document.getElementById('suggestedTrackerShelf');
+      if (suggestedShelf) suggestedShelf.style.display = 'block';
+      renderSuggestedTrackerShelf('');
+    } else {
       const suggestedShelf = document.getElementById('suggestedTrackerShelf');
       if (suggestedShelf) suggestedShelf.style.display = 'none';
-    } else {
-      renderSuggestedTrackerShelf('');
     }
   }
+}
+
+function clearTrackerSearch() {
+  const input = document.getElementById('trackerSearchInput');
+  if (input) input.value = '';
+  handleTrackerSearch('');
+}
+
+async function performSteamTrackerSearch(query) {
+  const countBadge = document.getElementById('trackerSearchResultCountBadge');
+  const searchGrid = document.getElementById('trackerSearchResultsGrid');
+  if (!searchGrid) return;
+
+  const qLower = query.toLowerCase();
+  const allResults = [];
+  const seenIds = new Set();
+
+  // 1. First add matches from local CATALOG_GAMES
+  const catalogMatches = (typeof CATALOG_GAMES !== 'undefined' ? CATALOG_GAMES : []).filter(g => 
+    g.title.toLowerCase().includes(qLower) || String(g.id).includes(qLower) || (g.genre && g.genre.toLowerCase().includes(qLower))
+  );
+
+  catalogMatches.forEach(g => {
+    seenIds.add(g.id);
+    allResults.push({
+      id: g.id,
+      title: g.title,
+      image: g.image || `https://cdn.akamai.steamstatic.com/steam/apps/${g.id}/header.jpg`,
+      price: g.currentPrice || '$29.99',
+      discount: g.discount || '',
+      discountPercent: g.discount_percent || 0,
+      source: 'catalog'
+    });
+  });
+
+  // 2. Fetch live results from Steam Store API via backend proxy
+  try {
+    const res = await fetch(`${API_BASE}/api/steam/search?q=${encodeURIComponent(query)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.items && Array.isArray(data.items)) {
+        data.items.forEach(item => {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            allResults.push({
+              id: item.id,
+              title: item.title,
+              image: item.image || item.tiny_image || `https://cdn.akamai.steamstatic.com/steam/apps/${item.id}/header.jpg`,
+              price: item.price || '$29.99',
+              discount: item.discount || '',
+              discountPercent: item.discountPercent || 0,
+              source: 'steam_api'
+            });
+          }
+        });
+      }
+    }
+  } catch (err) {}
+
+  if (countBadge) countBadge.textContent = `${allResults.length} Found`;
+
+  if (allResults.length === 0) {
+    searchGrid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:24px 16px;color:var(--text-muted)">
+        <div style="font-size:1.8rem;margin-bottom:6px">🔍</div>
+        <div style="font-weight:700;color:var(--text-primary);margin-bottom:4px">No Steam games matched "${query}"</div>
+        <p style="font-size:0.8rem;margin:0">Try searching by exact game title or numeric Steam AppID.</p>
+      </div>
+    `;
+    return;
+  }
+
+  searchGrid.innerHTML = allResults.slice(0, 18).map(game => {
+    const isTracked = isAppWishlisted(game.id);
+    const priceFormatted = convertPrice(game.price);
+    const hasDiscount = game.discount && game.discount !== '0%' && game.discount !== null;
+    const titleSafe = (game.title || 'Steam Game').replace(/'/g, "\\'");
+    const imageSafe = (game.image || '').replace(/'/g, "\\'");
+    const priceSafe = (game.price || '$29.99').replace(/'/g, "\\'");
+
+    return `
+      <div class="suggested-track-card" style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:10px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;overflow:hidden;flex:1">
+          <img src="${game.image}" alt="${game.title}" style="width:60px;height:35px;object-fit:cover;border-radius:4px;flex-shrink:0" onerror="this.src='images/cyberpunk.png'" />
+          <div style="overflow:hidden;flex:1">
+            <div style="font-size:0.86rem;font-weight:700;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${game.title}">${game.title}</div>
+            <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-secondary);margin-top:2px">
+              ${priceFormatted} ${hasDiscount ? `<span style="color:var(--color-success);font-weight:700">(${game.discount})</span>` : ''}
+              <span style="color:var(--text-dim);font-size:0.68rem;margin-left:4px">AppID: ${game.id}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+          <button class="btn btn-sm ${isTracked ? 'btn-secondary' : 'btn-primary'}" style="font-size:0.74rem;padding:5px 10px;white-space:nowrap" onclick="quickToggleTrackerSearch(${game.id}, '${titleSafe}', '${imageSafe}', '${priceSafe}', this)">
+            ${isTracked ? '✓ In Watchlist' : '➕ Track Price'}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function quickToggleTrackerSearch(appid, title, image, price, btnEl) {
+  if (isAppWishlisted(appid)) {
+    await removeFromWishlist(appid);
+    if (btnEl) {
+      btnEl.className = 'btn btn-sm btn-primary';
+      btnEl.textContent = '➕ Track Price';
+    }
+  } else {
+    await quickAddTrackerGame(appid, title, image, price);
+    if (btnEl) {
+      btnEl.className = 'btn btn-sm btn-secondary';
+      btnEl.textContent = '✓ In Watchlist';
+    }
+  }
+}
+
+async function quickAddTrackerGame(appid, title, image, price) {
+  const rawP = parseFloat((price || '29.99').toString().replace(/[^0-9.]/g, '')) || 29.99;
+  const lowP = Math.round(rawP * 0.6 * 100) / 100;
+  const alertP = Math.round(rawP * 0.8 * 100) / 100;
+
+  if (authToken) {
+    const data = await apiRequest('/api/wishlist', {
+      method: 'POST',
+      body: JSON.stringify({
+        appid: appid,
+        game_title: title,
+        game_image: image,
+        alert_price: alertP,
+        notify_on_sale: true
+      })
+    });
+    if (data && data.success) {
+      showToastNotification(`✓ Added ${title} to Price Tracker Watchlist!`);
+      loadWishlist();
+      return;
+    }
+  }
+
+  const existingIdx = localGuestWishlist.findIndex(i => (i.appid || i.id) === appid);
+  const newItem = {
+    appid: appid,
+    game_title: title,
+    game_image: image || `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`,
+    current_price: rawP,
+    original_price: rawP,
+    lowest_price: lowP,
+    alert_price: alertP,
+    discount_percent: 0,
+    notify_on_sale: true
+  };
+
+  if (existingIdx >= 0) localGuestWishlist[existingIdx] = newItem;
+  else localGuestWishlist.unshift(newItem);
+
+  localStorage.setItem('playspec_guest_wishlist', JSON.stringify(localGuestWishlist));
+  showToastNotification(`✓ Added ${title} to Price Tracker Watchlist!`);
+  loadWishlist();
 }
 
 function renderWishlist(items) {
@@ -3454,12 +3635,23 @@ function renderWishlist(items) {
   renderSuggestedTrackerShelf(currentTrackerSearchQuery);
 }
 
-function renderWishlistCards(items) {
+function renderWishlistCards(items, isSearch = false) {
   const grid = document.getElementById('wishlistGrid');
   const suggestedShelf = document.getElementById('suggestedTrackerShelf');
   if (!grid) return;
 
   if (!items || items.length === 0) {
+    if (isSearch) {
+      grid.innerHTML = `
+        <div style="grid-column:1/-1;text-align:center;padding:24px 20px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">
+          <div style="font-size:1.4rem;margin-bottom:4px">🔍</div>
+          <div style="font-size:0.95rem;font-weight:700;color:var(--text-primary)">No games in your tracked watchlist match "${currentTrackerSearchQuery}"</div>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin:4px 0 0 0">Games found on the Steam Store are displayed in the search box above. Click <strong>'+ Track Price'</strong> on any game to monitor it!</p>
+        </div>
+      `;
+      return;
+    }
+
     const isSteamConnected = currentUser && currentUser.steam_id;
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:36px 20px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md)">
@@ -3674,61 +3866,90 @@ async function syncUserSteamWishlist(customSteamId, isSilent = false) {
   }
 }
 
-function openWishlistModal(appid, title, image) {
-  document.getElementById('wishlistAppId').value = appid;
-  document.getElementById('wishlistModalTitle').textContent = `Set Price Alert — ${title}`;
-  document.getElementById('wishlistModalSubtitle').textContent = `Steam AppID: ${appid}`;
-  document.getElementById('wishlistModal').classList.add('active');
-  document.body.style.overflow = 'hidden';
+function openWishlistModal(appid, title, image, price) {
+  const idInput = document.getElementById('wishlistAppId');
+  const titleInput = document.getElementById('wishlistGameTitle');
+  const imgInput = document.getElementById('wishlistGameImage');
+  const priceInput = document.getElementById('wishlistCurrentPrice');
+
+  if (idInput) idInput.value = appid;
+  if (titleInput) titleInput.value = title || `Steam App ${appid}`;
+  if (imgInput) imgInput.value = image || `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`;
+  if (priceInput) priceInput.value = price || '29.99';
+
+  const modalTitle = document.getElementById('wishlistModalTitle');
+  const modalSub = document.getElementById('wishlistModalSubtitle');
+  if (modalTitle) modalTitle.textContent = `Set Price Alert — ${title || `App ${appid}`}`;
+  if (modalSub) modalSub.textContent = `Steam AppID: ${appid}`;
+
+  const modal = document.getElementById('wishlistModal');
+  if (modal) {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
 }
 
 function closeWishlistModal() {
-  document.getElementById('wishlistModal').classList.remove('active');
+  const modal = document.getElementById('wishlistModal');
+  if (modal) modal.classList.remove('active');
   document.body.style.overflow = '';
 }
 
 function setTargetDiscount(percent) {
   const input = document.getElementById('wishlistAlertPrice');
-  const modal = document.getElementById('gameModal');
+  const priceInput = document.getElementById('wishlistCurrentPrice');
   let basePrice = 29.99;
-  if (modal && modal.classList.contains('active')) {
-    const rawP = document.getElementById('modalCurrentPrice').textContent.replace(/[^0-9.]/g, '');
-    if (rawP) basePrice = parseFloat(rawP);
+
+  if (priceInput && priceInput.value) {
+    const raw = parseFloat(priceInput.value.toString().replace(/[^0-9.]/g, ''));
+    if (!isNaN(raw) && raw > 0) basePrice = raw;
   }
+
   const target = Math.round(basePrice * (1 - percent) * 100) / 100;
   if (input) input.value = target;
 }
 
 function setTargetMatchLow() {
   const input = document.getElementById('wishlistAlertPrice');
-  const modal = document.getElementById('gameModal');
-  if (modal && modal.classList.contains('active')) {
-    const rawLow = document.getElementById('modalLowestPrice').textContent.replace(/[^0-9.]/g, '');
-    if (rawLow && input) input.value = parseFloat(rawLow);
+  const priceInput = document.getElementById('wishlistCurrentPrice');
+  let basePrice = 29.99;
+
+  if (priceInput && priceInput.value) {
+    const raw = parseFloat(priceInput.value.toString().replace(/[^0-9.]/g, ''));
+    if (!isNaN(raw) && raw > 0) basePrice = raw;
   }
+
+  const target = Math.round(basePrice * 0.5 * 100) / 100;
+  if (input) input.value = target;
 }
 
 async function handleAddToWishlist(e) {
   e.preventDefault();
   const appid = parseInt(document.getElementById('wishlistAppId').value);
+  const titleVal = (document.getElementById('wishlistGameTitle')?.value || '').trim();
+  const imageVal = (document.getElementById('wishlistGameImage')?.value || '').trim();
+  const priceVal = (document.getElementById('wishlistCurrentPrice')?.value || '').trim();
   const alertPrice = document.getElementById('wishlistAlertPrice').value;
   const notifyOnSale = document.getElementById('wishlistNotifySale').checked;
 
-  const game = GAMES.find(g => g.id === appid) || { title: `Game ${appid}`, image: 'images/cyberpunk.png' };
+  const catalogGame = (typeof GAMES !== 'undefined' ? GAMES : []).find(g => g.id === appid);
+  const finalTitle = titleVal || catalogGame?.title || `Game ${appid}`;
+  const finalImage = imageVal || catalogGame?.image || `https://cdn.akamai.steamstatic.com/steam/apps/${appid}/header.jpg`;
+  const rawP = parseFloat(priceVal.replace(/[^0-9.]/g, '')) || 29.99;
 
   if (authToken) {
     const data = await apiRequest('/api/wishlist', {
       method: 'POST',
       body: JSON.stringify({
         appid,
-        game_title: game.title,
-        game_image: game.image,
-        alert_price: alertPrice ? parseFloat(alertPrice) : null,
+        game_title: finalTitle,
+        game_image: finalImage,
+        alert_price: alertPrice ? parseFloat(alertPrice) : Math.round(rawP * 0.8 * 100) / 100,
         notify_on_sale: notifyOnSale
       })
     });
     if (data && data.success) {
-      showToastNotification(`Added ${game.title} to Price Tracker!`);
+      showToastNotification(`✓ Added ${finalTitle} to Price Tracker!`);
       closeWishlistModal();
       loadWishlist();
       return;
@@ -3738,28 +3959,28 @@ async function handleAddToWishlist(e) {
   const existingIdx = localGuestWishlist.findIndex(i => (i.appid || i.id) === appid);
   const newItem = {
     appid,
-    game_title: game.title,
-    game_image: game.image,
-    alert_price: alertPrice ? parseFloat(alertPrice) : null,
+    game_title: finalTitle,
+    game_image: finalImage,
+    alert_price: alertPrice ? parseFloat(alertPrice) : Math.round(rawP * 0.8 * 100) / 100,
     notify_on_sale: notifyOnSale,
-    current_price: 29.99,
-    lowest_price: 19.99
+    current_price: rawP,
+    lowest_price: Math.round(rawP * 0.5 * 100) / 100
   };
 
   if (existingIdx >= 0) localGuestWishlist[existingIdx] = newItem;
-  else localGuestWishlist.push(newItem);
+  else localGuestWishlist.unshift(newItem);
 
   localStorage.setItem('playspec_guest_wishlist', JSON.stringify(localGuestWishlist));
-  showToastNotification(`Added ${game.title} to Price Tracker!`);
+  showToastNotification(`✓ Added ${finalTitle} to Price Tracker!`);
   closeWishlistModal();
   loadWishlist();
 }
 
-async function quickToggleWishlist(appid, title, image) {
+async function quickToggleWishlist(appid, title, image, price) {
   if (isAppWishlisted(appid)) {
     removeFromWishlist(appid);
   } else {
-    openWishlistModal(appid, title, image);
+    openWishlistModal(appid, title, image, price);
   }
 }
 
@@ -8713,8 +8934,19 @@ window.clearPassportCustomPhoto = clearPassportCustomPhoto;
 // Export Price Tracker Discovery functions
 window.switchTrackerTab = switchTrackerTab;
 window.handleTrackerSearch = handleTrackerSearch;
+window.clearTrackerSearch = clearTrackerSearch;
+window.performSteamTrackerSearch = performSteamTrackerSearch;
+window.quickToggleTrackerSearch = quickToggleTrackerSearch;
+window.quickAddTrackerGame = quickAddTrackerGame;
 window.trackTopPopularGames = trackTopPopularGames;
 window.syncUserSteamWishlist = syncUserSteamWishlist;
+window.openWishlistModal = openWishlistModal;
+window.closeWishlistModal = closeWishlistModal;
+window.handleAddToWishlist = handleAddToWishlist;
+window.setTargetDiscount = setTargetDiscount;
+window.setTargetMatchLow = setTargetMatchLow;
+window.quickToggleWishlist = quickToggleWishlist;
+window.removeFromWishlist = removeFromWishlist;
 
 // Export UI & Dropdown functions
 window.toggleNotificationsDropdown = toggleNotificationsDropdown;

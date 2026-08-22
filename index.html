@@ -960,11 +960,26 @@
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="trackerSearchInput" class="tracker-search-input" placeholder="Search any Steam game to track (e.g. Cyberpunk, Elden Ring, Black Myth: Wukong, BG3)..." oninput="handleTrackerSearch(this.value)" />
+            <input type="text" id="trackerSearchInput" class="tracker-search-input" placeholder="Search any Steam game to track (e.g. Cyberpunk, Elden Ring, Black Myth: Wukong, GTA, BG3)..." oninput="handleTrackerSearch(this.value)" />
           </div>
           <div class="tab-filters" style="margin:0">
             <button class="tab-filter active" id="trackerTabAllBtn" onclick="switchTrackerTab('all')">My Tracked Games (<span id="trackerTabCount">0</span>)</button>
             <button class="tab-filter" id="trackerTabDiscoverBtn" onclick="switchTrackerTab('discover')">➕ Explore & Track More Games</button>
+          </div>
+        </div>
+
+        <!-- Live Steam Store Search Results Shelf -->
+        <div id="trackerSearchResultsSection" style="display:none;margin-bottom:24px;background:var(--bg-card);border:1.5px solid rgba(56,189,248,0.35);border-radius:var(--radius-md);padding:20px;box-shadow:0 0 20px rgba(56,189,248,0.1)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:1.1rem">🔍</span>
+              <h3 style="font-size:1.05rem;font-weight:700;color:#ffffff" id="trackerSearchTitle">Steam Store Search Results</h3>
+              <span class="badge badge-cyan" id="trackerSearchResultCountBadge">0 Found</span>
+            </div>
+            <button class="btn btn-sm btn-ghost" onclick="clearTrackerSearch()">✕ Clear Search</button>
+          </div>
+          <div class="suggested-tracker-grid" id="trackerSearchResultsGrid">
+            <!-- Populated dynamically by live Steam Search -->
           </div>
         </div>
 
@@ -1588,6 +1603,9 @@
 
         <form id="wishlistForm" onsubmit="handleAddToWishlist(event)" style="margin-top:16px">
           <input type="hidden" id="wishlistAppId" />
+          <input type="hidden" id="wishlistGameTitle" />
+          <input type="hidden" id="wishlistGameImage" />
+          <input type="hidden" id="wishlistCurrentPrice" />
           
           <div class="rig-input-group" style="margin-bottom:12px">
             <label class="rig-input-label">Target Alert Price</label>
