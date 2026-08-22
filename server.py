@@ -5450,295 +5450,7 @@ def backlog_roulette_endpoint():
 
 
 # ═══════════════════════ GAMING IQ & TRIVIA QUIZ AGENT ENGINE ═══════════════════════
-
-QUIZ_QUESTION_BANK = [
-    # RPG & AAA Lore
-    {
-        "id": "q1",
-        "category": "rpg_lore",
-        "category_label": "🗡️ RPG & AAA Lore",
-        "difficulty": "rookie",
-        "difficulty_label": "🟢 Rookie",
-        "points": 100,
-        "question": "In 'The Witcher 3: Wild Hunt', what is the name of Geralt of Rivia's beloved horse?",
-        "options": ["Roach", "Shadowmere", "Agro", "Epona"],
-        "correct": "Roach",
-        "lore_fact": "Geralt names every horse he ever owns 'Roach' (Płotka in original Polish), regardless of breed or gender."
-    },
-    {
-        "id": "q2",
-        "category": "rpg_lore",
-        "category_label": "🗡️ RPG & AAA Lore",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "In 'Elden Ring', what is the name of General Radahn's miniature scrawny horse that he learns gravity magic to ride?",
-        "options": ["Leonard", "Torrent", "Maliketh", "Godefroy"],
-        "correct": "Leonard",
-        "lore_fact": "General Radahn loved his scrawny steed Leonard so much that he mastered celestial gravity magic specifically to avoid crushing him in battle."
-    },
-    {
-        "id": "q3",
-        "category": "rpg_lore",
-        "category_label": "🗡️ RPG & AAA Lore",
-        "difficulty": "hardcore",
-        "difficulty_label": "🔴 Hardcore",
-        "points": 350,
-        "question": "In 'Cyberpunk 2077', which legendary rock band did Johnny Silverhand front before the Arasaka Tower bombing in 2023?",
-        "options": ["Samurai", "Tyger Claws", "Chrome Rockers", "Night City Maelstrom"],
-        "correct": "Samurai",
-        "lore_fact": "SAMURAI had legendary hits like 'Chippin\\' In' and 'Never Fade Away', performed in real life by Swedish punk band Refused."
-    },
-    {
-        "id": "q4",
-        "category": "rpg_lore",
-        "category_label": "🗡️ RPG & AAA Lore",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "In 'Red Dead Redemption 2', what fatal illness does protagonist Arthur Morgan contract during the story?",
-        "options": ["Tuberculosis", "Cholera", "Black Plague", "Pneumonia"],
-        "correct": "Tuberculosis",
-        "lore_fact": "Arthur contracts TB in Chapter 2 while collecting a debt from Thomas Downes, fundamentally shifting his morality."
-    },
-    {
-        "id": "q5",
-        "category": "rpg_lore",
-        "category_label": "🗡️ RPG & AAA Lore",
-        "difficulty": "hardcore",
-        "difficulty_label": "🔴 Hardcore",
-        "points": 350,
-        "question": "In 'Baldur\\'s Gate 3', what is the secret identity of the Mind Flayer parasite hive-mind pulling the strings?",
-        "options": ["The Netherbrain (The Absolute)", "Vlaakith the Lich Queen", "Shar the Dark Lady", "Bhaal the Lord of Murder"],
-        "correct": "The Netherbrain (The Absolute)",
-        "lore_fact": "The Absolute is secretly an Elder Brain augmented with the Crown of Karsus, transforming it into a god-like Netherbrain."
-    },
-    {
-        "id": "q6",
-        "category": "rpg_lore",
-        "category_label": "🗡️ RPG & AAA Lore",
-        "difficulty": "rookie",
-        "difficulty_label": "🟢 Rookie",
-        "points": 100,
-        "question": "In 'Skyrim', what iconic dragon shout does the Dragonborn learn that translates to 'Force, Balance, Push'?",
-        "options": ["Fus Ro Dah", "Yol Toor Shul", "Wuld Nah Kest", "Lok Vah Koor"],
-        "correct": "Fus Ro Dah",
-        "lore_fact": "'Fus Ro Dah' (Unrelenting Force) is the signature shout taught to the Dragonborn by the Greybeards at High Hrothgar."
-    },
-    {
-        "id": "q7",
-        "category": "rpg_lore",
-        "category_label": "🗡️ RPG & AAA Lore",
-        "difficulty": "hardcore",
-        "difficulty_label": "🔴 Hardcore",
-        "points": 350,
-        "question": "In 'Dark Souls', what is the name of the Great Grey Wolf that wields a giant greatsword in its mouth?",
-        "options": ["Sif", "Artorias", "Alvina", "Vordt"],
-        "correct": "Sif",
-        "lore_fact": "Great Grey Wolf Sif guards the grave of his fallen master, Knight Artorias the Abysswalker, to prevent others from meeting the same dark fate."
-    },
-
-    # PC Hardware & Tech
-    {
-        "id": "q8",
-        "category": "hardware",
-        "category_label": "🖥️ PC Hardware & Tech",
-        "difficulty": "rookie",
-        "difficulty_label": "🟢 Rookie",
-        "points": 100,
-        "question": "What does 'DLSS' stand for in NVIDIA GeForce RTX graphics cards?",
-        "options": ["Deep Learning Super Sampling", "Direct Lighting Spatial Shading", "Dynamic Low Synchronous System", "Digital Light Source Simulation"],
-        "correct": "Deep Learning Super Sampling",
-        "lore_fact": "NVIDIA DLSS uses dedicated Tensor Core AI neural networks to upscale lower-resolution frames with sharp high-res quality and massive FPS boosts."
-    },
-    {
-        "id": "q9",
-        "category": "hardware",
-        "category_label": "🖥️ PC Hardware & Tech",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "Which component in a gaming PC is primarily responsible for holding high-res game textures and ray tracing BVH buffers?",
-        "options": ["VRAM (Video RAM on GPU)", "System DDR5 RAM", "NVMe PCIe SSD", "CPU L3 Cache"],
-        "correct": "VRAM (Video RAM on GPU)",
-        "lore_fact": "Running out of VRAM forces the GPU to swap textures into system RAM over the PCIe bus, causing severe frame stutters."
-    },
-    {
-        "id": "q10",
-        "category": "hardware",
-        "category_label": "🖥️ PC Hardware & Tech",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "What display technology eliminates screen tearing by synchronizing monitor refresh rates directly to GPU frame output?",
-        "options": ["Variable Refresh Rate (G-Sync / FreeSync)", "Anisotropic Filtering", "Anti-Aliasing (MSAA)", "Ambient Occlusion"],
-        "correct": "Variable Refresh Rate (G-Sync / FreeSync)",
-        "lore_fact": "G-Sync and FreeSync dynamically adjust the monitor's Hz in real time to match whenever a new frame finishes rendering on the GPU."
-    },
-    {
-        "id": "q11",
-        "category": "hardware",
-        "category_label": "🖥️ PC Hardware & Tech",
-        "difficulty": "hardcore",
-        "difficulty_label": "🔴 Hardcore",
-        "points": 350,
-        "question": "When a powerful GPU is limited to low usage because an older processor cannot feed it draw calls fast enough, what is this called?",
-        "options": ["CPU Bottleneck", "Thermal Throttling", "Shader Cache Stutter", "PCIe Saturation"],
-        "correct": "CPU Bottleneck",
-        "lore_fact": "In CPU bottlenecks, lowering game resolution doesn't increase FPS because the CPU is already running at 100% calculating game physics and draw calls."
-    },
-    {
-        "id": "q12",
-        "category": "hardware",
-        "category_label": "🖥️ PC Hardware & Tech",
-        "difficulty": "hardcore",
-        "difficulty_label": "🔴 Hardcore",
-        "points": 350,
-        "question": "Which AMD 3D V-Cache processor became renowned as one of the fastest pure gaming CPUs in the world due to its massive 96MB L3 cache stack?",
-        "options": ["Ryzen 7 7800X3D", "Ryzen 9 7900X", "Ryzen 5 7600", "Threadripper 3990X"],
-        "correct": "Ryzen 7 7800X3D",
-        "lore_fact": "By stacking 3D SRAM vertically on top of the compute die, AMD lowered cache latency drastically, delivering unbeatable gaming 1% low frame rates."
-    },
-
-    # Esports & FPS
-    {
-        "id": "q13",
-        "category": "esports",
-        "category_label": "🎯 FPS & Esports",
-        "difficulty": "rookie",
-        "difficulty_label": "🟢 Rookie",
-        "points": 100,
-        "question": "In 'Counter-Strike 2', what is the standard purchase price of the one-shot kill AWP sniper rifle?",
-        "options": ["$4,750", "$3,100", "$5,000", "$4,200"],
-        "correct": "$4,750",
-        "lore_fact": "The AWP has remained priced at $4,750 for decades across CS 1.6, CS:Source, CS:GO, and CS2."
-    },
-    {
-        "id": "q14",
-        "category": "esports",
-        "category_label": "🎯 FPS & Esports",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "In 'VALORANT', which South Korean Duelist agent has an Ultimate called 'Blade Storm' with floating daggers?",
-        "options": ["Jett", "Reyna", "Raze", "Yoru"],
-        "correct": "Jett",
-        "lore_fact": "Jett's Blade Storm knives do 50 body damage and 150 headshot damage, instantly resetting all 5 knives upon scoring a kill."
-    },
-    {
-        "id": "q15",
-        "category": "esports",
-        "category_label": "🎯 FPS & Esports",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "In 'Apex Legends', what is the name of the dimension-hopping skirmisher who can create dimensional rift portals?",
-        "options": ["Wraith (Renee Blasey)", "Horizon", "Valkyrie", "Ash"],
-        "correct": "Wraith (Renee Blasey)",
-        "lore_fact": "Wraith hears voices from alternate realities in the Void that warn her whenever an enemy is aiming at or trapping her."
-    },
-
-    # Retro & Indie Classics
-    {
-        "id": "q16",
-        "category": "indie_retro",
-        "category_label": "🕹️ Retro & Indie Legends",
-        "difficulty": "rookie",
-        "difficulty_label": "🟢 Rookie",
-        "points": 100,
-        "question": "What is the famous Konami Code cheat sequence popularized in 'Contra' and countless games?",
-        "options": ["Up, Up, Down, Down, Left, Right, Left, Right, B, A", "Up, Down, Up, Down, Left, Left, Right, Right, A, B", "Down, Down, Up, Up, Left, Right, B, A, Start", "Left, Right, Left, Right, Up, Down, A, B, Select"],
-        "correct": "Up, Up, Down, Down, Left, Right, Left, Right, B, A",
-        "lore_fact": "Created by Kazuhisa Hashimoto in 1986, the code gave players 30 extra lives in Contra and is one of the most recognized Easter eggs in gaming."
-    },
-    {
-        "id": "q17",
-        "category": "indie_retro",
-        "category_label": "🕹️ Retro & Indie Legends",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "In 'Hollow Knight', what is the name of the ancient ruined underground kingdom where the game takes place?",
-        "options": ["Hallownest", "Pharloom", "Deepnest", "Dirtmouth"],
-        "correct": "Hallownest",
-        "lore_fact": "Hallownest was created by the Pale King, who promised eternal peace for bug kind before the Infection overtook it."
-    },
-    {
-        "id": "q18",
-        "category": "indie_retro",
-        "category_label": "🕹️ Retro & Indie Legends",
-        "difficulty": "hardcore",
-        "difficulty_label": "🔴 Hardcore",
-        "points": 350,
-        "question": "In 'DOOM' (1993), what is the legendary god-mode invulnerability cheat code typed during gameplay?",
-        "options": ["IDDQD", "IDKFA", "IDCLIP", "NOCLIP"],
-        "correct": "IDDQD",
-        "lore_fact": "IDDQD turned Doomguy's eyes glowing gold and made him completely immune to all enemy damage and environmental hazards."
-    },
-    {
-        "id": "q19",
-        "category": "indie_retro",
-        "category_label": "🕹️ Retro & Indie Legends",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "In 'Portal' and 'Portal 2', what genetic lifeform and AI OS tests Chell while continuously promising cake?",
-        "options": ["GLaDOS", "Wheatley", "SHODAN", "HAL 9000"],
-        "correct": "GLaDOS",
-        "lore_fact": "GLaDOS stands for 'Genetic Lifeform and Disk Operating System', voiced by Ellen McLain."
-    },
-    {
-        "id": "q20",
-        "category": "indie_retro",
-        "category_label": "🕹️ Retro & Indie Legends",
-        "difficulty": "hardcore",
-        "difficulty_label": "🔴 Hardcore",
-        "points": 350,
-        "question": "In 'Half-Life 2', what is the official scientific designation of the iconic Zero Point Energy Field Manipulator weapon?",
-        "options": ["Gravity Gun", "Tau Cannon", "Gluon Gun", "Portal Device"],
-        "correct": "Gravity Gun",
-        "lore_fact": "The Gravity Gun was developed at Black Mesa East and became supercharged with dark energy inside the Combine Citadel."
-    },
-
-    # Industry Trivia & GOTY
-    {
-        "id": "q21",
-        "category": "trivia",
-        "category_label": "🏆 GOTY & Steam Trivia",
-        "difficulty": "rookie",
-        "difficulty_label": "🟢 Rookie",
-        "points": 100,
-        "question": "Which game won Game of the Year (GOTY) at The Game Awards 2022?",
-        "options": ["Elden Ring", "God of War Ragnarök", "Horizon Forbidden West", "Stray"],
-        "correct": "Elden Ring",
-        "lore_fact": "FromSoftware's Elden Ring swept 4 categories at TGA 2022, including Game of the Year and Best Game Direction."
-    },
-    {
-        "id": "q22",
-        "category": "trivia",
-        "category_label": "🏆 GOTY & Steam Trivia",
-        "difficulty": "veteran",
-        "difficulty_label": "🟡 Veteran",
-        "points": 200,
-        "question": "In 2024, which Chinese action RPG smashed Steam singleplayer records by surpassing 2.4 million simultaneous players?",
-        "options": ["Black Myth: Wukong", "Palworld", "Helldivers 2", "Genshin Impact"],
-        "correct": "Black Myth: Wukong",
-        "lore_fact": "Game Science's Black Myth: Wukong peaked at 2,415,714 concurrent players on Steam within 24 hours of launch."
-    },
-    {
-        "id": "q23",
-        "category": "trivia",
-        "category_label": "🏆 GOTY & Steam Trivia",
-        "difficulty": "god",
-        "difficulty_label": "💀 Elden God",
-        "points": 500,
-        "question": "What was the very first video game to ever be distributed through the Steam client when Valve launched it in 2003?",
-        "options": ["Counter-Strike 1.6", "Half-Life 2", "Team Fortress Classic", "Day of Defeat"],
-        "correct": "Counter-Strike 1.6",
-        "lore_fact": "Steam launched on September 12, 2003, with Counter-Strike 1.6 as its mandatory update vehicle before Half-Life 2 launched in 2004."
-    }
-]
-
+from quiz_data import QUIZ_QUESTION_BANK, EASY_QUESTIONS, MEDIUM_QUESTIONS, HARD_QUESTIONS
 
 CUSTOM_QUIZ_FILE = os.path.join(os.path.dirname(__file__), 'custom_quiz_questions.json')
 
@@ -5765,30 +5477,98 @@ def save_custom_questions(questions):
 def get_quiz_questions():
     import random
     category = request.args.get('category', 'all').lower()
-    difficulty = request.args.get('difficulty', 'all').lower()
-    count = min(int(request.args.get('count', 10)), 50)
+    difficulty = request.args.get('difficulty', 'balanced').lower()
+    mode = request.args.get('mode', 'balanced').lower()
+    count = min(int(request.args.get('count', 15)), 50)
+    exclude_ids = set([s.strip() for s in request.args.get('exclude_ids', '').split(',') if s.strip()])
 
     # Merge core question bank with user-submitted community questions
     custom_pool = load_custom_questions()
     combined_pool = list(QUIZ_QUESTION_BANK) + custom_pool
 
-    filtered = combined_pool
-    if category == 'community':
-        filtered = [q for q in combined_pool if q.get('is_custom') or q.get('category') == 'community']
-        if not filtered:
-            # Fallback if no custom questions yet
-            filtered = combined_pool
-    elif category != 'all':
-        filtered = [q for q in combined_pool if q.get('category') == category]
+    # Filter by category
+    def filter_by_cat(pool):
+        if category == 'community':
+            res = [q for q in pool if q.get('is_custom') or q.get('category') == 'community']
+            return res if res else pool
+        elif category != 'all':
+            res = [q for q in pool if q.get('category') == category]
+            return res if res else pool
+        return pool
 
-    if difficulty != 'all':
-        filtered = [q for q in filtered if q.get('difficulty') == difficulty]
+    category_pool = filter_by_cat(combined_pool)
 
-    if not filtered:
-        filtered = combined_pool
+    # Balanced Progressive Gauntlet (5 Easy + 5 Medium + 5 Hard for 15 Questions)
+    if difficulty in ['balanced', 'gauntlet', 'progressive'] or mode in ['balanced', 'gauntlet', 'progressive']:
+        easy_pool = [q for q in category_pool if q.get('difficulty') == 'rookie']
+        medium_pool = [q for q in category_pool if q.get('difficulty') == 'veteran']
+        hard_pool = [q for q in category_pool if q.get('difficulty') in ['hardcore', 'god']]
 
-    sample_size = min(count, len(filtered))
-    chosen = random.sample(filtered, sample_size)
+        # Fallback to general pool if category subset is small
+        if len(easy_pool) < 3:
+            easy_pool = [q for q in combined_pool if q.get('difficulty') == 'rookie']
+        if len(medium_pool) < 3:
+            medium_pool = [q for q in combined_pool if q.get('difficulty') == 'veteran']
+        if len(hard_pool) < 3:
+            hard_pool = [q for q in combined_pool if q.get('difficulty') in ['hardcore', 'god']]
+
+        # Dynamic tier quotas based on total round length
+        if count == 15:
+            n_easy, n_med, n_hard = 5, 5, 5
+        elif count == 10:
+            n_easy, n_med, n_hard = 3, 4, 3
+        elif count == 5:
+            n_easy, n_med, n_hard = 1, 2, 2
+        elif count == 20:
+            n_easy, n_med, n_hard = 7, 7, 6
+        else:
+            n_easy = max(1, count // 3)
+            n_hard = max(1, count // 3)
+            n_med = max(1, count - n_easy - n_hard)
+
+        def sample_tier(tier_pool, n, stage_num, stage_label):
+            if not tier_pool:
+                tier_pool = combined_pool
+            fresh = [q for q in tier_pool if q.get('id') not in exclude_ids]
+            if len(fresh) < n:
+                chosen_sample = list(fresh)
+                remainder = [q for q in tier_pool if q not in chosen_sample]
+                if remainder:
+                    chosen_sample += random.sample(remainder, min(n - len(chosen_sample), len(remainder)))
+            else:
+                chosen_sample = random.sample(fresh, n)
+            
+            out = []
+            for item in chosen_sample:
+                c = dict(item)
+                c['_stage'] = stage_num
+                c['_stage_label'] = stage_label
+                out.append(c)
+            return out
+
+        chosen_easy = sample_tier(easy_pool, n_easy, 1, "🟢 Stage 1: Warmup (Rookie)")
+        chosen_med = sample_tier(medium_pool, n_med, 2, "🟡 Stage 2: Mid-Challenge (Veteran)")
+        chosen_hard = sample_tier(hard_pool, n_hard, 3, "🔴 Stage 3: Boss Tier (Hardcore & God)")
+        chosen = chosen_easy + chosen_med + chosen_hard
+
+    else:
+        # User selected a specific difficulty or mixed
+        filtered = category_pool
+        if difficulty != 'all' and difficulty != 'mixed':
+            filtered = [q for q in category_pool if q.get('difficulty') == difficulty]
+            if not filtered:
+                filtered = category_pool
+
+        fresh = [q for q in filtered if q.get('id') not in exclude_ids]
+        sample_pool = fresh if len(fresh) >= count else filtered
+        sample_size = min(count, len(sample_pool))
+        chosen_sample = random.sample(sample_pool, sample_size)
+        chosen = []
+        for item in chosen_sample:
+            c = dict(item)
+            c['_stage'] = 1
+            c['_stage_label'] = "🎮 Custom Arena"
+            chosen.append(c)
 
     # Shuffle MCQ options for each question so there is zero fixed pattern
     output_questions = []
@@ -5802,8 +5582,10 @@ def get_quiz_questions():
         output_questions.append({
             "number": idx + 1,
             "id": q.get('id', f"q_{idx}"),
+            "stage": q.get('_stage', 1),
+            "stage_label": q.get('_stage_label', 'Stage 1'),
             "category": q.get('category', 'trivia'),
-            "category_label": q.get('category_label', '🎮 Community Lore'),
+            "category_label": q.get('category_label', '🎮 Gaming Lore'),
             "difficulty": q.get('difficulty', 'veteran'),
             "difficulty_label": q.get('difficulty_label', '🟡 Veteran'),
             "points": q.get('points', 200),
@@ -5811,7 +5593,7 @@ def get_quiz_questions():
             "options": options,
             "correct_index": options.index(correct_val) if correct_val in options else 0,
             "correct_answer": correct_val,
-            "lore_fact": q.get('lore_fact', 'A community-contributed gaming lore fact.'),
+            "lore_fact": q.get('lore_fact', 'A gaming lore fact.'),
             "author": q.get('author', 'PlaySpec Community'),
             "is_custom": q.get('is_custom', False)
         })
@@ -5820,6 +5602,8 @@ def get_quiz_questions():
         "status": "success",
         "total_questions": len(output_questions),
         "community_questions_count": len(custom_pool),
+        "total_database_questions": len(QUIZ_QUESTION_BANK) + len(custom_pool),
+        "mode": difficulty if difficulty != 'all' else 'balanced',
         "questions": output_questions
     })
 

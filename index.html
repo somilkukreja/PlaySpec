@@ -737,6 +737,34 @@
 
         <!-- Quiz Arena Shell -->
         <div class="quiz-arena-shell">
+          <!-- Quiz Player Customization & Settings Bar -->
+          <div class="quiz-customizer-bar">
+            <div class="quiz-setting-group">
+              <label for="quizRoundLengthSelect"><span class="setting-icon">🔢</span> Round Length:</label>
+              <select id="quizRoundLengthSelect" class="quiz-setting-select" onchange="updateQuizSettings()" title="Choose number of questions per round">
+                <option value="5">⚡ 5 Questions (Sprint)</option>
+                <option value="10">🎯 10 Questions (Standard)</option>
+                <option value="15" selected>🏆 15 Questions (5 Easy / 5 Med / 5 Hard)</option>
+                <option value="20">🔥 20 Questions (Endurance Marathon)</option>
+              </select>
+            </div>
+
+            <div class="quiz-setting-group">
+              <label for="quizDifficultyModeSelect"><span class="setting-icon">⚖️</span> Difficulty Mode:</label>
+              <select id="quizDifficultyModeSelect" class="quiz-setting-select" onchange="updateQuizSettings()" title="Progressive Gauntlet or specific difficulty tier">
+                <option value="balanced" selected>⚖️ Progressive Gauntlet (Easy → Med → Hard)</option>
+                <option value="rookie">🟢 Rookie Only (Casual & Warmup)</option>
+                <option value="veteran">🟡 Veteran Only (Balanced Challenge)</option>
+                <option value="hardcore">🔴 Hardcore / God Tier Only (Elite)</option>
+                <option value="mixed">🎲 Chaos Random (All Mixed)</option>
+              </select>
+            </div>
+
+            <div class="quiz-database-stat">
+              <span>📚 Database Pool: <strong id="quizTotalDatabaseCount" style="color:var(--brand-blue)">150+</strong> Questions</span>
+            </div>
+          </div>
+
           <!-- Quiz Category Filter Chips -->
           <div class="quiz-topic-chips">
             <button class="quiz-topic-chip active" data-quiz-cat="all" onclick="selectQuizCategory('all')">🌐 All Topics</button>
@@ -753,9 +781,10 @@
             <!-- Header with Question Count, Points, Difficulty & Audio toggle -->
             <div class="quiz-card-top-bar">
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <span class="badge badge-purple" id="quizQuestionNumberBadge">Question 1 / 10</span>
+                <span class="badge badge-purple" id="quizQuestionNumberBadge">Question 1 / 15</span>
                 <span class="badge badge-cyan" id="quizCategoryBadge">🗡️ RPG & AAA Lore</span>
                 <span class="badge badge-green" id="quizDifficultyBadge">🟢 Rookie</span>
+                <span class="badge badge-yellow" id="quizStageBadge" style="font-weight:700">🟢 Stage 1: Warmup</span>
                 <span class="badge badge-purple" id="quizAuthorBadge" style="display:none;font-size:0.7rem">👤 By Community</span>
               </div>
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">

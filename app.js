@@ -7413,6 +7413,9 @@ let quizTimerInterval = null;
 let quizSecondsRemaining = 15;
 let quizSoundEnabled = true;
 let quizTimerEnabled = localStorage.getItem('playspec_quiz_timer_enabled') !== 'false';
+let quizRoundLength = parseInt(localStorage.getItem('playspec_quiz_round_length') || '15', 10);
+let quizDifficultyMode = localStorage.getItem('playspec_quiz_difficulty_mode') || 'balanced';
+let sessionSeenQuizIds = new Set();
 let quizAnswerLocked = false;
 
 // Web Audio API Synthesizer (Zero external audio files needed)
@@ -7518,6 +7521,32 @@ function updateQuizTimerButtonUI() {
   if (text) text.textContent = quizTimerEnabled ? 'Timer: ON' : 'Timer: OFF (Zen)';
 }
 
+function updateQuizSettings() {
+  const lengthSelect = document.getElementById('quizRoundLengthSelect');
+  const modeSelect = document.getElementById('quizDifficultyModeSelect');
+
+  if (lengthSelect) {
+    quizRoundLength = parseInt(lengthSelect.value, 10) || 15;
+    localStorage.setItem('playspec_quiz_round_length', quizRoundLength.toString());
+  }
+
+  if (modeSelect) {
+    quizDifficultyMode = modeSelect.value || 'balanced';
+    localStorage.setItem('playspec_quiz_difficulty_mode', quizDifficultyMode);
+  }
+
+  const modeLabel = quizDifficultyMode === 'balanced' ? 'Progressive Gauntlet (5 Easy / 5 Med / 5 Hard)' : quizDifficultyMode.toUpperCase();
+  showToastNotification(`⚙️ Quiz Mode: ${quizRoundLength} Questions (${modeLabel})`);
+  startNewQuizRound();
+}
+
+function syncQuizSettingsUI() {
+  const lengthSelect = document.getElementById('quizRoundLengthSelect');
+  const modeSelect = document.getElementById('quizDifficultyModeSelect');
+  if (lengthSelect) lengthSelect.value = quizRoundLength.toString();
+  if (modeSelect) modeSelect.value = quizDifficultyMode;
+}
+
 function selectQuizCategory(cat) {
   activeQuizCategory = cat;
   document.querySelectorAll('.quiz-topic-chip').forEach(c => {
@@ -7532,6 +7561,8 @@ async function startNewQuizRound() {
   if (activeCard) activeCard.style.display = 'block';
   if (completedCard) completedCard.style.display = 'none';
 
+  syncQuizSettingsUI();
+
   currentQuizIndex = 0;
   quizScore = 0;
   quizStreak = 0;
@@ -7542,17 +7573,27 @@ async function startNewQuizRound() {
   updateQuizTimerButtonUI();
 
   try {
-    const res = await fetch(`${API_BASE}/api/quiz/generate?category=${activeQuizCategory}&count=10`);
+    const excludeParam = Array.from(sessionSeenQuizIds).join(',');
+    const url = `${API_BASE}/api/quiz/generate?category=${activeQuizCategory}&difficulty=${quizDifficultyMode}&count=${quizRoundLength}&exclude_ids=${excludeParam}`;
+    const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
       if (data.questions && data.questions.length > 0) {
         quizQuestions = data.questions;
+        data.questions.forEach(q => {
+          if (q.id) sessionSeenQuizIds.add(q.id);
+        });
       } else {
+        sessionSeenQuizIds.clear();
         quizQuestions = getFallbackQuizQuestions();
       }
       if (data.community_questions_count !== undefined) {
         const badge = document.getElementById('communityQuestionCountBadge');
         if (badge) badge.textContent = data.community_questions_count;
+      }
+      if (data.total_database_questions !== undefined) {
+        const totalBadge = document.getElementById('quizTotalDatabaseCount');
+        if (totalBadge) totalBadge.textContent = `${data.total_database_questions}+`;
       }
     } else {
       quizQuestions = getFallbackQuizQuestions();
@@ -7577,6 +7618,7 @@ function renderCurrentQuizQuestion() {
   const numBadge = document.getElementById('quizQuestionNumberBadge');
   const catBadge = document.getElementById('quizCategoryBadge');
   const diffBadge = document.getElementById('quizDifficultyBadge');
+  const stageBadge = document.getElementById('quizStageBadge');
   const authorBadge = document.getElementById('quizAuthorBadge');
   const qText = document.getElementById('quizQuestionText');
   const grid = document.getElementById('quizMcqGrid');
@@ -7588,8 +7630,24 @@ function renderCurrentQuizQuestion() {
   if (qText) qText.textContent = q.question;
   if (loreTray) loreTray.style.display = 'none';
 
+  if (stageBadge) {
+    if (q.stage_label) {
+      stageBadge.textContent = q.stage_label;
+      stageBadge.style.display = 'inline-flex';
+      if (q.stage === 1) {
+        stageBadge.className = 'badge badge-green';
+      } else if (q.stage === 2) {
+        stageBadge.className = 'badge badge-yellow';
+      } else {
+        stageBadge.className = 'badge badge-red';
+      }
+    } else {
+      stageBadge.style.display = 'none';
+    }
+  }
+
   if (authorBadge) {
-    if (q.is_custom || (q.author && q.author !== 'PlaySpec')) {
+    if (q.is_custom || (q.author && q.author !== 'PlaySpec Community' && q.author !== 'PlaySpec')) {
       authorBadge.textContent = `👤 By @${q.author}`;
       authorBadge.style.display = 'inline-flex';
     } else {
@@ -8387,5 +8445,6 @@ window.copyQuizScoreToClipboard = copyQuizScoreToClipboard;
 window.openCustomQuizModal = openCustomQuizModal;
 window.closeCustomQuizModal = closeCustomQuizModal;
 window.handleCustomQuizFormSubmit = handleCustomQuizFormSubmit;
+window.updateQuizSettings = updateQuizSettings;
 
 
