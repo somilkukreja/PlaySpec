@@ -5549,6 +5549,9 @@ def get_quiz_questions():
         chosen_easy = sample_tier(easy_pool, n_easy, 1, "🟢 Stage 1: Warmup (Rookie)")
         chosen_med = sample_tier(medium_pool, n_med, 2, "🟡 Stage 2: Mid-Challenge (Veteran)")
         chosen_hard = sample_tier(hard_pool, n_hard, 3, "🔴 Stage 3: Boss Tier (Hardcore & God)")
+        random.shuffle(chosen_easy)
+        random.shuffle(chosen_med)
+        random.shuffle(chosen_hard)
         chosen = chosen_easy + chosen_med + chosen_hard
 
     else:

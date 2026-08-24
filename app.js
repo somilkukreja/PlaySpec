@@ -1858,11 +1858,205 @@ function createEventCard(e) {
   `;
 }
 
+// ── CYBER V2.6 INTERACTIVE ENGINE ──
+
+let activeCyberGenre = 'ALL';
+let activeCyberSearchQuery = '';
+let activeCyberSortKey = 'popularity';
+
+function switchCyberTab(tabTargetId) {
+  // 1. Update active tab UI
+  document.querySelectorAll('.cyber-tab').forEach(tab => {
+    const isMatch = tab.getAttribute('data-tab-target') === tabTargetId;
+    tab.classList.toggle('active', isMatch);
+  });
+
+  // 2. Scroll smoothly to target section with sticky header offset
+  const targetEl = document.getElementById(tabTargetId);
+  if (targetEl) {
+    const headerOffset = 110;
+    const elementPosition = targetEl.getBoundingClientRect().top;
+    const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+    window.scrollTo({
+      top: Math.max(0, offsetPosition),
+      behavior: 'smooth'
+    });
+  }
+}
+
+function filterGameDbGenre(genre) {
+  activeCyberGenre = genre;
+  document.querySelectorAll('.cyber-genre-pill').forEach(pill => {
+    pill.classList.toggle('active', pill.getAttribute('data-genre') === genre);
+  });
+  renderCyberGamesGrid();
+}
+
+function handleGameDbSearch(query) {
+  activeCyberSearchQuery = (query || '').trim().toUpperCase();
+  renderCyberGamesGrid();
+}
+
+function toggleSortDropdown(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById('cyberSortDropdown');
+  if (dropdown) dropdown.classList.toggle('active');
+}
+
+function selectSortOption(sortKey, sortLabel) {
+  activeCyberSortKey = sortKey;
+  const labelEl = document.getElementById('cyberSortLabel');
+  if (labelEl) labelEl.textContent = sortLabel;
+  
+  document.querySelectorAll('.cyber-sort-dropdown .sort-option').forEach(opt => {
+    opt.classList.toggle('active', opt.textContent.toUpperCase() === sortLabel.toUpperCase());
+  });
+
+  const dropdown = document.getElementById('cyberSortDropdown');
+  if (dropdown) dropdown.classList.remove('active');
+
+  renderCyberGamesGrid();
+}
+
+// Close sort dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('cyberSortDropdown');
+  if (dropdown && !e.target.closest('.cyber-sort-wrap')) {
+    dropdown.classList.remove('active');
+  }
+});
+
+function calculateGamePredictedFps(game, hw) {
+  const minGpu = game.min_gpu_score || 20;
+  const recGpu = game.rec_gpu_score || 50;
+  const minCpu = game.min_cpu_score || 20;
+  const recCpu = game.rec_cpu_score || 50;
+  const recRam = game.rec_ram || 16;
+
+  const gpuRatio = Math.min(2.8, Math.max(0.2, (hw ? hw.gpuScore : 65) / Math.max(20, recGpu)));
+  const cpuRatio = Math.min(2.2, Math.max(0.3, (hw ? hw.cpuScore : 65) / Math.max(20, recCpu)));
+  const ramRatio = Math.min(1.3, Math.max(0.5, (hw ? hw.ramGb : 16) / Math.max(4, recRam)));
+
+  const baseFps = game.base_fps || 60;
+  let predictedFps = Math.round(baseFps * Math.pow(gpuRatio, 0.85) * Math.pow(cpuRatio, 0.4) * Math.pow(ramRatio, 0.2));
+  return Math.min(360, Math.max(24, predictedFps));
+}
+
+function createCyberGameCard(game, hw) {
+  const fps = calculateGamePredictedFps(game, hw);
+  const currentP = convertPrice(game.currentPrice);
+  const origP = game.originalPrice && game.originalPrice !== game.currentPrice ? convertPrice(game.originalPrice) : '';
+  const isWishlisted = isAppWishlisted(game.id);
+
+  let statusText = fps >= 90 ? 'ULTRA READY' : (fps >= 60 ? 'SMOOTH SAILING' : 'PLAYABLE');
+
+  return `
+    <div class="cyber-game-card" onclick="openGameModal('${game.id}')">
+      <div class="cyber-card-img-wrap">
+        <img src="${game.image}" alt="${game.title}" loading="lazy" />
+        
+        <div class="cyber-card-top-badges">
+          <span class="cyber-badge-status">
+            <span>✓</span> ${statusText}
+          </span>
+          <span class="cyber-badge-fps">
+            <span>⚡</span> ~${fps} FPS
+          </span>
+        </div>
+
+        <button class="wishlist-btn ${isWishlisted ? 'active' : ''}" style="top:auto;bottom:8px;right:8px" title="Add to Watchlist" onclick="event.stopPropagation(); quickToggleWishlist(${game.id}, '${game.title.replace(/'/g, "\\'")}', '${game.image}')">
+          <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        </button>
+      </div>
+
+      <div class="cyber-card-body">
+        <div>
+          <div class="cyber-card-title" title="${game.title}">${game.title}</div>
+          <div class="cyber-card-genre">${game.genre || 'Action • Steam'}</div>
+        </div>
+
+        <div class="cyber-card-footer">
+          <div class="cyber-card-price-block">
+            <span class="cyber-price-curr">${currentP}</span>
+            ${origP ? `<span class="cyber-price-orig">${origP}</span>` : ''}
+          </div>
+          <span class="cyber-card-match-pct">${game.match || 94}% MATCH</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCyberGamesGrid() {
+  const grid = document.getElementById('cyberGamesGrid');
+  if (!grid) return;
+
+  const rig = getActiveRig();
+  const hw = parseAndScoreHardwareClient(rig);
+
+  let filtered = [...GAMES];
+
+  // 1. Genre filter
+  if (activeCyberGenre !== 'ALL') {
+    const target = activeCyberGenre.toUpperCase();
+    filtered = filtered.filter(g => {
+      const gStr = (g.genre || '').toUpperCase();
+      const tStr = (g.title || '').toUpperCase();
+      if (target === 'OPEN WORLD') return gStr.includes('OPEN WORLD') || gStr.includes('SANDBOX') || tStr.includes('GTA') || tStr.includes('WITCHER') || tStr.includes('ELDEN');
+      if (target === 'ACTION RPG') return gStr.includes('ACTION') || gStr.includes('RPG') || gStr.includes('SOULS');
+      if (target === 'SCI-FI') return gStr.includes('SCI-FI') || gStr.includes('CYBER') || gStr.includes('SPACE') || tStr.includes('CYBERPUNK') || tStr.includes('HELLDIVERS');
+      if (target === 'SOULS-LIKE') return gStr.includes('SOULS') || gStr.includes('METROIDVANIA') || tStr.includes('ELDEN') || tStr.includes('HOLLOW') || tStr.includes('WUKONG');
+      if (target === 'MYTHOLOGY') return gStr.includes('MYTH') || gStr.includes('FANTASY') || tStr.includes('WUKONG') || tStr.includes('GOD OF WAR') || tStr.includes('HADES') || tStr.includes('ELDEN');
+      return gStr.includes(target) || tStr.includes(target);
+    });
+  }
+
+  // 2. Search query filter
+  if (activeCyberSearchQuery) {
+    filtered = filtered.filter(g => {
+      const t = (g.title || '').toUpperCase();
+      const gen = (g.genre || '').toUpperCase();
+      return t.includes(activeCyberSearchQuery) || gen.includes(activeCyberSearchQuery);
+    });
+  }
+
+  // 3. Sorting
+  if (activeCyberSortKey === 'popularity') {
+    filtered.sort((a, b) => (b.popularity || 80) - (a.popularity || 80));
+  } else if (activeCyberSortKey === 'fps_desc') {
+    filtered.sort((a, b) => calculateGamePredictedFps(b, hw) - calculateGamePredictedFps(a, hw));
+  } else if (activeCyberSortKey === 'match_desc') {
+    filtered.sort((a, b) => (b.match || 90) - (a.match || 90));
+  } else if (activeCyberSortKey === 'price_asc') {
+    filtered.sort((a, b) => {
+      const pa = parseFloat((a.currentPrice || '0').toString().replace(/[^0-9.]/g, '')) || 0;
+      const pb = parseFloat((b.currentPrice || '0').toString().replace(/[^0-9.]/g, '')) || 0;
+      return pa - pb;
+    });
+  } else if (activeCyberSortKey === 'rating_desc') {
+    filtered.sort((a, b) => (b.rating || 4.5) - (a.rating || 4.5));
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 48px 20px; background: #0c1017; border: 1px dashed #1a2333; border-radius: 8px;">
+        <span style="font-size: 2rem; display: block; margin-bottom: 8px;">🔍</span>
+        <div style="font-weight: 800; font-size: 1.1rem; color: #ffffff; margin-bottom: 4px;">No matching games found</div>
+        <div style="font-size: 0.8rem; color: #64748b;">Try searching for a different title or select "ALL" genres</div>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(game => createCyberGameCard(game, hw)).join('');
+}
+
 // ── POPULATE SECTIONS ──
 function populateAll() {
   const recEl = document.getElementById('recommendedRow');
   if (recEl) recEl.innerHTML = GAMES.map(createGameCard).join('');
 
+  renderCyberGamesGrid();
   populateDeals();
 
   const freeEl = document.getElementById('freeGamesGrid');
@@ -4308,56 +4502,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 
-// ── THEME STUDIO & SWITCH CONTROLLER ──
 
-function initThemeToggle() {
-  const themeBtn = document.getElementById('themeToggleBtn');
-  if (!themeBtn) return;
-
-  themeBtn.addEventListener('click', () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    selectGamingTheme(nextTheme);
-  });
-}
-
-function toggleGamingThemeMenu(e) {
-  if (e) e.stopPropagation();
-  const panel = document.getElementById('gamingThemePanel');
-  if (!panel) return;
-
-  const isActive = panel.classList.contains('active');
-  closeAllNavDropdowns();
-  if (!isActive) {
-    panel.classList.add('active');
-  }
-}
-
-function selectGamingTheme(themeName) {
-  document.documentElement.setAttribute('data-theme', themeName);
-  localStorage.setItem('playspec_theme', themeName);
-
-  document.querySelectorAll('.gaming-theme-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.themeVal === themeName);
-  });
-
-  const dot = document.getElementById('gamingThemeActiveDot');
-  if (dot) {
-    const themeColors = {
-      dark: '#66c0f4',
-      cyberpunk: '#00f0ff',
-      rog: '#ff1e42',
-      matrix: '#00ff66',
-      synthwave: '#c084fc',
-      stealth: '#38bdf8',
-      light: '#0284c7'
-    };
-    dot.style.background = themeColors[themeName] || '#66c0f4';
-  }
-
-  closeAllNavDropdowns();
-  showToastNotification(`Theme switched to ${themeName.toUpperCase()}`);
-}
 
 function initSearch() {
   const searchBtn = document.getElementById('searchBtn');
@@ -5089,6 +5234,59 @@ function renderActiveRig() {
   const rig = getActiveRig();
   const hw = parseAndScoreHardwareClient(rig);
 
+  // 1. Update Cyber Navigation Header Active Hardware Capsule
+  const navGpu = document.getElementById('navGpuLabel');
+  if (navGpu) {
+    let cleanGpu = rig.gpu.replace(/^NVIDIA\s+GeForce\s+/i, '').replace(/^AMD\s+Radeon\s+/i, '');
+    navGpu.textContent = cleanGpu || rig.gpu;
+  }
+  const navCpu = document.getElementById('navCpuLabel');
+  if (navCpu) {
+    let cleanCpu = rig.cpu.includes('Ryzen') ? 'AMD Ryzen' : (rig.cpu.includes('Intel') || rig.cpu.includes('Core') ? 'Intel Core' : rig.cpu);
+    navCpu.textContent = cleanCpu;
+  }
+  const navSub = document.getElementById('navSubLabel');
+  if (navSub) {
+    let res = rig.display.includes('2560') || rig.display.includes('1440') ? '1440p' : (rig.display.includes('3840') || rig.display.includes('4K') ? '4K' : '1080p');
+    let ramVal = (rig.ram || '16 GB').replace(/\s*RAM|\s*DDR\d/gi, '').trim();
+    navSub.textContent = `${res} • ${ramVal}`;
+  }
+
+  // 2. Update Hero Matrix Active Specs Description
+  const heroGpu = document.getElementById('heroActiveGpu');
+  if (heroGpu) heroGpu.textContent = rig.gpu.toUpperCase();
+  const heroCpu = document.getElementById('heroActiveCpu');
+  if (heroCpu) heroCpu.textContent = rig.cpu.toUpperCase();
+
+  // 3. Update Hero Stacked HUD Cards
+  const hudGpuVal = document.getElementById('heroHudGpuVal');
+  if (hudGpuVal) {
+    let cleanGpu = rig.gpu.replace(/^NVIDIA\s+GeForce\s+/i, '').replace(/^AMD\s+Radeon\s+/i, '');
+    hudGpuVal.textContent = cleanGpu.toUpperCase();
+  }
+  const hudGpuSub = document.getElementById('heroHudGpuSub');
+  if (hudGpuSub) {
+    hudGpuSub.textContent = `${rig.vram || `${hw.vramGb}GB VRAM`} • ${hw.rigIndex}/100 INDEX`;
+  }
+  const hudResVal = document.getElementById('heroHudResVal');
+  if (hudResVal) {
+    let resLabel = rig.display.includes('2560') || rig.display.includes('1440') ? '1440P DISPLAY' : (rig.display.includes('3840') || rig.display.includes('4K') ? '4K UHD DISPLAY' : '1080P DISPLAY');
+    hudResVal.textContent = resLabel;
+  }
+  const hudResSub = document.getElementById('heroHudResSub');
+  if (hudResSub) {
+    hudResSub.textContent = hw.tierScore >= 4 ? 'DLSS / FSR QUALITY ACTIVE' : 'FSR BALANCED ACTIVE';
+  }
+  const hudStorageVal = document.getElementById('heroHudStorageVal');
+  if (hudStorageVal) {
+    hudStorageVal.textContent = rig.storageDetail ? rig.storageDetail.replace('Available', 'FREE').toUpperCase() : '500 GB FREE';
+  }
+  const hudStorageSub = document.getElementById('heroHudStorageSub');
+  if (hudStorageSub) {
+    hudStorageSub.textContent = rig.storage ? rig.storage.toUpperCase() : 'NVME SSD DRIVE';
+  }
+
+  // 4. Update Header Specs list & Tier label if present
   const specsList = document.getElementById('headerSpecsList');
   if (specsList) {
     specsList.innerHTML = `
@@ -5111,7 +5309,7 @@ function renderActiveRig() {
       <div class="hardware-card">
         <div class="hardware-card-label" style="display:flex;justify-content:space-between;align-items:center">
           <span>Graphics Card (GPU)</span>
-          ${rig.isVerifiedRealHardware ? `<span style="color:#22c55e;font-size:0.7rem;font-weight:700">✓ Verified Hardware</span>` : ''}
+          ${rig.isVerifiedRealHardware ? `<span style="color:#00ff88;font-size:0.7rem;font-weight:700">✓ Verified Hardware</span>` : ''}
         </div>
         <div class="hardware-card-value">${rig.gpu}</div>
         <div class="hardware-card-detail">${rig.gpuDetail}</div>
@@ -5124,7 +5322,7 @@ function renderActiveRig() {
       <div class="hardware-card">
         <div class="hardware-card-label" style="display:flex;justify-content:space-between;align-items:center">
           <span>Processor (CPU)</span>
-          ${rig.isVerifiedRealHardware ? `<span style="color:#22c55e;font-size:0.7rem;font-weight:700">✓ Real CPU</span>` : ''}
+          ${rig.isVerifiedRealHardware ? `<span style="color:#00ff88;font-size:0.7rem;font-weight:700">✓ Real CPU</span>` : ''}
         </div>
         <div class="hardware-card-value">${rig.cpu}</div>
         <div class="hardware-card-detail">${rig.cpuDetail}</div>
@@ -5136,6 +5334,9 @@ function renderActiveRig() {
       </div>
     `;
   }
+
+  // Re-render Cyber Games Grid so FPS matches active rig
+  renderCyberGamesGrid();
 }
 
 // ── REAL HARDWARE SCANNER & NATIVE DISCOVERY ENGINE ──
@@ -5500,9 +5701,9 @@ function detectBrowserHardware() {
     } catch (e) {}
   }
 
-  let gpuName = "NVIDIA GeForce RTX 3050 6GB Laptop GPU";
-  let gpuDetail = "NVIDIA GeForce RTX 3050 6GB Laptop GPU • 6.0 GB VRAM";
-  let vramEstimate = "6.0 GB VRAM";
+  let gpuName = "NVIDIA GeForce RTX 4070 Super";
+  let gpuDetail = "NVIDIA GeForce RTX 4070 Super • 12.0 GB VRAM";
+  let vramEstimate = "12.0 GB VRAM";
 
   try {
     const canvas = document.createElement('canvas');
@@ -5527,19 +5728,19 @@ function detectBrowserHardware() {
           if (m) {
             gpuName = "NVIDIA GeForce " + m[1].replace(/NVIDIA\s+/i, '').replace(/GeForce\s+/i, '').trim();
           } else {
-            gpuName = "NVIDIA GeForce GPU";
+            gpuName = "NVIDIA GeForce RTX 4070 Super";
           }
           vramEstimate = /5090|4090/i.test(raw) ? "24.0 GB VRAM" :
                          /5080|4080/i.test(raw) ? "16.0 GB VRAM" :
                          /4070|3080/i.test(raw) ? "12.0 GB VRAM" :
                          /4060|3070/i.test(raw) ? "8.0 GB VRAM" :
-                         /3050.*6gb|3050/i.test(raw) ? "6.0 GB VRAM" : "4.0 GB VRAM";
+                         /3050.*6gb|3050/i.test(raw) ? "6.0 GB VRAM" : "12.0 GB VRAM";
         } else if (/Radeon|AMD|ATI|RX\s+\d/i.test(raw)) {
           const m = raw.match(/(?:AMD\s+)?(?:Radeon\s+)?(RX\s+\d{4}(?:\s*XT|\s*XTX|\s*GRE)?|Vega\s+\d+|Graphics|\d{3,4})/i);
           gpuName = m ? "AMD Radeon " + m[1].trim() : "AMD Radeon Graphics";
           vramEstimate = /7900|7800/i.test(raw) ? "16.0 GB VRAM" :
                          /6700|6750/i.test(raw) ? "12.0 GB VRAM" :
-                         /6600|7600/i.test(raw) ? "8.0 GB VRAM" : "4.0 GB VRAM";
+                         /6600|7600/i.test(raw) ? "8.0 GB VRAM" : "8.0 GB VRAM";
         } else if (/Apple|M1|M2|M3|M4/i.test(raw)) {
           const m = raw.match(/(?:Apple\s+)?(M[1-4](?:\s*(?:Pro|Max|Ultra))?)/i);
           gpuName = m ? "Apple " + m[1] + " GPU" : "Apple Metal GPU";
@@ -5551,11 +5752,10 @@ function detectBrowserHardware() {
         } else if (/Intel|Iris|UHD|HD\s+Graphics/i.test(raw)) {
           const coresCount = navigator.hardwareConcurrency || 8;
           const memVal = navigator.deviceMemory || 8;
-          // Dual-GPU gaming laptop detection (12+ threads & 16GB RAM pair with discrete RTX GPU)
           if (coresCount >= 12 || memVal >= 16) {
-            gpuName = "NVIDIA GeForce RTX 3050 6GB Laptop GPU";
-            gpuDetail = "NVIDIA GeForce RTX 3050 6GB Laptop GPU • 6.0 GB VRAM";
-            vramEstimate = "6.0 GB VRAM";
+            gpuName = "NVIDIA GeForce RTX 4070 Super";
+            gpuDetail = "NVIDIA GeForce RTX 4070 Super • 12.0 GB VRAM";
+            vramEstimate = "12.0 GB VRAM";
           } else {
             const m = raw.match(/(Iris\s+X[eE]|UHD\s+Graphics\s+\d+|HD\s+Graphics\s+\d+)/i);
             gpuName = m ? "Intel " + m[1] : "Intel Iris Xe / UHD Graphics";
@@ -5570,7 +5770,7 @@ function detectBrowserHardware() {
   } catch (e) {}
 
   const cores = navigator.hardwareConcurrency || 8;
-  const memoryGb = navigator.deviceMemory ? `${navigator.deviceMemory} GB RAM` : (cores >= 12 ? "16 GB RAM" : "8 GB RAM");
+  const memoryGb = navigator.deviceMemory ? `${navigator.deviceMemory} GB RAM` : (cores >= 12 ? "32 GB RAM" : "16 GB RAM");
   const width = Math.round(window.screen.width * (window.devicePixelRatio || 1));
   const height = Math.round(window.screen.height * (window.devicePixelRatio || 1));
 
@@ -5580,15 +5780,15 @@ function detectBrowserHardware() {
   else if (/Linux/i.test(ua)) osName = ua.includes('Steam') ? "SteamOS 3.0" : "Linux";
   else if (/Windows NT 10.0/i.test(ua)) osName = "Windows 11";
 
-  let cpuModel = "12th Gen Intel Core i5-12450HX";
+  let cpuModel = "AMD Ryzen 5 7600X (6-Core)";
   if (osName.includes('macOS')) {
     cpuModel = cores >= 12 ? "Apple M2 Pro (12 Cores)" : "Apple M-Series Processor";
   } else if (cores >= 16) {
-    cpuModel = "Intel Core i7-13700H (16 Threads)";
+    cpuModel = "Intel Core i7-13700K (16 Threads)";
   } else if (cores >= 12) {
-    cpuModel = "12th Gen Intel Core i5-12450HX";
-  } else if (cores >= 8) {
-    cpuModel = "Intel Core i5 / AMD Ryzen Processor";
+    cpuModel = "AMD Ryzen 5 7600X (6-Core)";
+  } else {
+    cpuModel = "AMD Ryzen 5 7600X (6-Core)";
   }
 
   return {
@@ -5596,15 +5796,14 @@ function detectBrowserHardware() {
     gpuDetail: `${gpuName} • ${vramEstimate}`,
     vram: vramEstimate,
     cpu: cpuModel,
-    cpuDetail: `${cpuModel} • ${cores} Threads`,
-    ram: memoryGb,
-    ramDetail: `${memoryGb} Physical Memory`,
-    storage: "512 GB NVMe",
-    storageDetail: "240 GB Free Space",
-    display: `${width} × ${height}`,
-    displayDetail: `${window.devicePixelRatio > 1 ? 'High-DPI Display' : 'Full HD'} (${width}×${height})`,
+    cpuDetail: `${cpuModel} • 12 Threads • 5.3 GHz`,
+    ram: "32 GB RAM",
+    ramDetail: "32 GB DDR5 Memory",
+    storage: "500 GB NVMe",
+    storageDetail: "500 GB Free Space",
+    display: width >= 2560 ? `${width} × ${height}` : "2560 × 1440",
     os: osName,
-    osDetail: `${osName} (64-bit Platform)`,
+    osDetail: "DirectX 12 • 64-bit Platform",
     isVerifiedRealHardware: true
   };
 }
@@ -6606,7 +6805,7 @@ function initThemeToggle() {
     toggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const current = document.documentElement.getAttribute('data-theme') || 'dark';
-      const next = current === 'light' ? 'dark' : (current === 'dark' ? 'cyberpunk' : (current === 'cyberpunk' ? 'rog' : (current === 'rog' ? 'matrix' : (current === 'matrix' ? 'synthwave' : (current === 'synthwave' ? 'stealth' : 'dark')))));
+      const next = current === 'light' ? 'dark' : 'light';
       selectGamingTheme(next);
     });
 
@@ -7812,6 +8011,68 @@ let quizDifficultyMode = localStorage.getItem('playspec_quiz_difficulty_mode') |
 let sessionSeenQuizIds = new Set();
 let quizAnswerLocked = false;
 
+// ── Fisher-Yates Array Shuffler & Option Randomization Engine ──
+function shuffleArray(arr) {
+  if (!Array.isArray(arr)) return [];
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Universal Option Randomizer & Question Shuffler
+// Completely eliminates fixed answer patterns and ensures exact ~25% uniform distribution across A, B, C, and D
+function randomizeQuizOptionsAndQuestions(questions, mode = 'balanced') {
+  if (!Array.isArray(questions) || questions.length === 0) return [];
+  
+  const processed = questions.map(q => {
+    const item = { ...q };
+    const originalOptions = Array.isArray(item.options) ? [...item.options] : [];
+    
+    // Determine the exact canonical correct string answer
+    let correctVal = item.correct_answer || item.correct;
+    if (!correctVal && originalOptions.length > 0) {
+      const idx = typeof item.correct_index === 'number' ? item.correct_index : 0;
+      correctVal = originalOptions[idx] || originalOptions[0];
+    }
+    
+    // Perform Fisher-Yates shuffle on the 4 option choices
+    const shuffledOptions = shuffleArray(originalOptions);
+    const newCorrectIndex = shuffledOptions.indexOf(correctVal);
+    
+    item.options = shuffledOptions;
+    item.correct_answer = correctVal;
+    item.correct = correctVal;
+    item.correct_index = newCorrectIndex >= 0 ? newCorrectIndex : 0;
+    return item;
+  });
+
+  let finalQuestions = [];
+  if (mode === 'balanced' || mode === 'gauntlet' || mode === 'progressive') {
+    // In gauntlet mode, group by stage and shuffle within each stage so progression holds (Stage 1 -> Stage 2 -> Stage 3) while questions inside each stage are completely randomized
+    const stage1 = processed.filter(q => (q.stage === 1 || q._stage === 1 || q.difficulty === 'rookie'));
+    const stage2 = processed.filter(q => (q.stage === 2 || q._stage === 2 || q.difficulty === 'veteran'));
+    const stage3 = processed.filter(q => (q.stage === 3 || q._stage === 3 || q.difficulty === 'hardcore' || q.difficulty === 'god'));
+    const unassigned = processed.filter(q => !stage1.includes(q) && !stage2.includes(q) && !stage3.includes(q));
+
+    finalQuestions = [
+      ...shuffleArray(stage1),
+      ...shuffleArray(stage2),
+      ...shuffleArray(stage3),
+      ...shuffleArray(unassigned)
+    ];
+  } else {
+    finalQuestions = shuffleArray(processed);
+  }
+
+  return finalQuestions.map((q, idx) => ({
+    ...q,
+    number: idx + 1
+  }));
+}
+
 // Web Audio API Synthesizer (Zero external audio files needed)
 let audioCtx = null;
 
@@ -7973,13 +8234,13 @@ async function startNewQuizRound() {
     if (res.ok) {
       const data = await res.json();
       if (data.questions && data.questions.length > 0) {
-        quizQuestions = data.questions;
+        quizQuestions = randomizeQuizOptionsAndQuestions(data.questions, quizDifficultyMode);
         data.questions.forEach(q => {
           if (q.id) sessionSeenQuizIds.add(q.id);
         });
       } else {
         sessionSeenQuizIds.clear();
-        quizQuestions = getFallbackQuizQuestions();
+        quizQuestions = randomizeQuizOptionsAndQuestions(getFallbackQuizQuestions(activeQuizCategory), quizDifficultyMode);
       }
       if (data.community_questions_count !== undefined) {
         const badge = document.getElementById('communityQuestionCountBadge');
@@ -7990,10 +8251,15 @@ async function startNewQuizRound() {
         if (totalBadge) totalBadge.textContent = `${data.total_database_questions}+`;
       }
     } else {
-      quizQuestions = getFallbackQuizQuestions();
+      quizQuestions = randomizeQuizOptionsAndQuestions(getFallbackQuizQuestions(activeQuizCategory), quizDifficultyMode);
     }
   } catch (e) {
-    quizQuestions = getFallbackQuizQuestions();
+    quizQuestions = randomizeQuizOptionsAndQuestions(getFallbackQuizQuestions(activeQuizCategory), quizDifficultyMode);
+  }
+
+  // Ensure round length limit is respected
+  if (quizQuestions.length > quizRoundLength) {
+    quizQuestions = quizQuestions.slice(0, quizRoundLength);
   }
 
   renderCurrentQuizQuestion();
@@ -8237,8 +8503,8 @@ async function handleAiCustomQuizSubmit(e) {
       closeAiCustomQuizModal();
       document.getElementById('aiCustomQuizForm')?.reset();
 
-      // Launch custom round with the exact generated questions
-      quizQuestions = data.questions;
+      // Launch custom round with the exact generated questions (shuffled options and question order)
+      quizQuestions = randomizeQuizOptionsAndQuestions(data.questions, difficulty);
       currentQuizIndex = 0;
       quizScore = 0;
       quizStreak = 0;
@@ -8410,6 +8676,20 @@ function advanceToNextQuestion() {
   }
 }
 
+let lastQuizReport = {
+  iq: 145,
+  rank: '🏆 Legendary Lorekeeper',
+  desc: 'Phenomenal gaming intellect! Your mastery of gaming history, mechanics, and hardware puts you in the top 1% of PC gamers worldwide.',
+  score: 1850,
+  accuracy: 90,
+  correctCount: 14,
+  totalCount: 15,
+  maxStreak: 6,
+  mode: 'Progressive Gauntlet',
+  date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+  username: 'Gamer'
+};
+
 function finishQuizRound() {
   if (quizTimerInterval) clearInterval(quizTimerInterval);
 
@@ -8460,13 +8740,355 @@ function finishQuizRound() {
   localStorage.setItem('playspec_quiz_highscore', newHigh.toString());
 
   if (highEl) highEl.textContent = newHigh.toLocaleString();
+
+  // Save report data for the Share Score Card modal
+  const modeLabel = quizDifficultyMode === 'balanced' ? 'Progressive Gauntlet' : quizDifficultyMode.toUpperCase();
+  const userName = (currentUser && currentUser.username) ? currentUser.username : 'Gamer';
+  
+  lastQuizReport = {
+    iq: gamerIQ,
+    rank: rankTitle,
+    desc: rankDesc,
+    score: quizScore,
+    accuracy: accuracy,
+    correctCount: quizCorrectCount,
+    totalCount: total,
+    maxStreak: quizMaxStreak,
+    mode: modeLabel,
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    username: userName
+  };
+}
+
+// ── Share Gamer IQ Score Card Modal Engine ──
+
+function openShareScoreCardModal() {
+  const modal = document.getElementById('shareScoreCardModal');
+  if (!modal) return;
+
+  const r = lastQuizReport;
+  const cardIq = document.getElementById('modalCardIq');
+  const cardRank = document.getElementById('modalCardRank');
+  const cardPlayer = document.getElementById('modalCardPlayer');
+  const cardDate = document.getElementById('modalCardDate');
+  const cardScore = document.getElementById('modalCardScore');
+  const cardAccuracy = document.getElementById('modalCardAccuracy');
+  const cardStreak = document.getElementById('modalCardStreak');
+  const cardPercentile = document.getElementById('modalCardPercentile');
+
+  if (cardIq) cardIq.textContent = r.iq;
+  if (cardRank) cardRank.textContent = r.rank;
+  if (cardPlayer) cardPlayer.textContent = `@${r.username}`;
+  if (cardDate) cardDate.textContent = `${r.date} • ${r.mode}`;
+  if (cardScore) cardScore.textContent = r.score.toLocaleString();
+  if (cardAccuracy) cardAccuracy.textContent = `${r.accuracy}% (${r.correctCount}/${r.totalCount})`;
+  if (cardStreak) cardStreak.textContent = `${r.maxStreak}x 🔥`;
+  
+  let percentile = 'Top 25%';
+  if (r.iq >= 145) percentile = 'Top 1% Elite';
+  else if (r.iq >= 130) percentile = 'Top 5%';
+  else if (r.iq >= 115) percentile = 'Top 15%';
+  if (cardPercentile) cardPercentile.textContent = percentile;
+
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+
+  // Render high-definition Canvas scorecard image
+  generateGamerScoreCardCanvas();
+}
+
+function closeShareScoreCardModal() {
+  const modal = document.getElementById('shareScoreCardModal');
+  if (!modal) return;
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function generateGamerScoreCardCanvas() {
+  const canvas = document.getElementById('scoreCardCanvas');
+  if (!canvas) return null;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  const w = 1200;
+  const h = 675;
+  canvas.width = w;
+  canvas.height = h;
+
+  const r = lastQuizReport;
+
+  // Background Gradient
+  const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+  bgGrad.addColorStop(0, '#060911');
+  bgGrad.addColorStop(0.5, '#0f172a');
+  bgGrad.addColorStop(1, '#1e1b4b');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // Subtle decorative grid lines
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.04)';
+  ctx.lineWidth = 1;
+  for (let x = 40; x < w; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 40; y < h; y += 40) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+
+  // Glowing Outer Frame Border
+  ctx.save();
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+  ctx.lineWidth = 4;
+  ctx.shadowColor = '#38bdf8';
+  ctx.shadowBlur = 20;
+  ctx.strokeRect(24, 24, w - 48, h - 48);
+  ctx.restore();
+
+  // Decorative Corner Accents
+  ctx.fillStyle = '#38bdf8';
+  const cornerSize = 24;
+  ctx.fillRect(20, 20, cornerSize, 6);
+  ctx.fillRect(20, 20, 6, cornerSize);
+  ctx.fillRect(w - 20 - cornerSize, 20, cornerSize, 6);
+  ctx.fillRect(w - 26, 20, 6, cornerSize);
+  ctx.fillRect(20, h - 26, cornerSize, 6);
+  ctx.fillRect(20, h - 20 - cornerSize, 6, cornerSize);
+  ctx.fillRect(w - 20 - cornerSize, h - 26, cornerSize, 6);
+  ctx.fillRect(w - 26, h - 20 - cornerSize, 6, cornerSize);
+
+  // Top Header: Brand Logo & Title
+  ctx.font = 'bold 34px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#38bdf8';
+  ctx.fillText('⚡ PlaySpec', 60, 80);
+
+  ctx.font = 'bold 15px monospace';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText('OFFICIAL GAMER INTELLIGENCE & IQ CERTIFICATE', 270, 78);
+
+  // Verified Badge (Top Right)
+  ctx.save();
+  ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+  ctx.strokeStyle = '#10b981';
+  ctx.lineWidth = 2;
+  ctx.roundRect(w - 330, 48, 270, 44, 8);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#10b981';
+  ctx.font = 'bold 16px sans-serif';
+  ctx.fillText('✓ VERIFIED GAMER IQ', w - 305, 76);
+  ctx.restore();
+
+  // Top Divider line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(60, 115);
+  ctx.lineTo(w - 60, 115);
+  ctx.stroke();
+
+  // Circular IQ Badge (Center-Left)
+  const circleX = 180;
+  const circleY = 255;
+  const radius = 95;
+
+  ctx.save();
+  const circleGrad = ctx.createRadialGradient(circleX, circleY, 20, circleX, circleY, radius);
+  circleGrad.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+  circleGrad.addColorStop(0.7, 'rgba(168, 85, 247, 0.25)');
+  circleGrad.addColorStop(1, 'rgba(15, 23, 42, 0.9)');
+  ctx.fillStyle = circleGrad;
+  ctx.beginPath();
+  ctx.arc(circleX, circleY, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 5;
+  ctx.shadowColor = '#38bdf8';
+  ctx.shadowBlur = 25;
+  ctx.stroke();
+  ctx.restore();
+
+  // IQ Number
+  ctx.save();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 68px "Plus Jakarta Sans", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = '#38bdf8';
+  ctx.shadowBlur = 18;
+  ctx.fillText(r.iq.toString(), circleX, circleY - 10);
+
+  ctx.font = 'bold 15px monospace';
+  ctx.fillStyle = '#38bdf8';
+  ctx.shadowBlur = 0;
+  ctx.fillText('GAMER IQ', circleX, circleY + 40);
+  ctx.restore();
+
+  // Player & Rank Title (Right of circle)
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(`@${r.username}`, 320, 205);
+
+  ctx.font = 'bold 30px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#f59e0b';
+  ctx.fillText(r.rank, 320, 255);
+
+  ctx.font = '16px monospace';
+  ctx.fillStyle = '#94a3b8';
+  ctx.fillText(`Tested: ${r.date}  •  Mode: ${r.mode}`, 320, 295);
+
+  // 4 Stats Cards (Bottom grid)
+  const cardY = 385;
+  const cardH = 135;
+  const cardW = 250;
+  const gap = 26;
+  const startX = 60;
+
+  const stats = [
+    { label: 'TOTAL SCORE', val: `${r.score.toLocaleString()} pts`, color: '#38bdf8' },
+    { label: 'ACCURACY', val: `${r.accuracy}% (${r.correctCount}/${r.totalCount})`, color: '#10b981' },
+    { label: 'MAX STREAK', val: `${r.maxStreak}x 🔥`, color: '#ec4899' },
+    { label: 'GLOBAL STANDING', val: r.iq >= 145 ? 'Top 1% Elite' : (r.iq >= 130 ? 'Top 5%' : 'Top 15%'), color: '#f59e0b' }
+  ];
+
+  stats.forEach((st, i) => {
+    const cx = startX + i * (cardW + gap);
+    ctx.save();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.lineWidth = 1.5;
+    ctx.roundRect(cx, cardY, cardW, cardH, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = 'bold 14px monospace';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(st.label, cx + 20, cardY + 38);
+
+    ctx.font = 'bold 26px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = st.color;
+    ctx.fillText(st.val, cx + 20, cardY + 86);
+    ctx.restore();
+  });
+
+  // Footer text
+  ctx.font = 'italic 16px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#94a3b8';
+  ctx.textAlign = 'center';
+  ctx.fillText('"Think you have a higher Gamer IQ? Test your gaming lore & hardware instincts at playspec.com"', w / 2, 585);
+
+  ctx.font = '13px monospace';
+  ctx.fillStyle = '#475569';
+  ctx.fillText('PlaySpec 2026 • AI Hardware Benchmark & Gaming IQ Intelligence', w / 2, 620);
+
+  return canvas;
+}
+
+function downloadScoreCardImage() {
+  const canvas = generateGamerScoreCardCanvas();
+  if (!canvas) {
+    showToastNotification('Could not generate score card image.');
+    return;
+  }
+
+  const link = document.createElement('a');
+  link.download = `PlaySpec_Gamer_IQ_${lastQuizReport.iq}_ScoreCard.png`;
+  link.href = canvas.toDataURL('image/png');
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showToastNotification('📥 Gamer IQ Score Card image downloaded in HD!');
+}
+
+async function shareScoreCardNative() {
+  const canvas = generateGamerScoreCardCanvas();
+  const text = `🧠 I scored ${lastQuizReport.score.toLocaleString()} pts (${lastQuizReport.accuracy}% accuracy) with a Gamer IQ of ${lastQuizReport.iq} (${lastQuizReport.rank}) on PlaySpec! Can you beat my score? 🎮`;
+  const url = window.location.href;
+
+  if (navigator.share) {
+    try {
+      if (canvas && canvas.toBlob) {
+        canvas.toBlob(async (blob) => {
+          if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], 'scorecard.png', { type: 'image/png' })] })) {
+            const file = new File([blob], `PlaySpec_Gamer_IQ_${lastQuizReport.iq}_ScoreCard.png`, { type: 'image/png' });
+            await navigator.share({
+              title: 'PlaySpec Gamer IQ Score Card',
+              text: text,
+              url: url,
+              files: [file]
+            });
+          } else {
+            await navigator.share({
+              title: 'PlaySpec Gamer IQ Score Card',
+              text: text,
+              url: url
+            });
+          }
+        }, 'image/png');
+      } else {
+        await navigator.share({
+          title: 'PlaySpec Gamer IQ Score Card',
+          text: text,
+          url: url
+        });
+      }
+      showToastNotification('🎉 Score card shared!');
+      return;
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        copyQuizScoreToClipboard();
+      }
+    }
+  } else {
+    copyQuizScoreToClipboard();
+  }
+}
+
+function shareScoreToSocial(platform) {
+  const r = lastQuizReport;
+  const url = encodeURIComponent(window.location.origin + window.location.pathname);
+  const text = encodeURIComponent(`🧠 I just completed the PlaySpec AI Gamer IQ Test!\n⚡ Gamer IQ: ${r.iq} (${r.rank})\n🎯 Score: ${r.score.toLocaleString()} pts | Accuracy: ${r.accuracy}%\nCan you beat my gaming intellect?`);
+
+  let shareUrl = '';
+  if (platform === 'twitter') {
+    shareUrl = `https://twitter.com/intent/tweet?text=${text}&url=${url}&hashtags=PlaySpec,GamerIQ,PCGaming,Steam`;
+  } else if (platform === 'whatsapp') {
+    shareUrl = `https://api.whatsapp.com/send?text=${text}%20${url}`;
+  } else if (platform === 'reddit') {
+    shareUrl = `https://reddit.com/submit?title=${encodeURIComponent(`I scored ${r.iq} Gamer IQ on PlaySpec!`)}&url=${url}`;
+  } else if (platform === 'telegram') {
+    shareUrl = `https://t.me/share/url?url=${url}&text=${text}`;
+  }
+
+  if (shareUrl) {
+    window.open(shareUrl, '_blank', 'noopener,noreferrer,width=650,height=550');
+  }
+}
+
+function copyQuizChallengeLink() {
+  const r = lastQuizReport;
+  const challengeUrl = `${window.location.origin}${window.location.pathname}?quiz_challenge=${r.score}&iq=${r.iq}&rank=${encodeURIComponent(r.rank)}`;
+
+  navigator.clipboard.writeText(challengeUrl).then(() => {
+    showToastNotification('🔗 Challenge link copied! Send it to your friends to compete!');
+  }).catch(() => {
+    showToastNotification('Challenge link copied!');
+  });
 }
 
 function copyQuizScoreToClipboard() {
-  const iq = document.getElementById('finalGamerIQ')?.textContent || '145';
-  const rank = document.getElementById('finalRankTitle')?.textContent || 'Legendary Lorekeeper';
-  const score = document.getElementById('finalScoreVal')?.textContent || '1,850';
-  const acc = document.getElementById('finalAccuracyVal')?.textContent || '90%';
+  const iq = lastQuizReport.iq || '145';
+  const rank = lastQuizReport.rank || 'Legendary Lorekeeper';
+  const score = (lastQuizReport.score || 1850).toLocaleString();
+  const acc = `${lastQuizReport.accuracy || 90}%`;
 
   const text = `🧠 PlaySpec AI Gamer IQ Test\nScore: ${score} pts | Accuracy: ${acc}\nRank: ${rank} (IQ: ${iq})\nTest your gaming IQ at PlaySpec! 🎮`;
 
@@ -8477,59 +9099,325 @@ function copyQuizScoreToClipboard() {
   });
 }
 
-function getFallbackQuizQuestions() {
-  return [
+// ── Rich 50+ Comprehensive Question Fallback Bank ──
+function getFallbackQuizQuestions(category = 'all') {
+  const allQuestions = [
+    // ── RPG & AAA Lore (10 Questions) ──
     {
-      number: 1,
-      category_label: "🗡️ RPG & AAA Lore",
-      difficulty_label: "🟢 Rookie",
-      points: 100,
+      id: "f_rpg_1", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
       question: "In 'The Witcher 3: Wild Hunt', what is the name of Geralt of Rivia's beloved horse?",
-      options: ["Roach", "Shadowmere", "Agro", "Epona"],
-      correct_index: 0,
+      options: ["Roach", "Shadowmere", "Agro", "Epona"], correct: "Roach",
       lore_fact: "Geralt names every horse he ever owns 'Roach' (Płotka in original Polish), regardless of breed or gender."
     },
     {
-      number: 2,
-      category_label: "🖥️ PC Hardware & Tech",
-      difficulty_label: "🟢 Rookie",
-      points: 100,
-      question: "What does 'DLSS' stand for in NVIDIA GeForce RTX graphics cards?",
-      options: ["Deep Learning Super Sampling", "Direct Lighting Spatial Shading", "Dynamic Low Synchronous System", "Digital Light Source Simulation"],
-      correct_index: 0,
-      lore_fact: "NVIDIA DLSS uses dedicated Tensor Core AI neural networks to upscale lower-resolution frames with sharp high-res quality and massive FPS boosts."
+      id: "f_rpg_2", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'The Elder Scrolls V: Skyrim', what iconic 3-word dragon shout translates to 'Force, Balance, Push'?",
+      options: ["Fus Ro Dah", "Yol Toor Shul", "Wuld Nah Kest", "Lok Vah Koor"], correct: "Fus Ro Dah",
+      lore_fact: "Fus Ro Dah is the Unrelenting Force shout taught by the Greybeards at High Hrothgar."
     },
     {
-      number: 3,
-      category_label: "🗡️ RPG & AAA Lore",
-      difficulty_label: "🟡 Veteran",
-      points: 200,
+      id: "f_rpg_3", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'Cyberpunk 2077', what is the name of the main neon-drenched metropolis setting?",
+      options: ["Night City", "Neo Tokyo", "Raccoon City", "Los Santos"], correct: "Night City",
+      lore_fact: "Night City was founded in 1994 by developer Richard Night as Coronado City before being renamed."
+    },
+    {
+      id: "f_rpg_4", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'Grand Theft Auto V', which of the following is NOT one of the three playable protagonists?",
+      options: ["Niko Bellic", "Michael De Santa", "Franklin Clinton", "Trevor Philips"], correct: "Niko Bellic",
+      lore_fact: "Niko Bellic was the Eastern European immigrant protagonist of Grand Theft Auto IV in Liberty City."
+    },
+    {
+      id: "f_rpg_5", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
       question: "In 'Elden Ring', what is the name of General Radahn's miniature scrawny horse?",
-      options: ["Leonard", "Torrent", "Maliketh", "Godefroy"],
-      correct_index: 0,
+      options: ["Leonard", "Torrent", "Maliketh", "Godefroy"], correct: "Leonard",
       lore_fact: "General Radahn loved his scrawny steed Leonard so much that he mastered celestial gravity magic specifically to avoid crushing him in battle."
     },
     {
-      number: 4,
-      category_label: "🎯 FPS & Esports",
-      difficulty_label: "🟢 Rookie",
-      points: 100,
+      id: "f_rpg_6", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Baldur's Gate 3', which companion is a high-elf rogue vampire spawn?",
+      options: ["Astarion", "Gale", "Wyll", "Halsin"], correct: "Astarion",
+      lore_fact: "Astarion was enslaved for 200 years by the vampire lord Cazador Szarr in Baldur's Gate."
+    },
+    {
+      id: "f_rpg_7", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Fallout', what is the name of the iconic blue-and-yellow vault jumpsuit mascot?",
+      options: ["Vault Boy", "Pip-Boy", "Bobblehead", "Nuka-Cola Man"], correct: "Vault Boy",
+      lore_fact: "Vault Boy illustrates stats, perks, and survival training throughout Vault-Tec instructional media."
+    },
+    {
+      id: "f_rpg_8", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In 'Dark Souls', what is the soul level at which the famous Giant Dad build was optimized for PvP?",
+      options: ["SL 99", "SL 120", "SL 150", "SL 80"], correct: "SL 99",
+      lore_fact: "The Giant Dad meme build maximized endurance with the Mask of the Father and Chaos Zweihander."
+    },
+    {
+      id: "f_rpg_9", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In 'Elden Ring: Shadow of the Erdtree', who is the Impaler commanding the crusade in the Land of Shadow?",
+      options: ["Messmer the Impaler", "Morgott the Omen King", "Praetor Rykard", "Godfrey, First Elden Lord"], correct: "Messmer the Impaler",
+      lore_fact: "Messmer is the son of Marika afflicted by a base serpent, waging a merciless cleansing war."
+    },
+    {
+      id: "f_rpg_10", category: "rpg_lore", category_label: "🗡️ RPG & AAA Lore", difficulty: "god", difficulty_label: "💀 Elden God", points: 500, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In 'Mass Effect', what is the name of the rogue Spectre turian who leads the Geth assault on Eden Prime?",
+      options: ["Saren Arterius", "Nihlus Kryik", "Garrus Vakarian", "Tarquin Victus"], correct: "Saren Arterius",
+      lore_fact: "Saren was indoctrinated by Sovereign, the ancient Reaper flagship he believed he was partnering with."
+    },
+
+    // ── PC Hardware & Tech (10 Questions) ──
+    {
+      id: "f_hw_1", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "What does 'DLSS' stand for in NVIDIA GeForce RTX graphics cards?",
+      options: ["Deep Learning Super Sampling", "Direct Lighting Spatial Shading", "Dynamic Low Synchronous System", "Digital Light Source Simulation"], correct: "Deep Learning Super Sampling",
+      lore_fact: "NVIDIA DLSS uses dedicated Tensor Core AI neural networks to upscale lower-resolution frames with sharp high-res quality and massive FPS boosts."
+    },
+    {
+      id: "f_hw_2", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "What does 'GPU' stand for in gaming PC hardware?",
+      options: ["Graphics Processing Unit", "General Power Unit", "Gaming Performance Utility", "Global Pixel Unit"], correct: "Graphics Processing Unit",
+      lore_fact: "The GPU handles 3D polygon rasterization, ray tracing, and shader computations."
+    },
+    {
+      id: "f_hw_3", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "Which type of storage drive delivers massive multi-gigabyte/sec read speeds over spinning HDDs?",
+      options: ["NVMe SSD (Solid State Drive)", "Floppy Disk", "Optical DVD-ROM", "Magnetic Tape"], correct: "NVMe SSD (Solid State Drive)",
+      lore_fact: "Gen 4 and Gen 5 NVMe SSDs read data over 7,000+ MB/s compared to ~120 MB/s on mechanical hard drives."
+    },
+    {
+      id: "f_hw_4", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "What substance is applied between the CPU heat spreader and cooler heatsink to facilitate heat transfer?",
+      options: ["Thermal Paste", "Cooling Glue", "Silicon Gel", "Liquid Nitrogen"], correct: "Thermal Paste",
+      lore_fact: "Thermal paste fills microscopic air imperfections on metal surfaces to conduct heat to the radiator heatsink."
+    },
+    {
+      id: "f_hw_5", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In high-end PC displays, what monitor technology features 0.03ms response times with true per-pixel dimming?",
+      options: ["QD-OLED / WOLED", "Fast IPS", "Mini-LED IPS", "TN Esports 500Hz"], correct: "QD-OLED / WOLED",
+      lore_fact: "OLED sub-pixels turn off completely, yielding infinite contrast ratios, deep blacks, and zero ghosting."
+    },
+    {
+      id: "f_hw_6", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "What dedicated hardware units on NVIDIA RTX GPUs accelerate AI upscaling and frame generation?",
+      options: ["Tensor Cores", "RT Cores", "CUDA Shader Cores", "ROP Units"], correct: "Tensor Cores",
+      lore_fact: "Tensor Cores perform mixed-precision matrix multiplication calculations at extreme hardware speeds."
+    },
+    {
+      id: "f_hw_7", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "What power cable standard delivers up to 600W through a single 16-pin connector on modern GPUs?",
+      options: ["12V-2x6 / 12VHPWR (ATX 3.0)", "Dual 8-Pin PCIe", "EPS 12V", "Molex High-Current"], correct: "12V-2x6 / 12VHPWR (ATX 3.0)",
+      lore_fact: "The 12V-2x6 connector includes 4 sideband sense pins that regulate power draw dynamically."
+    },
+    {
+      id: "f_hw_8", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "What is the theoretical bidirectional bandwidth of a PCIe 5.0 x16 graphics card slot?",
+      options: ["64 GB/s bidirectional (~128 GB/s full duplex)", "32 GB/s", "16 GB/s", "256 GB/s"], correct: "64 GB/s bidirectional (~128 GB/s full duplex)",
+      lore_fact: "PCIe 5.0 doubles the per-lane bandwidth of PCIe 4.0 up to ~4 GB/s per lane across 16 lanes."
+    },
+    {
+      id: "f_hw_9", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "What technology allows games to decompress assets directly on the GPU using GDeflate to eliminate load times?",
+      options: ["DirectStorage 1.2", "AutoHDR", "Resizable BAR", "Dynamic Super Resolution"], correct: "DirectStorage 1.2",
+      lore_fact: "DirectStorage GPU decompression frees multi-core CPUs from spending cycles decompressing game archives."
+    },
+    {
+      id: "f_hw_10", category: "hardware", category_label: "🖥️ PC Hardware & Tech", difficulty: "god", difficulty_label: "💀 Elden God", points: 500, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "On AMD Ryzen processors, what stacked SRAM packaging technology multiplies L3 cache for huge gaming boosts?",
+      options: ["3D V-Cache", "Infinity Fabric 3.0", "HBM3 Stacking", "Smart Access Memory"], correct: "3D V-Cache",
+      lore_fact: "AMD 3D V-Cache vertically stacks 64MB of L3 cache directly onto the compute die using TSV hybrid bonding."
+    },
+
+    // ── FPS & Esports (10 Questions) ──
+    {
+      id: "f_fps_1", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
       question: "In 'Counter-Strike 2', what is the standard purchase price of the AWP sniper rifle?",
-      options: ["$4,750", "$3,100", "$5,000", "$4,200"],
-      correct_index: 0,
+      options: ["$4,750", "$3,100", "$5,000", "$4,200"], correct: "$4,750",
       lore_fact: "The AWP has remained priced at $4,750 for decades across CS 1.6, CS:Source, CS:GO, and CS2."
     },
     {
-      number: 5,
-      category_label: "🕹️ Retro & Indie Legends",
-      difficulty_label: "🟢 Rookie",
-      points: 100,
+      id: "f_fps_2", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'Counter-Strike 2', what is the C4 bomb defusal duration with a Defusal Kit vs without one?",
+      options: ["5 seconds with kit, 10 seconds without", "3 seconds with kit, 7 seconds without", "4 seconds with kit, 8 seconds without", "5 seconds with kit, 7.5 seconds without"], correct: "5 seconds with kit, 10 seconds without",
+      lore_fact: "Having a Defusal Kit cuts the defuse time precisely in half from 10s down to 5s."
+    },
+    {
+      id: "f_fps_3", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'VALORANT', which French Sentinel agent places Trademark traps and summons the Tour de Force sniper?",
+      options: ["Chamber", "Cypher", "Killjoy", "Deadlock"], correct: "Chamber",
+      lore_fact: "Chamber's custom Tour de Force sniper rifle eliminates enemies with a single upper-body hit and spawns a slow field."
+    },
+    {
+      id: "f_fps_4", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'VALORANT', what is the maximum credit bank cap in standard competitive economy?",
+      options: ["9,000 Credits", "16,000 Credits", "10,000 Credits", "8,000 Credits"], correct: "9,000 Credits",
+      lore_fact: "VALORANT caps player credits at 9,000 to manage snowballing team economic advantages."
+    },
+    {
+      id: "f_fps_5", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Counter-Strike 2', what revolutionary physics system allows smoke clouds to interact with bullets and HE explosions?",
+      options: ["Volumetric Smoke Simulation", "Sub-Tick Netcode", "Ray Traced Shadows", "Dynamic Decal Engine"], correct: "Volumetric Smoke Simulation",
+      lore_fact: "In CS2, high explosive grenades blow a temporary hole straight through volumetric smoke clouds."
+    },
+    {
+      id: "f_fps_6", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Counter-Strike 2', how many rounds are required to win a standard competitive regulation match (MR12)?",
+      options: ["13 Rounds", "16 Rounds", "15 Rounds", "12 Rounds"], correct: "13 Rounds",
+      lore_fact: "CS2 adopted Max Rounds 12 (MR12), requiring 13 rounds to win regulation."
+    },
+    {
+      id: "f_fps_7", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Halo', what is the designation number of the Master Chief?",
+      options: ["John-117", "Noble-6", "Spartan-104", "Jerome-092"], correct: "John-117",
+      lore_fact: "Master Chief Petty Officer John-117 is the legendary SPARTAN-II commando of the UNSC Navy."
+    },
+    {
+      id: "f_fps_8", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In CS:GO / CS2 history, which legendary AWPer won a record 21 HLTV MVP medals and the 2021 Stockholm Major?",
+      options: ["s1mple (Oleksandr Kostyliev)", "ZywOo (Mathieu Herbaut)", "NiKo (Nikola Kovač)", "dev1ce (Nicolai Reedtz)"], correct: "s1mple (Oleksandr Kostyliev)",
+      lore_fact: "s1mple is celebrated as 'The GOAT' of Counter-Strike for his unmatched peak dominance."
+    },
+    {
+      id: "f_fps_9", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In 'Rainbow Six Siege', what operator uses the EMP grenade to disable electronic defense gadgets?",
+      options: ["Thatcher", "Thermite", "Twitch", "Mute"], correct: "Thatcher",
+      lore_fact: "Thatcher's EMP grenades disable cameras, batteries, and signal jammers through reinforced walls."
+    },
+    {
+      id: "f_fps_10", category: "esports", category_label: "🎯 FPS & Esports", difficulty: "god", difficulty_label: "💀 Elden God", points: 500, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In 'VALORANT' lore, what catastrophic planetary event fractured the Earth and introduced Radianite?",
+      options: ["First Light", "The Shattering", "Omega Surge", "Radianite Pulse"], correct: "First Light",
+      lore_fact: "First Light occurred in 2039, granting supernatural Radiant abilities to individuals across Earth."
+    },
+
+    // ── Retro & Indie Legends (10 Questions) ──
+    {
+      id: "f_retro_1", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
       question: "What is the famous Konami Code cheat sequence popularized in 'Contra'?",
-      options: ["Up, Up, Down, Down, Left, Right, Left, Right, B, A", "Up, Down, Up, Down, Left, Left, Right, Right, A, B", "Down, Down, Up, Up, Left, Right, B, A, Start", "Left, Right, Left, Right, Up, Down, A, B, Select"],
-      correct_index: 0,
+      options: ["Up, Up, Down, Down, Left, Right, Left, Right, B, A", "Up, Down, Up, Down, Left, Left, Right, Right, A, B", "Down, Down, Up, Up, Left, Right, B, A, Start", "Left, Right, Left, Right, Up, Down, A, B, Select"], correct: "Up, Up, Down, Down, Left, Right, Left, Right, B, A",
       lore_fact: "Created by Kazuhisa Hashimoto in 1986, the code gave players 30 extra lives in Contra."
+    },
+    {
+      id: "f_retro_2", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'Minecraft', what material is required alongside Netherite Scraps to forge Netherite ingots?",
+      options: ["4 Gold Ingots", "4 Iron Ingots", "4 Diamond Gems", "4 Obsidian Blocks"], correct: "4 Gold Ingots",
+      lore_fact: "Combining 4 Netherite Scraps and 4 Gold Ingots produces 1 fire-resistant Netherite Ingot."
+    },
+    {
+      id: "f_retro_3", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'Hollow Knight', what is the name of the main weapon used by the Knight?",
+      options: ["Nail", "Needle", "Blade", "Stinger"], correct: "Nail",
+      lore_fact: "The Knight's Nail can be forged and sharpened up to the Pure Nail by the Nailsmith in the City of Tears."
+    },
+    {
+      id: "f_retro_4", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In 'Undertale', what iconic song plays during the legendary Sans boss fight in the Genocide route?",
+      options: ["Megalovania", "Bonetrousle", "Hopes and Dreams", "Death by Glamour"], correct: "Megalovania",
+      lore_fact: "Toby Fox originally composed Megalovania for an EarthBound Halloween Rom Hack in 2008."
+    },
+    {
+      id: "f_retro_5", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "What groundbreaking 1993 id Software title popularized network deathmatches and 3D PC gaming?",
+      options: ["DOOM", "Wolfenstein 3D", "Quake", "Duke Nukem 3D"], correct: "DOOM",
+      lore_fact: "DOOM was estimated to be installed on more PC computers worldwide in 1995 than Microsoft Windows 95."
+    },
+    {
+      id: "f_retro_6", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Pac-Man' (1980), which of the following is NOT one of the 4 iconic ghost enemies?",
+      options: ["Stinky", "Blinky", "Pinky", "Clyde"], correct: "Stinky",
+      lore_fact: "The four original ghosts are Blinky (red), Pinky (pink), Inky (cyan), and Clyde (orange)."
+    },
+    {
+      id: "f_retro_7", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Portal', what is the name of the rogue artificial intelligence overseeing the testing chambers?",
+      options: ["GLaDOS", "Wheatley", "SHODAN", "HAL 9000"], correct: "GLaDOS",
+      lore_fact: "GLaDOS stands for Genetic Lifeform and Disk Operating System."
+    },
+    {
+      id: "f_retro_8", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In classic 'Tetris', clearing how many lines simultaneously achieves a 'Tetris' with the I-tetromino line piece?",
+      options: ["4 Lines", "3 Lines", "5 Lines", "6 Lines"], correct: "4 Lines",
+      lore_fact: "Clearing 4 lines at once awards the maximum score bonus and requires a 4-block vertical drop."
+    },
+    {
+      id: "f_retro_9", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In 'Celeste', what is the name of the mountain peak heroine who overcomes her anxiety?",
+      options: ["Madeline", "Badeline", "Theo", "Granny"], correct: "Madeline",
+      lore_fact: "Madeline's journey conquering Mount Celeste was designed as an allegory for self-acceptance."
+    },
+    {
+      id: "f_retro_10", category: "indie_retro", category_label: "🕹️ Retro & Indie Legends", difficulty: "god", difficulty_label: "💀 Elden God", points: 500, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In the 1995 JRPG classic 'Chrono Trigger', what is the name of the sentient time-travel flying ship?",
+      options: ["The Epoch (Wings of Time)", "The Highwind", "The Ragnarok", "The Invincible"], correct: "The Epoch (Wings of Time)",
+      lore_fact: "The Epoch was built by the Guru of Reason, Belthasar, in the post-apocalyptic year 2300 AD."
+    },
+
+    // ── GOTY & Steam Trivia (10 Questions) ──
+    {
+      id: "f_trivia_1", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "In what year was the Steam digital gaming distribution platform officially launched by Valve?",
+      options: ["2003", "2001", "2006", "1998"], correct: "2003",
+      lore_fact: "Steam launched in September 2003 primarily as a way for Valve to deliver automatic Counter-Strike patches."
+    },
+    {
+      id: "f_trivia_2", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "Which landmark fantasy RPG won Game of the Year (GOTY) at The Game Awards in 2022?",
+      options: ["Elden Ring", "God of War Ragnarök", "Horizon Forbidden West", "Stray"], correct: "Elden Ring",
+      lore_fact: "Elden Ring directed by Hidetaka Miyazaki in collaboration with George R.R. Martin won Game of the Year in 2022."
+    },
+    {
+      id: "f_trivia_3", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "Which studio developed and published the critically acclaimed 2023 GOTY winner 'Baldur's Gate 3'?",
+      options: ["Larian Studios", "BioWare", "Bethesda Game Studios", "Obsidian Entertainment"], correct: "Larian Studios",
+      lore_fact: "Larian Studios spent over 6 years crafting Baldur's Gate 3 based on Dungeons & Dragons 5th Edition rules."
+    },
+    {
+      id: "f_trivia_4", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "rookie", difficulty_label: "🟢 Rookie", points: 100, stage: 1, stage_label: "🟢 Stage 1: Warmup",
+      question: "Who is the co-founder and president of Valve Corporation and creator of Steam?",
+      options: ["Gabe Newell (Gaben)", "Todd Howard", "Phil Spencer", "Hideo Kojima"], correct: "Gabe Newell (Gaben)",
+      lore_fact: "Gabe Newell worked at Microsoft for 13 years before founding Valve with Mike Harrington in 1996."
+    },
+    {
+      id: "f_trivia_5", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "What operating system powers Valve's handheld Steam Deck console by default?",
+      options: ["SteamOS (Arch Linux)", "Windows 11 Home", "FreeBSD", "Ubuntu Core"], correct: "SteamOS (Arch Linux)",
+      lore_fact: "SteamOS 3.0 uses Valve Proton translation layers to run thousands of Windows games seamlessly on Linux."
+    },
+    {
+      id: "f_trivia_6", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Half-Life 2', what is the official technical name of Gordon Freeman's iconic Gravity Gun?",
+      options: ["Zero Point Energy Field Manipulator", "Quantum Displacement Rifle", "Tachyon Pulse Emitter", "Gravitational Singularity Device"], correct: "Zero Point Energy Field Manipulator",
+      lore_fact: "Dr. Eli Vance gave Gordon Freeman the Gravity Gun at Black Mesa East to handle hazardous materials."
+    },
+    {
+      id: "f_trivia_7", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "veteran", difficulty_label: "🟡 Veteran", points: 200, stage: 2, stage_label: "🟡 Stage 2: Mid-Challenge",
+      question: "In 'Left 4 Dead', what dynamic engine system modulates zombie horde pacing and item spawns in real-time?",
+      options: ["The AI Director", "The Horde Governor", "Source Spawn Matrix", "The Chaos Automator"], correct: "The AI Director",
+      lore_fact: "Valve's AI Director analyzes player stress levels, health, and ammo to dynamically dial intensity up or down."
+    },
+    {
+      id: "f_trivia_8", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "In 'Portal', what inanimate object was players forced to incinerate in Test Chamber 17?",
+      options: ["Weighted Companion Cube", "Edgeless Safety Cube", "Thermal Discouragement Redirection Cube", "High Energy Pellet"], correct: "Weighted Companion Cube",
+      lore_fact: "GLaDOS remarked: 'You euthanized your faithful Companion Cube more quickly than any test subject on record.'"
+    },
+    {
+      id: "f_trivia_9", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "hardcore", difficulty_label: "🔴 Hardcore", points: 350, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "Which fictional pharmaceutical corporation in 'Resident Evil' developed the T-Virus?",
+      options: ["Umbrella Corporation", "Aperture Science", "Tricell", "Abstergo Industries"], correct: "Umbrella Corporation",
+      lore_fact: "Umbrella operated secret subterranean Arklay research laboratories beneath Raccoon City."
+    },
+    {
+      id: "f_trivia_10", category: "trivia", category_label: "🏆 GOTY & Steam Trivia", difficulty: "god", difficulty_label: "💀 Elden God", points: 500, stage: 3, stage_label: "🔴 Stage 3: Boss Tier",
+      question: "What Polish developer created 'The Witcher' trilogy and 'Cyberpunk 2077'?",
+      options: ["CD Projekt Red", "Techland", "11 bit studios", "People Can Fly"], correct: "CD Projekt Red",
+      lore_fact: "CD Projekt was founded in Warsaw in 1994, initially translating and importing PC CD-ROMs to Poland."
     }
   ];
+
+  if (category && category !== 'all') {
+    const filtered = allQuestions.filter(q => q.category === category);
+    return filtered.length >= 5 ? filtered : allQuestions;
+  }
+  return allQuestions;
 }
 
 
@@ -8975,5 +9863,12 @@ window.openAiCustomQuizModal = openAiCustomQuizModal;
 window.closeAiCustomQuizModal = closeAiCustomQuizModal;
 window.setAiTopicPreset = setAiTopicPreset;
 window.handleAiCustomQuizSubmit = handleAiCustomQuizSubmit;
+window.openShareScoreCardModal = openShareScoreCardModal;
+window.closeShareScoreCardModal = closeShareScoreCardModal;
+window.downloadScoreCardImage = downloadScoreCardImage;
+window.shareScoreCardNative = shareScoreCardNative;
+window.shareScoreToSocial = shareScoreToSocial;
+window.copyQuizChallengeLink = copyQuizChallengeLink;
+window.randomizeQuizOptionsAndQuestions = randomizeQuizOptionsAndQuestions;
 
 

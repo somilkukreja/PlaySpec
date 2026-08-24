@@ -23,46 +23,87 @@
   </script>
 </head>
 <body>
+  <!-- ═══════════════════════ TOP SLIM APP FRAME (STATUS & ACTION TOOLS) ═══════════════════════ -->
+  <div class="cyber-top-frame">
+    <!-- Left: Status Indicators -->
+    <div class="cyber-top-frame-status">
+      <div class="cyber-status-item">
+        <span class="cyber-status-dot"></span>
+        <span class="cyber-status-label">LATENCY:</span>
+        <span class="cyber-status-val" id="cyberLatencyVal">14MS</span>
+      </div>
+      <div class="cyber-status-item">
+        <span class="cyber-status-label">UPTIME:</span>
+        <span class="cyber-status-val">99.9%</span>
+      </div>
+      <div class="cyber-badge-electric">
+        <span>⚡</span>
+        <span>ELECTRIC</span>
+      </div>
+    </div>
 
-  <!-- ═══════════════════════ NAVBAR (2-LINE SPACIOUS LAYOUT) ═══════════════════════ -->
-  <nav class="navbar" id="navbar">
-    <div class="navbar-inner-two-line">
-      <!-- Line 1: Brand on Left • Quick Launch Action Buttons on Right -->
-      <div class="navbar-top-row">
-        <a href="#" class="navbar-brand">
-          <div class="navbar-logo-glyph">
-            <svg class="svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-              <polyline points="2 17 12 22 22 17"></polyline>
-              <polyline points="2 12 12 17 22 12"></polyline>
-            </svg>
-          </div>
-          <span>PlaySpec</span>
-          <span class="badge badge-cyan" style="font-size:0.68rem;padding:2px 6px;margin-left:2px">v2.0</span>
+    <!-- Center: App Title / Version -->
+    <div class="cyber-top-frame-title">PlaySpec System V2.6</div>
+
+    <!-- Right: Quick Feature Shortcuts -->
+    <div class="cyber-top-frame-actions">
+      <a href="downloads/PlaySpec-QuickScan.bat" download class="cyber-frame-btn" title="Download 1-Click Windows Hardware Scanner (.bat)" style="text-decoration:none">
+        <span>📥</span> Download Scanner
+      </a>
+      <button class="cyber-frame-btn" onclick="runRealHardwareScan()" title="Instant Real PC Hardware Scanner">
+        <span>⚡</span> Scan PC
+      </button>
+      <button class="cyber-frame-btn" onclick="switchCyberTab('pc-profile')" title="View Hardware Profile & Diagnostics">
+        <span>💻</span> Hardware Profile
+      </button>
+      <button class="cyber-frame-btn" onclick="openPlayTonightModal()" title="Instant AI Game Matcher">
+        <span>🎲</span> Play Tonight?
+      </button>
+      <button class="cyber-frame-btn" onclick="openGamerPassportModal()" title="Shareable Gamer ID & Rig Card">
+        <span>🎴</span> Passport
+      </button>
+      <button class="cyber-frame-btn" onclick="openEditRigModal()" title="Configure Active Rig Specs">
+        <span>⚙️</span> Configure Rig
+      </button>
+      <button class="cyber-frame-btn" onclick="if(!document.fullscreenElement){document.documentElement.requestFullscreen()}else{document.exitFullscreen()}" title="Toggle Fullscreen">
+        <span>⛶</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ CYBER HEADER (PLAYSPEC SYS.V2.6) ═══════════════════════ -->
+  <header class="cyber-header" id="cyberHeader">
+    <div class="cyber-header-main">
+      <!-- Left: Logo & SYS.V2.6 badge -->
+      <div class="cyber-brand-wrap">
+        <a href="#" class="cyber-brand-logo">
+          <span class="cyber-logo-text">PLAYSPEC</span>
+          <span class="cyber-sys-badge">SYS.V2.6</span>
         </a>
+      </div>
 
-        <div class="navbar-actions">
-          <!-- Quick Play Tonight Modal Launcher -->
-          <button class="btn-nav-play-tonight" onclick="openPlayTonightModal()" title="What Should I Play Tonight? Backlog Roulette & Mood Wizard">
-            <span>🎲</span>
-            <span>Play Tonight?</span>
+      <!-- Center: Active Hardware Status Capsule -->
+      <div class="cyber-active-hardware-pill" onclick="switchCyberTab('pc-profile')" title="Click to view Hardware Profile & Diagnostics">
+        <div class="hardware-pill-text-block">
+          <span class="hardware-pill-label">ACTIVE HARDWARE</span>
+          <span class="hardware-pill-gpu" id="navGpuLabel">RTX 4070 Super</span>
+        </div>
+        <div class="hardware-pill-meta">
+          <span class="hardware-pill-cpu" id="navCpuLabel">AMD Ryzen</span>
+          <span class="hardware-pill-sub" id="navSubLabel">1440p • 32GB</span>
+        </div>
+        <button class="btn-edit-rig-cyan" onclick="event.stopPropagation(); openEditRigModal()">EDIT RIG</button>
+      </div>
+
+      <!-- Right: Utility Suite (Theme, Toggle Switch, Currency, Search, Notifications, Profile) -->
+      <div class="cyber-header-right">
+        <!-- Gaming Theme Studio Trigger & Dropdown -->
+        <div class="gaming-theme-dropdown-wrap">
+          <button class="cyber-btn-pill" id="gamingThemeTriggerBtn" onclick="toggleGamingThemeMenu(event)" title="Gaming Theme Studio">
+            <span>🎮</span>
+            <span>Theme</span>
+            <span class="pill-dot" id="gamingThemeActiveDot"></span>
           </button>
-
-          <!-- Gamer Rig Passport Trigger -->
-          <button class="btn-nav-passport" onclick="openGamerPassportModal()" title="Holographic Gamer Rig Passport (PNG Card Generator)">
-            <span>🎴</span>
-            <span>Passport</span>
-          </button>
-
-          <!-- Gaming Theme Studio Trigger & Dropdown -->
-          <div class="gaming-theme-dropdown-wrap">
-            <button class="btn-gaming-theme-trigger" id="gamingThemeTriggerBtn" onclick="toggleGamingThemeMenu(event)" title="Gaming Theme Studio (Cyberpunk, ROG Red, Razer Matrix, Synthwave)">
-              <span class="gaming-theme-icon">🎮</span>
-              <span style="font-size:0.75rem">Theme</span>
-              <span class="gaming-theme-dot" id="gamingThemeActiveDot"></span>
-            </button>
-
-          <!-- Floating Theme Studio Dropdown -->
           <div class="gaming-theme-panel" id="gamingThemePanel">
             <div class="gaming-theme-panel-header">
               <div class="gaming-theme-panel-title">
@@ -72,127 +113,46 @@
               <span class="gaming-theme-panel-subtitle">Select visual aesthetic preset</span>
             </div>
             <div class="gaming-theme-grid">
-              <!-- Steam Dark -->
               <button class="gaming-theme-card active" data-theme-val="dark" onclick="selectGamingTheme('dark')">
-                <div class="theme-card-header">
-                  <span class="theme-name">Steam Dark (Classic)</span>
-                  <span class="theme-active-indicator">✓ Active</span>
-                </div>
-                <div class="theme-swatches">
-                  <span class="swatch" style="background:#66c0f4"></span>
-                  <span class="swatch" style="background:#1b2838"></span>
-                  <span class="swatch" style="background:#090b10"></span>
-                </div>
-                <span class="theme-desc">Valve Iconic Cyan & Obsidian Navy</span>
+                <div class="theme-card-header"><span class="theme-name">Steam Dark</span><span class="theme-active-indicator">✓ Active</span></div>
+                <div class="theme-swatches"><span class="swatch" style="background:#00f0ff"></span><span class="swatch" style="background:#1b2838"></span><span class="swatch" style="background:#090b10"></span></div>
               </button>
-
-              <!-- Cyberpunk Neon -->
               <button class="gaming-theme-card" data-theme-val="cyberpunk" onclick="selectGamingTheme('cyberpunk')">
-                <div class="theme-card-header">
-                  <span class="theme-name">Cyberpunk 2077</span>
-                  <span class="theme-active-indicator">✓ Active</span>
-                </div>
-                <div class="theme-swatches">
-                  <span class="swatch" style="background:#00f0ff"></span>
-                  <span class="swatch" style="background:#ff007f"></span>
-                  <span class="swatch" style="background:#06070d"></span>
-                </div>
-                <span class="theme-desc">Electric Cyan & Neon Magenta</span>
+                <div class="theme-card-header"><span class="theme-name">Cyberpunk 2077</span></div>
+                <div class="theme-swatches"><span class="swatch" style="background:#00f0ff"></span><span class="swatch" style="background:#ff007f"></span><span class="swatch" style="background:#06070d"></span></div>
               </button>
-
-              <!-- ROG Crimson -->
               <button class="gaming-theme-card" data-theme-val="rog" onclick="selectGamingTheme('rog')">
-                <div class="theme-card-header">
-                  <span class="theme-name">ROG Crimson Red</span>
-                  <span class="theme-active-indicator">✓ Active</span>
-                </div>
-                <div class="theme-swatches">
-                  <span class="swatch" style="background:#ff1e42"></span>
-                  <span class="swatch" style="background:#ff4757"></span>
-                  <span class="swatch" style="background:#090a0d"></span>
-                </div>
-                <span class="theme-desc">Republic of Gamers Red & Carbon</span>
+                <div class="theme-card-header"><span class="theme-name">ROG Crimson</span></div>
+                <div class="theme-swatches"><span class="swatch" style="background:#ff1e42"></span><span class="swatch" style="background:#ff4757"></span><span class="swatch" style="background:#090a0d"></span></div>
               </button>
-
-              <!-- Razer Matrix -->
               <button class="gaming-theme-card" data-theme-val="matrix" onclick="selectGamingTheme('matrix')">
-                <div class="theme-card-header">
-                  <span class="theme-name">Matrix Emerald</span>
-                  <span class="theme-active-indicator">✓ Active</span>
-                </div>
-                <div class="theme-swatches">
-                  <span class="swatch" style="background:#00ff66"></span>
-                  <span class="swatch" style="background:#10b981"></span>
-                  <span class="swatch" style="background:#040805"></span>
-                </div>
-                <span class="theme-desc">Razer Poison Green & Matrix Dark</span>
+                <div class="theme-card-header"><span class="theme-name">Matrix Emerald</span></div>
+                <div class="theme-swatches"><span class="swatch" style="background:#00ff66"></span><span class="swatch" style="background:#10b981"></span><span class="swatch" style="background:#040805"></span></div>
               </button>
-
-              <!-- Chroma Synthwave -->
               <button class="gaming-theme-card" data-theme-val="synthwave" onclick="selectGamingTheme('synthwave')">
-                <div class="theme-card-header">
-                  <span class="theme-name">Chroma Synthwave</span>
-                  <span class="theme-active-indicator">✓ Active</span>
-                </div>
-                <div class="theme-swatches">
-                  <span class="swatch" style="background:#c084fc"></span>
-                  <span class="swatch" style="background:#ec4899"></span>
-                  <span class="swatch" style="background:#0a0614"></span>
-                </div>
-                <span class="theme-desc">Arcade Violet & Sunset Pink</span>
+                <div class="theme-card-header"><span class="theme-name">Chroma Synthwave</span></div>
+                <div class="theme-swatches"><span class="swatch" style="background:#c084fc"></span><span class="swatch" style="background:#ec4899"></span><span class="swatch" style="background:#0a0614"></span></div>
               </button>
-
-              <!-- Stealth OLED -->
               <button class="gaming-theme-card" data-theme-val="stealth" onclick="selectGamingTheme('stealth')">
-                <div class="theme-card-header">
-                  <span class="theme-name">Stealth OLED</span>
-                  <span class="theme-active-indicator">✓ Active</span>
-                </div>
-                <div class="theme-swatches">
-                  <span class="swatch" style="background:#38bdf8"></span>
-                  <span class="swatch" style="background:#282828"></span>
-                  <span class="swatch" style="background:#000000"></span>
-                </div>
-                <span class="theme-desc">Pitch Black & Tactical Ice Blue</span>
+                <div class="theme-card-header"><span class="theme-name">Stealth OLED</span></div>
+                <div class="theme-swatches"><span class="swatch" style="background:#ffffff"></span><span class="swatch" style="background:#334155"></span><span class="swatch" style="background:#000000"></span></div>
               </button>
-
-              <!-- Titanium Light -->
               <button class="gaming-theme-card" data-theme-val="light" onclick="selectGamingTheme('light')">
-                <div class="theme-card-header">
-                  <span class="theme-name">Titanium Light</span>
-                  <span class="theme-active-indicator">✓ Active</span>
-                </div>
-                <div class="theme-swatches">
-                  <span class="swatch" style="background:#0284c7"></span>
-                  <span class="swatch" style="background:#cbd5e1"></span>
-                  <span class="swatch" style="background:#f0f4f9"></span>
-                </div>
-                <span class="theme-desc">High Contrast Platinum Daylight</span>
+                <div class="theme-card-header"><span class="theme-name">Titanium Light</span></div>
+                <div class="theme-swatches"><span class="swatch" style="background:#0284c7"></span><span class="swatch" style="background:#cbd5e1"></span><span class="swatch" style="background:#f0f4f9"></span></div>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Gamer Theme Toggle Switch -->
-        <button class="theme-toggle-btn" id="themeToggleBtn" role="switch" aria-checked="false" aria-label="Toggle Dark / Light Theme" title="Toggle Light / Dark Gamer Theme">
+        <!-- Quick Theme Toggle Switch (Dark / Light) -->
+        <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle Light / Dark Theme" title="Toggle Light / Dark Theme">
           <div class="theme-toggle-track">
-            <span class="theme-icon moon-icon" title="Dark Mode (Cyber Ops)">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-              </svg>
+            <span class="theme-icon moon-icon">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
             </span>
-            <span class="theme-icon sun-icon" title="Light Mode (Solar Matrix)">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="4"></circle>
-                <line x1="12" y1="2" x2="12" y2="5"></line>
-                <line x1="12" y1="19" x2="12" y2="22"></line>
-                <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"></line>
-                <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"></line>
-                <line x1="2" y1="12" x2="5" y2="12"></line>
-                <line x1="19" y1="12" x2="22" y2="12"></line>
-                <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"></line>
-                <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"></line>
-              </svg>
+            <span class="theme-icon sun-icon">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:12px;height:12px"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
             </span>
             <div class="theme-toggle-thumb">
               <span class="thumb-glow"></span>
@@ -201,11 +161,11 @@
         </button>
 
         <!-- Currency Selector -->
-        <select class="currency-select" id="currencySelect" aria-label="Select Currency">
-          <option value="USD" selected>USD ($)</option>
+        <select class="currency-select" id="currencySelect" aria-label="Select Currency" style="padding:4px 8px;font-size:0.75rem;background:#111622;border:1px solid #1a2333;color:#94a3b8;border-radius:9999px;cursor:pointer">
+          <option value="INR" selected>INR (₹)</option>
+          <option value="USD">USD ($)</option>
           <option value="EUR">EUR (€)</option>
           <option value="GBP">GBP (£)</option>
-          <option value="INR">INR (₹)</option>
           <option value="JPY">JPY (¥)</option>
           <option value="CAD">CAD ($)</option>
           <option value="AUD">AUD ($)</option>
@@ -214,7 +174,7 @@
 
         <!-- Search Trigger (Ctrl+K) -->
         <button class="nav-icon-btn" id="searchBtn" title="Search (Ctrl+K)" aria-label="Search">
-          <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
+          <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
@@ -223,14 +183,12 @@
         <!-- Notification Bell -->
         <div style="position:relative">
           <button class="nav-icon-btn" id="notifBtn" onclick="toggleNotificationsDropdown(event)" aria-label="Notifications" title="Notifications">
-            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
+            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
             <span class="notif-badge" id="notifBadge" style="display:none">0</span>
           </button>
-          
-          <!-- Notifications Dropdown -->
           <div class="notifications-dropdown" id="notifDropdown">
             <div class="notifications-header">
               <span>🔔 Notifications</span>
@@ -247,10 +205,10 @@
           </div>
         </div>
 
-        <!-- Steam / User Profile -->
+        <!-- Account Profile -->
         <div style="position:relative">
           <div class="nav-avatar" id="profileBtn" onclick="toggleProfileDropdown(event)" role="button" tabindex="0" title="Account">
-            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:16px;height:16px">
+            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
@@ -263,50 +221,90 @@
               </a>
               <div class="profile-dropdown-item" onclick="window.location.href='/api/auth/steam/login'">
                 <svg class="svg-icon" viewBox="0 0 512 512" style="width:14px;height:14px" fill="currentColor">
-                  <path d="M255.9 0C114.6 0 0 114.6 0 256c0 102.7 60 191.1 147 232.8l20-56.1c-15.7-18.4-25.2-42-25.2-67.7 0-56.8 46.1-102.9 102.9-102.9 4.3 0 8.5 .3 12.6 .8l71.4-102.4c0-2.3-.2-4.5-.2-6.8 0-48.4 39.2-87.6 87.6-87.6 48.4 0 87.6 39.2 87.6 87.6c-20 0-38.3-6.7-52.9-18l-72.2 103.5c.3 3.6 .4 7.2 .4 10.9 0 56.8-46.1 102.9-102.9 102.9-46.7 0-86-31.2-99.3-73.6l-111 31.9c37 42.1 91 68.6 150.8 68.6 113.3 0 205.1-91.8 205.1-205.1S369.2 51 255.9 51V0z"/>
+                  <path d="M255.9 0C114.6 0 0 114.6 0 256c0 102.7 60 191.1 147 232.8l20-56.1c-15.7-18.4-25.2-42-25.2-67.7 0-56.8 46.1-102.9 102.9-102.9 4.3 0 8.5 .3 12.6 .8l71.4-102.4c0-2.3-.2-4.5-.2-6.8 0-48.4 39.2-87.6 87.6-87.6 48.4 0 87.6 39.2 87.6 87.6s-39.2 87.6-87.6 87.6c-20 0-38.3-6.7-52.9-18l-72.2 103.5c.3 3.6 .4 7.2 .4 10.9 0 56.8-46.1 102.9-102.9 102.9-46.7 0-86-31.2-99.3-73.6l-111 31.9c37 42.1 91 68.6 150.8 68.6 113.3 0 205.1-91.8 205.1-205.1S369.2 51 255.9 51V0z"/>
                 </svg>
                 Steam Sign In
               </div>
             </div>
             <div id="profileDropdownUser" style="display:none">
-              <div style="padding:8px 10px;font-size:0.78rem;font-weight:700;color:var(--text-primary);border-bottom:1px solid var(--border-subtle);margin-bottom:4px" id="profileDropdownUsername">
-                Gamer
-              </div>
-              <div class="profile-dropdown-item" onclick="openHistoryModal()">
-                <svg class="svg-icon" viewBox="0 0 24 24" style="width:14px;height:14px" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-                My Gaming History
-              </div>
-              <div class="profile-dropdown-item" onclick="logoutUser()">
-                <svg class="svg-icon" viewBox="0 0 24 24" style="width:14px;height:14px" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                Sign Out
-              </div>
+              <div style="padding:8px 10px;font-size:0.78rem;font-weight:700;color:var(--text-primary);border-bottom:1px solid var(--border-subtle);margin-bottom:4px" id="profileDropdownUsername">Gamer</div>
+              <div class="profile-dropdown-item" onclick="openHistoryModal()">My Gaming History</div>
+              <div class="profile-dropdown-item" onclick="logoutUser()">Sign Out</div>
             </div>
             <div class="profile-dropdown-divider"></div>
-            <div class="profile-dropdown-item" onclick="document.getElementById('pc-profile').scrollIntoView({behavior:'smooth'})">Hardware Profile</div>
+            <div class="profile-dropdown-item" onclick="switchCyberTab('pc-profile')">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px;color:var(--brand-blue)"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+              Hardware Profile & Diagnostics
+            </div>
+            <div class="profile-dropdown-item" onclick="runRealHardwareScan()">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px;color:#00f0ff"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+              ⚡ Scan PC Hardware
+            </div>
+            <div class="profile-dropdown-item" onclick="openEditRigModal()">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              Configure Rig Specs
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Line 2: Centered, Spacious Navigation Links Bar -->
-    <div class="navbar-bottom-row">
-      <ul class="navbar-nav-centered">
-        <li><a href="#steam-compatibility" class="nav-link" data-nav="steam-compatibility"><span class="nav-item-icon">⚡</span> Can You Run It?</a></li>
-        <li><a href="#ml-recommendations" class="nav-link active" data-nav="ml-recommendations"><span class="nav-item-icon">🤖</span> AI Recommendations</a></li>
-        <li><a href="#upgrade-simulator" class="nav-link" data-nav="upgrade-simulator"><span class="nav-item-icon">🚀</span> Upgrade Sim</a></li>
-        <li><a href="#squad-room" class="nav-link" data-nav="squad-room"><span class="nav-item-icon">👥</span> Squad Co-op</a></li>
-        <li><a href="#gamer-quiz" class="nav-link" data-nav="gamer-quiz"><span class="nav-item-icon">🧠</span> Gamer IQ Quiz</a></li>
-        <li><a href="#dashboard" class="nav-link" data-nav="dashboard"><span class="nav-item-icon">🎮</span> Discover</a></li>
-        <li><a href="#price-tracker" class="nav-link" data-nav="price-tracker"><span class="nav-item-icon">📉</span> Price Tracker</a></li>
-        <li><a href="#upcoming-sales" class="nav-link" data-nav="upcoming-sales"><span class="nav-item-icon">🔥</span> Upcoming Sales</a></li>
-        <li><a href="#deals" class="nav-link" data-nav="deals"><span class="nav-item-icon">🏷️</span> Deals</a></li>
-        <li><a href="#free-games" class="nav-link" data-nav="free-games"><span class="nav-item-icon">🎁</span> Free Games</a></li>
-        <li><a href="#steam-section" class="nav-link" data-nav="steam-section"><span class="nav-item-icon">📚</span> Steam Library</a></li>
-        <li><a href="#pc-profile" class="nav-link" data-nav="pc-profile"><span class="nav-item-icon">💻</span> My Rig</a></li>
-      </ul>
-    </div>
-  </div>
-</nav>
+
+
+    <!-- Navigation Sub-bar / All Feature Menu Tabs -->
+    <nav class="cyber-subnav-tabs" id="cyberSubnavTabs">
+      <div class="cyber-tabs-container">
+        <button class="cyber-tab active" data-tab-target="pc-profile" onclick="switchCyberTab('pc-profile')">
+          <span>💻</span>
+          <span>Hardware & Scan</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="game-database" onclick="switchCyberTab('game-database')">
+          <span>🎮</span>
+          <span>Discover</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="steam-compatibility" onclick="switchCyberTab('steam-compatibility')">
+          <span>⚡</span>
+          <span>Can You Run It?</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="ml-recommendations" onclick="switchCyberTab('ml-recommendations')">
+          <span>🤖</span>
+          <span>AI Recommendations</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="upgrade-simulator" onclick="switchCyberTab('upgrade-simulator')">
+          <span>🚀</span>
+          <span>Upgrade Sim</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="squad-room" onclick="switchCyberTab('squad-room')">
+          <span>👥</span>
+          <span>Squad Co-op</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="gamer-quiz" onclick="switchCyberTab('gamer-quiz')">
+          <span>🧠</span>
+          <span>Gamer IQ Quiz</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="price-tracker" onclick="switchCyberTab('price-tracker')">
+          <span>📉</span>
+          <span>Price Tracker</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="upcoming-sales" onclick="switchCyberTab('upcoming-sales')">
+          <span>🔥</span>
+          <span>Upcoming Sales</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="deals" onclick="switchCyberTab('deals')">
+          <span>🏷️</span>
+          <span>Deals</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="free-games" onclick="switchCyberTab('free-games')">
+          <span>🎁</span>
+          <span>Free Games</span>
+        </button>
+        <button class="cyber-tab" data-tab-target="steam-section" onclick="switchCyberTab('steam-section')">
+          <span>📚</span>
+          <span>Steam Library</span>
+        </button>
+      </div>
+    </nav>
+  </header>
 
   <!-- ═══════════════════════ SEARCH OVERLAY ═══════════════════════ -->
   <div class="search-overlay" id="searchOverlay">
@@ -323,78 +321,72 @@
     </div>
   </div>
 
-  <!-- ═══════════════════════ HERO SECTION ═══════════════════════ -->
-  <section class="hero" id="hero">
-    <div class="hero-glow"></div>
-    <div class="container">
-      <div class="hero-content">
-        <!-- Top Notice Banner -->
-        <div class="scanner-top-banner">
-          <span class="banner-text">
-            <span>⚡</span>
-            <span><strong>Download file and run it</strong> to detect your exact PC specs (GPU, CPU, RAM & VRAM)! <span style="display:inline-flex;align-items:center;gap:4px;color:#4ade80;font-weight:600;font-size:0.84rem;margin-left:4px">🛡️ 100% Safe to run — Read-only diagnostics that will not harm your system.</span></span>
-          </span>
-          <a href="downloads/PlaySpec-QuickScan.bat" download class="btn-banner-download">
-            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Download Scanner (.bat)
-          </a>
-        </div>
-
-        <div class="hero-tag">
-          <span class="hero-tag-ping"></span>
-          <span>Live Steam Web & Store Intelligence</span>
-        </div>
-
-        <h1 class="hero-title">
-          PC Hardware Benchmarking & <span>Smart Price Tracking</span>
-        </h1>
-        
-        <p class="hero-subtitle">
-          Real-time hardware performance analysis, historical price tracking, and sale alerts powered directly by Valve Steam Web APIs.
-        </p>
-
-        <div class="hero-actions">
-          <button class="btn btn-primary btn-lg" onclick="runRealHardwareScan()">
-            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-            </svg>
-            ⚡ Scan Real PC Hardware
-          </button>
-          
-          <a href="downloads/PlaySpec-QuickScan.bat" download class="btn btn-secondary btn-lg" title="1-Click Safe System Scanner">
-            <svg class="svg-icon svg-stroke" viewBox="0 0 24 24">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Download Scanner (.bat)
-          </a>
-
-          <a href="/api/auth/steam/login" class="btn btn-steam btn-lg">
-            <svg class="svg-icon" viewBox="0 0 512 512" fill="currentColor" style="width:18px;height:18px">
-              <path d="M255.9 0C114.6 0 0 114.6 0 256c0 102.7 60 191.1 147 232.8l20-56.1c-15.7-18.4-25.2-42-25.2-67.7 0-56.8 46.1-102.9 102.9-102.9 4.3 0 8.5 .3 12.6 .8l71.4-102.4c0-2.3-.2-4.5-.2-6.8 0-48.4 39.2-87.6 87.6-87.6 48.4 0 87.6 39.2 87.6 87.6s-39.2 87.6-87.6 87.6c-20 0-38.3-6.7-52.9-18l-72.2 103.5c.3 3.6 .4 7.2 .4 10.9 0 56.8-46.1 102.9-102.9 102.9-46.7 0-86-31.2-99.3-73.6l-111 31.9c37 42.1 91 68.6 150.8 68.6 113.3 0 205.1-91.8 205.1-205.1S369.2 51 255.9 51V0z"/>
-            </svg>
-            Sign In with Steam
-          </a>
-        </div>
-
-        <div style="margin-top:10px;margin-bottom:6px;font-size:0.83rem;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;text-align:center">
-          <span style="color:#4ade80">🛡️</span>
-          <span><strong>Download file and run it</strong> to automatically scan your PC specs. It is 100% safe to run and will not harm your system.</span>
-        </div>
-
-        <div class="hero-stats">
-          <div class="hero-stat-item">
-            <div class="hero-stat-value" data-count="42580">0</div>
-            <div class="hero-stat-label">Catalog Games Indexed</div>
+  <!-- ═══════════════════════ CYBER HERO MATRIX SECTION ═══════════════════════ -->
+  <section class="cyber-hero-section" id="hero">
+    <div class="cyber-hero-card">
+      <div class="cyber-hero-cyan-bar"></div>
+      <div class="cyber-hero-inner">
+        <!-- Left Column -->
+        <div class="cyber-hero-left">
+          <div class="cyber-hud-tag">
+            <span class="hud-tag-dot">•</span>
+            <span>SYSTEM COMPATIBILITY MATRIX • BUILD 2.6</span>
           </div>
-          <div class="hero-stat-item">
-            <div class="hero-stat-value" id="heroCompatCount" data-count="1284">0</div>
-            <div class="hero-stat-label">Verified Compatible with Rig</div>
+
+          <h1 class="cyber-hero-title">
+            <span class="title-white">PC GAME</span>
+            <span class="title-cyan-italic">SPECS & FPS</span>
+          </h1>
+
+          <p class="cyber-hero-desc">
+            INSTANT HARDWARE COMPATIBILITY ANALYSIS FOR MODERN GAMING TITLES ON <strong class="hero-gpu-highlight" id="heroActiveGpu">NVIDIA GEFORCE RTX 4070 SUPER</strong> PAIRED WITH <strong class="hero-cpu-highlight" id="heroActiveCpu">AMD RYZEN 5 7600X (6-CORE)</strong>.
+          </p>
+
+          <div class="cyber-hero-actions">
+            <a href="downloads/PlaySpec-QuickScan.bat" download class="btn-cyan-solid" title="Download 1-Click Windows Hardware Scanner (.bat)">
+              <span style="font-size:1rem">📥</span>
+              <span>DOWNLOAD SCANNER (.BAT)</span>
+            </a>
+            <button class="btn-dark-cyber" onclick="runRealHardwareScan()" title="Scan dedicated GPU, CPU and physical RAM">
+              <span style="color:var(--brand-cyan);font-size:1rem">⚡</span>
+              <span>SCAN PC HARDWARE</span>
+            </button>
+            <button class="btn-dark-cyber" onclick="switchCyberTab('pc-profile')" title="View benchmark and component specifications">
+              <span style="color:var(--brand-cyan);font-size:1rem">💻</span>
+              <span>HARDWARE PROFILE</span>
+            </button>
+            <button class="btn-dark-cyber" onclick="switchCyberTab('steam-compatibility')">
+              <span style="color:var(--brand-cyan);font-size:1rem">🎮</span>
+              <span>CAN I RUN IT?</span>
+            </button>
+            <button class="btn-dark-cyber" onclick="openEditRigModal()" title="Calibrate Rig Specs">
+              <span style="font-size:1rem">🎛️</span>
+              <span>CALIBRATE RIG</span>
+            </button>
           </div>
-          <div class="hero-stat-item">
-            <div class="hero-stat-value" data-count="148">0</div>
-            <div class="hero-stat-label">Live Active Discounts</div>
+        </div>
+
+        <!-- Right Column: 3 Stacked HUD Performance Tiles -->
+        <div class="cyber-hero-right-hud">
+          <!-- Card 1 (Active Rig GPU) -->
+          <div class="cyber-hud-card" onclick="openEditRigModal()" style="cursor:pointer" title="Click to edit GPU">
+            <div class="hud-card-label">ACTIVE RIG GPU</div>
+            <div class="hud-card-val" id="heroHudGpuVal">RTX 4070 SUPER</div>
+            <div class="hud-card-sub hud-cyan" id="heroHudGpuSub">12GB VRAM • 79/100 INDEX</div>
+          </div>
+
+          <!-- Card 2 (Resolution Target) -->
+          <div class="cyber-hud-card" onclick="openEditRigModal()" style="cursor:pointer" title="Click to edit display resolution">
+            <div class="hud-card-label">RESOLUTION TARGET</div>
+            <div class="hud-card-val" id="heroHudResVal">1440P DISPLAY</div>
+            <div class="hud-card-sub hud-purple" id="heroHudResSub">DLSS / FSR QUALITY ACTIVE</div>
+          </div>
+
+          <!-- Card 3 (Storage Capacity) -->
+          <div class="cyber-hud-card" onclick="openEditRigModal()" style="cursor:pointer" title="Click to edit storage">
+            <div class="hud-card-label">STORAGE CAPACITY</div>
+            <div class="hud-card-val" id="heroHudStorageVal">500 GB FREE</div>
+            <div class="hud-card-sub hud-muted" id="heroHudStorageSub">NVME SSD DRIVE</div>
           </div>
         </div>
       </div>
@@ -404,26 +396,133 @@
   <!-- ═══════════════════════ MAIN CONTENT ═══════════════════════ -->
   <main>
 
-    <!-- ── Active Rig Hardware Specs Bar ── -->
-    <section class="section" style="padding-top:0" id="dashboard">
+    <!-- ── PC HARDWARE PROFILE & BENCHMARK (DIAGNOSTICS & SCANNER) ── -->
+    <section class="section" id="pc-profile">
       <div class="container">
-        <div class="pc-specs-bar">
-          <div class="pc-specs-list" id="headerSpecsList">
-            <div class="pc-spec-chip">GPU: Detecting...</div>
-            <div class="pc-spec-chip">VRAM: Detecting...</div>
-            <div class="pc-spec-chip">CPU: Detecting...</div>
-            <div class="pc-spec-chip">RAM: Detecting...</div>
-            <div class="pc-spec-chip">Display: 1920 × 1080</div>
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:var(--brand-blue)">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              Hardware Profile & Diagnostics
+            </h2>
+            <span class="section-subtitle">Benchmark results and component specifications of your active gaming setup</span>
           </div>
-          <div class="pc-status">
-            <div class="pc-status-badge" id="headerTierBadge">
-              <span class="pulse"></span>
-              <span id="headerTierLabel">Detecting Rig Tier...</span>
+          <div style="display:flex;gap:var(--space-xs);flex-wrap:wrap">
+            <a href="downloads/PlaySpec-QuickScan.bat" download class="btn btn-sm btn-primary" title="Download 1-Click Scanner Script (.bat)">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              📥 Download Scanner (.bat)
+            </a>
+            <button class="btn btn-sm btn-secondary" onclick="runRealHardwareScan()" id="btnScanRealRig" title="Query exact dedicated GPU, CPU and physical RAM">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+              ⚡ Scan PC Hardware
+            </button>
+            <button class="btn btn-sm btn-ghost" onclick="openEditRigModal()">Configure Specs</button>
+            <button class="btn btn-sm btn-ghost" onclick="importSpecTokenPrompt()" title="Import Base64 spec token from Windows scanner">Import Token</button>
+          </div>
+        </div>
+
+        <div class="pc-profile-grid">
+          <!-- Hardware Specs Matrix -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)" id="hardwareGrid">
+            <!-- Dynamic Hardware Cards rendered by JS -->
+          </div>
+
+          <!-- Compatibility Breakdown -->
+          <div class="compat-stats">
+            <div class="compat-stats-total">
+              <div class="compat-stats-number" id="compatTotalCount">1,284</div>
+              <div class="compat-stats-label">Playable Steam Titles on Your Rig</div>
             </div>
-            <button class="btn btn-sm btn-ghost" onclick="openEditRigModal()">Configure Specs →</button>
+
+            <div class="compat-bar">
+              <div class="compat-bar-header">
+                <span style="color:var(--color-success)">High Performance (60–120 FPS)</span>
+                <span id="compatExcellentCount" style="font-family:var(--font-mono)">723</span>
+              </div>
+              <div class="compat-bar-track">
+                <div class="compat-bar-fill excellent" id="compatExcellentBar" style="width:56%"></div>
+              </div>
+            </div>
+
+            <div class="compat-bar">
+              <div class="compat-bar-header">
+                <span style="color:var(--color-warning)">Standard Playable (30–60 FPS)</span>
+                <span id="compatPlayableCount" style="font-family:var(--font-mono)">431</span>
+              </div>
+              <div class="compat-bar-track">
+                <div class="compat-bar-fill playable" id="compatPlayableBar" style="width:34%"></div>
+              </div>
+            </div>
+
+            <div class="compat-bar">
+              <div class="compat-bar-header">
+                <span style="color:var(--color-danger)">GPU Limited (&lt; 30 FPS)</span>
+                <span id="compatLowCount" style="font-family:var(--font-mono)">130</span>
+              </div>
+              <div class="compat-bar-track">
+                <div class="compat-bar-fill low-perf" id="compatLowBar" style="width:10%"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+    </section>
+
+    <!-- ── PC GAME DATABASE & LIVE SEARCH/FILTER BAR ── -->
+    <section class="cyber-database-section" id="game-database">
+      <div class="cyber-filter-bar">
+        <!-- Search Input -->
+        <div class="cyber-search-box">
+          <svg class="cyber-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input 
+            type="text" 
+            class="cyber-search-input" 
+            id="gameDbSearchInput" 
+            placeholder="SEARCH 24+ GAMES, GENRES..." 
+            oninput="handleGameDbSearch(this.value)"
+          />
+        </div>
+
+        <!-- Category Pills -->
+        <div class="cyber-genre-pills" id="cyberGenrePills">
+          <button class="cyber-genre-pill active" data-genre="ALL" onclick="filterGameDbGenre('ALL')">ALL</button>
+          <button class="cyber-genre-pill" data-genre="OPEN WORLD" onclick="filterGameDbGenre('OPEN WORLD')">OPEN WORLD</button>
+          <button class="cyber-genre-pill" data-genre="ACTION RPG" onclick="filterGameDbGenre('ACTION RPG')">ACTION RPG</button>
+          <button class="cyber-genre-pill" data-genre="SCI-FI" onclick="filterGameDbGenre('SCI-FI')">SCI-FI</button>
+          <button class="cyber-genre-pill" data-genre="SOULS-LIKE" onclick="filterGameDbGenre('SOULS-LIKE')">SOULS-LIKE</button>
+          <button class="cyber-genre-pill" data-genre="MYTHOLOGY" onclick="filterGameDbGenre('MYTHOLOGY')">MYTHOLOGY</button>
+        </div>
+
+        <!-- Sort Dropdown -->
+        <div class="cyber-sort-wrap">
+          <button class="cyber-sort-btn" id="cyberSortBtn" onclick="toggleSortDropdown(event)">
+            <span>⇅</span>
+            <span id="cyberSortLabel">MOST POPULAR</span>
+            <span>▾</span>
+          </button>
+          <div class="cyber-sort-dropdown" id="cyberSortDropdown">
+            <div class="sort-option active" onclick="selectSortOption('popularity', 'MOST POPULAR')">Most Popular</div>
+            <div class="sort-option" onclick="selectSortOption('fps_desc', 'HIGHEST FPS')">Highest FPS</div>
+            <div class="sort-option" onclick="selectSortOption('match_desc', 'BEST MATCH')">Best Match</div>
+            <div class="sort-option" onclick="selectSortOption('price_asc', 'PRICE: LOW TO HIGH')">Price: Low to High</div>
+            <div class="sort-option" onclick="selectSortOption('rating_desc', 'HIGHEST RATED')">Highest Rated</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cyber Games Grid -->
+      <div class="cyber-games-grid" id="cyberGamesGrid">
+        <!-- Populated dynamically with neon badges by JS -->
+      </div>
+      <!-- Hidden backward-compatibility row for any legacy hooks -->
+      <div id="recommendedRow" style="display:none"></div>
     </section>
 
     <!-- ── UNIVERSAL STEAM COMPATIBILITY CHECKER (CAN YOU RUN IT?) ── -->
@@ -872,8 +971,11 @@
               <button class="btn btn-primary btn-lg" onclick="startNewQuizRound()">
                 <span>🔄 Play Again (New Random MCQs)</span>
               </button>
+              <button class="btn btn-lg btn-share-score-hero" onclick="openShareScoreCardModal()" style="background:linear-gradient(135deg, #0ea5e9, #8b5cf6);border-color:#38bdf8;box-shadow:0 0 20px rgba(56,189,248,0.4);font-weight:700">
+                <span>📤 Share Score Card</span>
+              </button>
               <button class="btn btn-secondary btn-lg" onclick="copyQuizScoreToClipboard()">
-                <span>📋 Copy Score Card</span>
+                <span>📋 Copy Score</span>
               </button>
             </div>
           </div>
@@ -881,26 +983,7 @@
       </div>
     </section>
 
-    <!-- ── Recommended For You ── -->
-    <section class="section" style="padding-top:0">
-      <div class="container">
-        <div class="section-header">
-          <div class="section-title-wrap">
-            <h2 class="section-title">
-              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:var(--brand-blue)">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-              </svg>
-              Featured Steam Catalog
-            </h2>
-            <span class="section-subtitle">Ranked by hardware performance score & gameplay rating</span>
-          </div>
-          <a href="#deals" class="section-link">View all deals →</a>
-        </div>
-        <div class="games-row" id="recommendedRow">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-    </section>
+
 
     <!-- ── Price Drop Tracker & Watchlist ── -->
     <section class="section" id="price-tracker">
@@ -1343,82 +1426,6 @@
           
           <div id="steamLibraryPagination" style="display:none;margin-top:16px;text-align:center">
             <button class="btn btn-secondary btn-sm" id="steamLoadMoreBtn" onclick="loadMoreSteamGames()">Show More Games</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── PC Hardware Profile & Benchmark ── -->
-    <section class="section" id="pc-profile">
-      <div class="container">
-        <div class="section-header">
-          <div class="section-title-wrap">
-            <h2 class="section-title">
-              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:var(--brand-blue)">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                <line x1="8" y1="21" x2="16" y2="21"></line>
-                <line x1="12" y1="17" x2="12" y2="21"></line>
-              </svg>
-              Hardware Profile & Diagnostics
-            </h2>
-            <span class="section-subtitle">Benchmark results and component specifications of your active gaming setup</span>
-          </div>
-          <div style="display:flex;gap:var(--space-xs);flex-wrap:wrap">
-            <button class="btn btn-sm btn-primary" onclick="runRealHardwareScan()" id="btnScanRealRig" title="Query exact dedicated GPU, CPU and physical RAM">
-              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
-              ⚡ Scan PC Hardware
-            </button>
-            <a href="downloads/PlaySpec-QuickScan.bat" download class="btn btn-sm btn-secondary" title="Download 1-Click Scanner Script (.bat)">
-              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              Download Scanner (.bat)
-            </a>
-            <button class="btn btn-sm btn-ghost" onclick="openEditRigModal()">Configure Specs</button>
-            <button class="btn btn-sm btn-ghost" onclick="importSpecTokenPrompt()" title="Import Base64 spec token from Windows scanner">Import Token</button>
-          </div>
-        </div>
-
-        <div class="pc-profile-grid">
-          <!-- Hardware Specs Matrix -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md)" id="hardwareGrid">
-            <!-- Dynamic Hardware Cards rendered by JS -->
-          </div>
-
-          <!-- Compatibility Breakdown -->
-          <div class="compat-stats">
-            <div class="compat-stats-total">
-              <div class="compat-stats-number" id="compatTotalCount">1,284</div>
-              <div class="compat-stats-label">Playable Steam Titles on Your Rig</div>
-            </div>
-
-            <div class="compat-bar">
-              <div class="compat-bar-header">
-                <span style="color:var(--color-success)">High Performance (60–120 FPS)</span>
-                <span id="compatExcellentCount" style="font-family:var(--font-mono)">723</span>
-              </div>
-              <div class="compat-bar-track">
-                <div class="compat-bar-fill excellent" id="compatExcellentBar" style="width:56%"></div>
-              </div>
-            </div>
-
-            <div class="compat-bar">
-              <div class="compat-bar-header">
-                <span style="color:var(--color-warning)">Standard Playable (30–60 FPS)</span>
-                <span id="compatPlayableCount" style="font-family:var(--font-mono)">431</span>
-              </div>
-              <div class="compat-bar-track">
-                <div class="compat-bar-fill playable" id="compatPlayableBar" style="width:34%"></div>
-              </div>
-            </div>
-
-            <div class="compat-bar">
-              <div class="compat-bar-header">
-                <span style="color:var(--color-danger)">GPU Limited (< 30 FPS)</span>
-                <span id="compatLowCount" style="font-family:var(--font-mono)">130</span>
-              </div>
-              <div class="compat-bar-track">
-                <div class="compat-bar-fill low-perf" id="compatLowBar" style="width:10%"></div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -2407,6 +2414,121 @@
             </div>
           </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════ SHARE GAMER IQ SCORE CARD MODAL ═══════════════════════ -->
+  <div class="modal-overlay" id="shareScoreCardModal" onclick="if(event.target===this) closeShareScoreCardModal()">
+    <div class="modal" style="max-width:620px">
+      <button class="modal-close" onclick="closeShareScoreCardModal()" aria-label="Close modal">✕</button>
+      <div style="padding:26px 22px">
+        <div class="modal-header" style="margin-bottom:18px;border-bottom:1px solid var(--border-subtle);padding-bottom:12px">
+          <div>
+            <h3 class="modal-title" style="display:flex;align-items:center;gap:8px;font-family:var(--font-heading);font-weight:700;font-size:1.35rem;color:#ffffff">
+              <span style="font-size:1.3rem">🏆</span> Share Gamer IQ Score Card
+            </h3>
+            <p class="modal-subtitle" style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">
+              Download your verified Gamer IQ certificate or challenge friends on Discord, Twitter/X, and WhatsApp!
+            </p>
+          </div>
+        </div>
+
+        <!-- Visual Score Card Preview -->
+        <div class="share-scorecard-preview" id="shareScoreCardPreview">
+          <div class="scorecard-top">
+            <div class="scorecard-brand">
+              <span class="scorecard-logo-icon">⚡</span>
+              <span class="scorecard-brand-name">PlaySpec</span>
+              <span class="scorecard-brand-tag">Gamer Intelligence</span>
+            </div>
+            <div class="scorecard-badge-verified">
+              <span>✓ Verified IQ Certificate</span>
+            </div>
+          </div>
+
+          <div class="scorecard-main-row">
+            <div class="scorecard-iq-circle">
+              <div class="scorecard-iq-num" id="modalCardIq">145</div>
+              <div class="scorecard-iq-title">GAMER IQ</div>
+            </div>
+            <div class="scorecard-meta-info">
+              <div class="scorecard-player-name" id="modalCardPlayer">@Player</div>
+              <div class="scorecard-rank-badge" id="modalCardRank">🏆 Legendary Lorekeeper</div>
+              <div class="scorecard-date" id="modalCardDate">August 2026 • Gauntlet Mode</div>
+            </div>
+          </div>
+
+          <div class="scorecard-stats-grid">
+            <div class="scorecard-stat-item">
+              <span class="sc-stat-label">Total Score</span>
+              <strong class="sc-stat-value" id="modalCardScore" style="color:var(--brand-blue)">1,850</strong>
+            </div>
+            <div class="scorecard-stat-item">
+              <span class="sc-stat-label">Accuracy</span>
+              <strong class="sc-stat-value" id="modalCardAccuracy" style="color:var(--color-success)">93% (14/15)</strong>
+            </div>
+            <div class="scorecard-stat-item">
+              <span class="sc-stat-label">Max Streak</span>
+              <strong class="sc-stat-value" id="modalCardStreak" style="color:#ff007f">6x 🔥</strong>
+            </div>
+            <div class="scorecard-stat-item">
+              <span class="sc-stat-label">Percentile</span>
+              <strong class="sc-stat-value" id="modalCardPercentile" style="color:#f59e0b">Top 1%</strong>
+            </div>
+          </div>
+
+          <div class="scorecard-footer-quote">
+            <span>"Think you have a higher Gamer IQ? Test your gaming lore & hardware instincts at PlaySpec!"</span>
+          </div>
+        </div>
+
+        <!-- Hidden canvas for HD PNG export -->
+        <canvas id="scoreCardCanvas" width="1200" height="675" style="display:none"></canvas>
+
+        <!-- Primary Action Buttons -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px">
+          <button class="btn btn-primary" id="btnDownloadScoreCard" onclick="downloadScoreCardImage()" style="background:linear-gradient(135deg, #0ea5e9, #6366f1);border-color:#38bdf8;padding:12px;font-weight:700">
+            <span>⬇️ Download Image (HD PNG)</span>
+          </button>
+          <button class="btn btn-secondary" id="btnNativeShareScoreCard" onclick="shareScoreCardNative()" style="border-color:rgba(56,189,248,0.4);padding:12px;font-weight:700">
+            <span>📱 1-Tap Mobile / App Share</span>
+          </button>
+        </div>
+
+        <!-- Social Share Icons & Fast Copy Row -->
+        <div class="social-share-strip" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-subtle)">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;text-align:center">
+            Direct Share or Challenge Friends
+          </div>
+          <div class="social-buttons-grid">
+            <button class="social-btn social-x" onclick="shareScoreToSocial('twitter')" title="Share to X (Twitter)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              <span>X / Twitter</span>
+            </button>
+            <button class="social-btn social-whatsapp" onclick="shareScoreToSocial('whatsapp')" title="Share to WhatsApp">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.966.527 1.808.783 2.795.783 3.182 0 5.769-2.587 5.77-5.767 0-3.18-2.587-5.769-5.769-5.769zm3.364 8.204c-.14.394-.712.729-1.026.776-.312.046-.66.082-2.12-.523-1.841-.762-3.033-2.637-3.125-2.759-.092-.122-.743-.99-.743-1.889 0-.898.471-1.341.64-1.523.168-.182.368-.228.491-.228.122 0 .245.002.352.007.113.006.265-.043.414.316.155.373.53 1.293.576 1.386.046.092.077.2.015.322-.061.122-.092.198-.184.305-.092.107-.193.239-.276.321-.092.092-.188.192-.081.376.107.184.476.786 1.02 1.27 1.002.894 1.83 1.171 2.092 1.301.262.13.415.115.568-.061.154-.176.66-.77.836-1.034.176-.264.352-.22.589-.132.238.088 1.508.71 1.767.84.26.13.432.193.495.302.064.108.064.63-.076 1.024z"/></svg>
+              <span>WhatsApp</span>
+            </button>
+            <button class="social-btn social-reddit" onclick="shareScoreToSocial('reddit')" title="Share to Reddit">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.197-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+              <span>Reddit</span>
+            </button>
+            <button class="social-btn social-telegram" onclick="shareScoreToSocial('telegram')" title="Share to Telegram">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              <span>Telegram</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn btn-secondary" onclick="copyQuizScoreToClipboard()" style="flex:1">
+            <span>📋 Copy Scorecard Text</span>
+          </button>
+          <button class="btn btn-secondary" onclick="copyQuizChallengeLink()" style="flex:1">
+            <span>🔗 Copy Challenge Link</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
