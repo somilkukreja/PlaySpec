@@ -258,6 +258,10 @@
           <span>💻</span>
           <span>Hardware & Scan</span>
         </button>
+        <button class="cyber-tab" data-tab-target="ml-recommendations" onclick="switchCyberTab('ml-recommendations')">
+          <span>🤖</span>
+          <span>AI Recommendations</span>
+        </button>
         <button class="cyber-tab" data-tab-target="game-database" onclick="switchCyberTab('game-database')">
           <span>🎮</span>
           <span>Discover</span>
@@ -265,10 +269,6 @@
         <button class="cyber-tab" data-tab-target="steam-compatibility" onclick="switchCyberTab('steam-compatibility')">
           <span>⚡</span>
           <span>Can You Run It?</span>
-        </button>
-        <button class="cyber-tab" data-tab-target="ml-recommendations" onclick="switchCyberTab('ml-recommendations')">
-          <span>🤖</span>
-          <span>AI Recommendations</span>
         </button>
         <button class="cyber-tab" data-tab-target="upgrade-simulator" onclick="switchCyberTab('upgrade-simulator')">
           <span>🚀</span>
@@ -472,6 +472,54 @@
       </div>
     </section>
 
+    <!-- ── AI / ML SPEC-BASED GAME RECOMMENDATIONS ── -->
+    <section class="section" style="padding-top:0" id="ml-recommendations">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <h2 class="section-title">
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:var(--brand-blue)">
+                <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"></path>
+                <path d="M12 6v6l4 2"></path>
+              </svg>
+              Hardware-Aware Recommendation Engine
+            </h2>
+            <span class="section-subtitle" id="mlRigSubtitle">Predicted FPS, optimal graphics presets, and hardware compatibility tailored for your PC</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="badge badge-purple" id="mlPersonalizedBadge" style="display:none" onclick="openHistoryModal()">🔥 Personalized for you</span>
+            <span class="badge badge-cyan" id="mlTierBadge">Rig Index: Calculating...</span>
+          </div>
+        </div>
+
+        <div class="tab-filters" id="mlFilterTabs">
+          <button class="tab-filter active" data-ml-filter="all">All AI Matches</button>
+          <button class="tab-filter" data-ml-filter="best">🔥 Best Match</button>
+          <button class="tab-filter" data-ml-filter="maxout">⚡ High FPS (85+)</button>
+          <button class="tab-filter" data-ml-filter="smooth">🎯 Smooth (60+)</button>
+          <button class="tab-filter" data-ml-filter="aaa">🖥️ Best AAA</button>
+          <button class="tab-filter" data-ml-filter="indie">🎨 Best Indie</button>
+          <button class="tab-filter" data-ml-filter="history" id="mlHistoryFilterTab" style="display:none">🎮 History Matches</button>
+          <button class="tab-filter" data-ml-filter="deals">🏷️ Deals for Rig</button>
+          <button class="tab-filter" data-ml-filter="struggle" id="mlStruggleTab">⚠️ May Struggle</button>
+        </div>
+
+        <div class="games-row" id="mlRecommendationsRow">
+          <!-- Populated by ML Engine -->
+        </div>
+
+        <div id="mlRecommendationsPagination" class="ml-pagination-container" style="display:none">
+          <div class="ml-pagination-inner">
+            <span class="ml-pagination-count" id="mlPaginationCount">Showing 8 of 45 games</span>
+            <button class="btn btn-steam-load-more" id="mlLoadMoreBtn" onclick="loadMoreMLRecommendations()">
+              <span>Show More Games</span>
+              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:15px;height:15px;margin-left:4px"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── PC GAME DATABASE & LIVE SEARCH/FILTER BAR ── -->
     <section class="cyber-database-section" id="game-database">
       <div class="cyber-filter-bar">
@@ -586,54 +634,6 @@
           <!-- Live Result Container -->
           <div class="steam-compat-result-card" id="steamCompatResultCard">
             <!-- Populated dynamically by JS -->
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── AI / ML SPEC-BASED GAME RECOMMENDATIONS ── -->
-    <section class="section" style="padding-top:0" id="ml-recommendations">
-      <div class="container">
-        <div class="section-header">
-          <div class="section-title-wrap">
-            <h2 class="section-title">
-              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="color:var(--brand-blue)">
-                <path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"></path>
-                <path d="M12 6v6l4 2"></path>
-              </svg>
-              Hardware-Aware Recommendation Engine
-            </h2>
-            <span class="section-subtitle" id="mlRigSubtitle">Predicted FPS, optimal graphics presets, and hardware compatibility tailored for your PC</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-            <span class="badge badge-purple" id="mlPersonalizedBadge" style="display:none" onclick="openHistoryModal()">🔥 Personalized for you</span>
-            <span class="badge badge-cyan" id="mlTierBadge">Rig Index: Calculating...</span>
-          </div>
-        </div>
-
-        <div class="tab-filters" id="mlFilterTabs">
-          <button class="tab-filter active" data-ml-filter="all">All AI Matches</button>
-          <button class="tab-filter" data-ml-filter="best">🔥 Best Match</button>
-          <button class="tab-filter" data-ml-filter="maxout">⚡ High FPS (85+)</button>
-          <button class="tab-filter" data-ml-filter="smooth">🎯 Smooth (60+)</button>
-          <button class="tab-filter" data-ml-filter="aaa">🖥️ Best AAA</button>
-          <button class="tab-filter" data-ml-filter="indie">🎨 Best Indie</button>
-          <button class="tab-filter" data-ml-filter="history" id="mlHistoryFilterTab" style="display:none">🎮 History Matches</button>
-          <button class="tab-filter" data-ml-filter="deals">🏷️ Deals for Rig</button>
-          <button class="tab-filter" data-ml-filter="struggle" id="mlStruggleTab">⚠️ May Struggle</button>
-        </div>
-
-        <div class="games-row" id="mlRecommendationsRow">
-          <!-- Populated by ML Engine -->
-        </div>
-
-        <div id="mlRecommendationsPagination" class="ml-pagination-container" style="display:none">
-          <div class="ml-pagination-inner">
-            <span class="ml-pagination-count" id="mlPaginationCount">Showing 8 of 45 games</span>
-            <button class="btn btn-steam-load-more" id="mlLoadMoreBtn" onclick="loadMoreMLRecommendations()">
-              <span>Show More Games</span>
-              <svg class="svg-icon svg-stroke" viewBox="0 0 24 24" style="width:15px;height:15px;margin-left:4px"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
           </div>
         </div>
       </div>

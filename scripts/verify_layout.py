@@ -9,29 +9,32 @@ url = "http://localhost:8000/"
 print(f"Fetching {url}...")
 html = urllib.request.urlopen(url).read().decode('utf-8')
 
-# Check 1: pc-profile section position in <main>
+# Check 1: pc-profile and ml-recommendations section positions in <main>
 main_idx = html.find('<main>')
 pc_idx = html.find('id="pc-profile"')
+ml_idx = html.find('id="ml-recommendations"')
 db_idx = html.find('id="game-database"')
 compat_idx = html.find('id="steam-compatibility"')
 
 print(f"main_idx: {main_idx}")
 print(f"pc_idx: {pc_idx}")
+print(f"ml_idx: {ml_idx}")
 print(f"db_idx: {db_idx}")
 print(f"compat_idx: {compat_idx}")
 
 assert pc_idx != -1, "pc-profile not found"
 assert pc_idx > main_idx, "pc-profile is not inside main"
-assert pc_idx < db_idx, "pc-profile is not before game-database"
+assert ml_idx > pc_idx, "ml-recommendations is not after pc-profile"
+assert ml_idx < db_idx, "ml-recommendations is not before game-database"
 print("✓ [PASS] Hardware Profile & Diagnostics is the FIRST section inside <main>!")
+print("✓ [PASS] AI Recommendations is the SECOND section inside <main> (immediately after Hardware Profile)!")
 
-# Check 2: First tab in subnav tabs
-first_tab_match = re.search(r'id="cyberSubnavTabs"[\s\S]*?<button[^>]*data-tab-target="([^"]+)"', html)
-assert first_tab_match, "Could not find first tab in subnav"
-first_tab = first_tab_match.group(1)
-print(f"First subnav tab: {first_tab}")
-assert first_tab == "pc-profile", f"First subnav tab should be pc-profile, got {first_tab}"
-print("✓ [PASS] Hardware & Scan is the FIRST tab in navigation sub-bar!")
+# Check 2: First and second tabs in subnav tabs
+tabs_match = re.findall(r'<button[^>]*class="cyber-tab[^"]*"[^>]*data-tab-target="([^"]+)"', html)
+print(f"Subnav tabs order: {tabs_match[:4]}")
+assert tabs_match[0] == "pc-profile", f"First tab should be pc-profile, got {tabs_match[0]}"
+assert tabs_match[1] == "ml-recommendations", f"Second tab should be ml-recommendations, got {tabs_match[1]}"
+print("✓ [PASS] Hardware & Scan is tab 1, and AI Recommendations is tab 2 in subnav!")
 
 # Check 3: Hero actions contain Download Scanner and Scan buttons
 hero_match = re.search(r'class="cyber-hero-actions"[\s\S]*?</div>', html)
